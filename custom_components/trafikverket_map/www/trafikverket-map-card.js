@@ -12,6 +12,7 @@
  *   show_weather: true
  *   dark_mode: false               # optional: true | false | auto – overrides the
  *                                  # "Map style" setting of the integration
+ *   zoom_margin_km: 10             # start view = radius + this margin (km)
  *   tile_url: https://tile.openstreetmap.org/{z}/{x}/{y}.png   # optional
  *
  * Leaflet is loaded from unpkg.com the first time the card is shown.
@@ -62,7 +63,7 @@ function fmtTime(iso) {
 class TrafikverketMapCard extends HTMLElement {
   setConfig(config) {
     this._config = {
-      height: 450, show_flow: true, show_road: true, show_weather: true,
+      height: 450, show_flow: true, show_road: true, show_weather: true, zoom_margin_km: 10,
       tile_url: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
       ...config,
     };
@@ -205,7 +206,9 @@ class TrafikverketMapCard extends HTMLElement {
   _fitArea(animate = false) {
     if (!this._map || !this._area) return;
     const { center, radiusKm } = this._area;
-    this._map.fitBounds(this._L.latLng(center).toBounds(radiusKm * 2000), { padding: [8, 8], animate });
+    const margin = Math.max(0, Number(this._config.zoom_margin_km) || 0);
+    const viewKm = radiusKm + margin; // e.g. 10 km radius -> show 20 km around home
+    this._map.fitBounds(this._L.latLng(center).toBounds(viewKm * 2000), { padding: [0, 0], animate });
   }
 
   _scheduleUpdate() {

@@ -91,9 +91,10 @@ height: 450
 | `entry` | – | `config_entry_id` om du har flera platser och vill visa en specifik |
 | `show_flow` / `show_road` / `show_weather` | `true` | Visa/dölj lager |
 | `dark_mode` | – | `true`, `false` eller `auto`. Utelämna för att följa inställningen **Kartstil** i integrationen. |
+| `zoom_margin_km` | `10` | Startvyn visar inställd radie plus så här många km runt hemmet |
 | `tile_url` | OpenStreetMap | Egen kartserver |
 
-Knappen ⌖ under +/– (eller ett klick på hemmarkören) zoomar tillbaka till det inställda området. Kartan zoomar också om automatiskt när du ändrar plats eller radie.
+Kartan startar utzoomad till inställd radie + 10 km (t.ex. 20 km runt hemmet vid 10 km radie), så att hela området och lite omgivning syns. Knappen ⌖ under +/– (eller ett klick på hemmarkören) går tillbaka till samma vy, och kartan zoomar om automatiskt när du ändrar plats eller radie.
 
 Kortet laddar kartbiblioteket Leaflet från `unpkg.com` och kartbilder från OpenStreetMap, så webbläsaren behöver internetåtkomst.
 
