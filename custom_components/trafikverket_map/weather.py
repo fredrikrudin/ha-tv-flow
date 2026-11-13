@@ -48,6 +48,7 @@ class TrafikverketWeather(CoordinatorEntity[TrafikverketCoordinator], WeatherEnt
     def __init__(self, coordinator: TrafikverketCoordinator, entry: TrafikverketConfigEntry) -> None:
         super().__init__(coordinator)
         self._attr_unique_id = f"{entry.entry_id}_weather"
+        self.entity_id = "weather.tv_flow"
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, entry.entry_id)},
             name=entry.title,

@@ -102,18 +102,39 @@ entities:
   - zone.home
 ```
 
-## 5. Entiteter
+## 5. Färdig dashboard
+
+I [`dashboards/tv-flow-dashboard.yaml`](dashboards/tv-flow-dashboard.yaml) finns en komplett dashboard i sektionslayout som bara använder inbyggda kort och integrationens kartkort.
+
+- **Märken** överst med väder, luft- och vägbanetemperatur, medelhastighet och väglag.
+- **Stor trafikkarta** med mätpunkter, väglag och väderstationer.
+- **Läget nu:** varningsruta som bara syns vid besvärligt väglag, rutor för hastighet och flöde, och en lista över de långsammaste mätpunkterna.
+- **Väder vid vägen:** väderkort och rutor för luft, vägbana, vind, nederbörd, sikt och friktion.
+- **Väglag:** sämsta väglag och en lista över besvärliga sträckor med varning och åtgärd.
+- **Historik:** hastighet och temperaturer senaste dygnet, trafikflöde senaste veckan.
+- **Datamängd:** hur mycket som hämtas och aktuella inställningar.
+
+**Så lägger du till den:**
+
+1. **Inställningar → Instrumentpaneler → Lägg till instrumentpanel → Ny instrumentpanel från grunden**, ge den t.ex. namnet *Trafik*.
+2. Öppna den, klicka **✏️ Redigera → ⋮ → Rå konfigurationsredigerare**.
+3. Ersätt allt med innehållet i `tv-flow-dashboard.yaml` och klicka **Spara**.
+
+## 6. Entiteter
+
+Entiteterna får fasta id:n oavsett språk. Lägger du till fler platser får de `_2`, `_3` osv.
 
 | Entitet | Beskrivning |
 |---|---|
-| `sensor.*_matpunkter` | Antal mätpunkter i radien |
-| `sensor.*_totalt_trafikflode` | Summa fordon/h |
-| `sensor.*_medelhastighet` | Flödesviktad medelhastighet |
-| `sensor.*_lagsta_hastighet` | Lägsta medelhastighet bland mätpunkterna (köindikator) |
-| `sensor.*_vaglag` | Sämsta väglaget i radien |
-| `sensor.*_besvarliga_vaglag` | Antal sträckor med besvärligt väglag |
-| `weather.*_lokalt_vader` | Närmaste vägväderstation. Trafikverket mäter nederbördstyp men inte molnighet, så väderläget utan nederbörd är en uppskattning (dimma vid sikt < 1 km, annars växlande/mulet). |
-| `sensor.*_lufttemperatur`, `_vagbanetemperatur`, `_luftfuktighet`, `_vindhastighet`, `_vindriktning`, `_nederbord`, `_nederbord_30_min`, `_sikt`, `_friktion` | Väder från närmaste station |
+| `sensor.tv_flow_flow_sites` | Antal mätpunkter i radien (har även hemposition och radie som attribut) |
+| `sensor.tv_flow_total_flow` | Summa fordon/h |
+| `sensor.tv_flow_average_speed` | Flödesviktad medelhastighet |
+| `sensor.tv_flow_lowest_speed` | Lägsta medelhastighet bland mätpunkterna (köindikator) |
+| `sensor.tv_flow_road_condition` | Sämsta väglaget i radien |
+| `sensor.tv_flow_road_condition_count` | Antal sträckor med besvärligt väglag |
+| `weather.tv_flow` | Lokalt väder från närmaste vägväderstation. Trafikverket mäter nederbördstyp men inte molnighet, så väderläget utan nederbörd är en uppskattning (dimma vid sikt < 1 km, annars växlande/mulet). |
+| `sensor.tv_flow_air_temperature`, `_surface_temperature`, `_humidity`, `_wind_speed`, `_wind_direction`, `_precipitation`, `_precipitation_30min`, `_visibility`, `_grip` | Väder från närmaste station |
+| `sensor.tv_flow_data_usage`, `sensor.tv_flow_response_size` | Diagnostik: hämtad datamängd |
 | `geo_location.trafikflode_<id>` | En per mätpunkt (tillstånd = avstånd i km) |
 | `geo_location.vaglag_*` | En per väglagssträcka |
 | `geo_location.vaderstation_*` | En per väderstation |
@@ -123,7 +144,7 @@ Exempel på automation – varna för halka:
 ```yaml
 trigger:
   - platform: state
-    entity_id: sensor.trafik_jarvso_vaglag
+    entity_id: sensor.tv_flow_road_condition
     to: "Is- och snövägbana"
 action:
   - service: notify.mobile_app_telefon

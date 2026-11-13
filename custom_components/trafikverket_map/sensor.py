@@ -192,6 +192,8 @@ class TrafikverketSensor(_Base):
         super().__init__(coordinator, entry)
         self.entity_description = description
         self._attr_unique_id = f"{entry.entry_id}_{description.key}"
+        # Stable, language independent entity ids (HA adds _2, _3 … for more locations)
+        self.entity_id = f"sensor.tv_flow_{description.key}"
 
     @property
     def native_value(self) -> Any:
@@ -243,6 +245,7 @@ class TrafikverketDataUsageSensor(_Base):
     def __init__(self, coordinator, entry) -> None:
         super().__init__(coordinator, entry)
         self._attr_unique_id = f"{entry.entry_id}_data_usage"
+        self.entity_id = "sensor.tv_flow_data_usage"
 
     @property
     def native_value(self) -> float:
