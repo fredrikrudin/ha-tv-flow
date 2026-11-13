@@ -1,0 +1,13 @@
+{
+  "domain": "trafikverket_map",
+  "name": "Trafikverket Trafikkarta",
+  "codeowners": ["@fredrikrudin"],
+  "config_flow": true,
+  "dependencies": ["frontend", "http"],
+  "documentation": "https://github.com/fredrikrudin/ha-tv-flow",
+  "integration_type": "service",
+  "iot_class": "cloud_polling",
+  "issue_tracker": "https://github.com/fredrikrudin/ha-tv-flow/issues",
+  "requirements": [],
+  "version": "1.0.0"
+}

@@ -1,0 +1,205 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Steg 1 av 4 – Trafikverkets API-konto",
+        "description": "Integrationen hämtar data från Trafikverkets öppna API. Du behöver en gratis API-nyckel:\n\n1. Gå till {portal} och klicka **Logga in / Registrera** (Trafiklab-konto).\n2. Bekräfta e-postadressen och logga in.\n3. Skapa en ny nyckel under **Mina nycklar** och kopiera den hit.\n\nNyckeln kontrolleras direkt mot Trafikverket.",
+        "data": {
+          "api_key": "API-nyckel",
+          "name": "Namn på integrationen"
+        },
+        "data_description": {
+          "name": "Visas som enhetsnamn. Lämna orört så används ortnamnet."
+        }
+      },
+      "location": {
+        "title": "Steg 2 av 4 – Var ska trafiken visas?",
+        "description": "Välj hur du vill ange platsen som radien räknas från.",
+        "menu_options": {
+          "search": "Sök efter ort eller adress",
+          "map": "Välj på karta"
+        }
+      },
+      "search": {
+        "title": "Sök ort",
+        "description": "Skriv en ort, adress eller plats i Sverige, t.ex. *Järvsö* eller *Storgatan 1, Sundsvall*.",
+        "data": {
+          "place": "Ort / adress"
+        }
+      },
+      "pick": {
+        "title": "Välj rätt träff",
+        "description": "Flera platser matchade sökningen.",
+        "data": {
+          "choice": "Plats"
+        }
+      },
+      "map": {
+        "title": "Steg 3 av 4 – Plats och radie",
+        "description": "Vald plats: **{place}**. Flytta markören vid behov och dra i cirkeln, eller skriv radien i km. Allt inom cirkeln visas på kartan.",
+        "data": {
+          "location": "Position och radie",
+          "radius_km": "Radie (km)"
+        }
+      },
+      "settings": {
+        "title": "Steg 4 av 4 – Datamängd och uppdatering",
+        "description": "Begränsa hur ofta och hur mycket data som hämtas. Allt kan ändras senare under Konfigurera.",
+        "data": {
+          "scan_interval_min": "Uppdateringsintervall (minuter)",
+          "enable_traffic_flow": "Hämta trafikflöden",
+          "enable_road_condition": "Hämta väglag",
+          "enable_weather": "Hämta väder från vägväderstationer",
+          "weather_radius_km": "Radie för väderstationer (km)",
+          "max_objects": "Max antal objekt per fråga",
+          "max_age_min": "Ignorera mätningar äldre än (minuter)",
+          "minimal_fields": "Hämta bara de fält som används"
+        },
+        "data_description": {
+          "scan_interval_min": "Hur ofta data hämtas. Trafikverket uppdaterar flöden ungefär varje minut och väder var 10:e minut. 5–15 min räcker oftast.",
+          "weather_radius_km": "Närmaste station används som lokalt väder, så radien kan vara större än för trafiken.",
+          "max_objects": "Övre gräns för antal poster per datatyp och hämtning.",
+          "max_age_min": "Mätpunkter som inte rapporterat på så här länge visas inte.",
+          "minimal_fields": "Minskar datamängden kraftigt. Stäng av bara om API:et klagar på fält."
+        }
+      },
+      "reauth_confirm": {
+        "title": "Ny API-nyckel",
+        "description": "API-nyckeln fungerar inte längre. Skapa en ny på {portal}.",
+        "data": {
+          "api_key": "API-nyckel"
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "Ogiltig API-nyckel – kontrollera att hela nyckeln är inklistrad.",
+      "cannot_connect": "Kunde inte ansluta till Trafikverket. Försök igen om en stund.",
+      "no_results": "Hittade ingen plats med det namnet. Prova en annan stavning eller välj på kartan."
+    },
+    "abort": {
+      "already_configured": "Den här platsen är redan konfigurerad.",
+      "reauth_successful": "API-nyckeln är uppdaterad."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Inställningar",
+        "description": "Vad vill du ändra?",
+        "menu_options": {
+          "search": "Sök efter ort eller adress",
+          "map": "Välj på karta",
+          "settings": "Datamängd och uppdateringsintervall"
+        }
+      },
+      "search": {
+        "title": "Sök ort",
+        "description": "Skriv en ort, adress eller plats i Sverige, t.ex. *Järvsö* eller *Storgatan 1, Sundsvall*.",
+        "data": {
+          "place": "Ort / adress"
+        }
+      },
+      "pick": {
+        "title": "Välj rätt träff",
+        "description": "Flera platser matchade sökningen.",
+        "data": {
+          "choice": "Plats"
+        }
+      },
+      "map": {
+        "title": "Plats och radie",
+        "description": "Vald plats: **{place}**. Flytta markören vid behov och dra i cirkeln, eller skriv radien i km. Allt inom cirkeln visas på kartan.",
+        "data": {
+          "location": "Position och radie",
+          "radius_km": "Radie (km)"
+        }
+      },
+      "settings": {
+        "title": "Datamängd och uppdatering",
+        "description": "Begränsa hur ofta och hur mycket data som hämtas. Allt kan ändras senare under Konfigurera.",
+        "data": {
+          "scan_interval_min": "Uppdateringsintervall (minuter)",
+          "enable_traffic_flow": "Hämta trafikflöden",
+          "enable_road_condition": "Hämta väglag",
+          "enable_weather": "Hämta väder från vägväderstationer",
+          "weather_radius_km": "Radie för väderstationer (km)",
+          "max_objects": "Max antal objekt per fråga",
+          "max_age_min": "Ignorera mätningar äldre än (minuter)",
+          "minimal_fields": "Hämta bara de fält som används"
+        },
+        "data_description": {
+          "scan_interval_min": "Hur ofta data hämtas. Trafikverket uppdaterar flöden ungefär varje minut och väder var 10:e minut. 5–15 min räcker oftast.",
+          "weather_radius_km": "Närmaste station används som lokalt väder, så radien kan vara större än för trafiken.",
+          "max_objects": "Övre gräns för antal poster per datatyp och hämtning.",
+          "max_age_min": "Mätpunkter som inte rapporterat på så här länge visas inte.",
+          "minimal_fields": "Minskar datamängden kraftigt. Stäng av bara om API:et klagar på fält."
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "Ogiltig API-nyckel – kontrollera att hela nyckeln är inklistrad.",
+      "cannot_connect": "Kunde inte ansluta till Trafikverket. Försök igen om en stund.",
+      "no_results": "Hittade ingen plats med det namnet. Prova en annan stavning eller välj på kartan."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "flow_sites": {
+        "name": "Mätpunkter"
+      },
+      "total_flow": {
+        "name": "Totalt trafikflöde"
+      },
+      "average_speed": {
+        "name": "Medelhastighet"
+      },
+      "lowest_speed": {
+        "name": "Lägsta hastighet"
+      },
+      "road_condition": {
+        "name": "Väglag"
+      },
+      "road_condition_count": {
+        "name": "Besvärliga väglag"
+      },
+      "air_temperature": {
+        "name": "Lufttemperatur"
+      },
+      "surface_temperature": {
+        "name": "Vägbanetemperatur"
+      },
+      "humidity": {
+        "name": "Luftfuktighet"
+      },
+      "wind_speed": {
+        "name": "Vindhastighet"
+      },
+      "wind_direction": {
+        "name": "Vindriktning"
+      },
+      "precipitation": {
+        "name": "Nederbörd"
+      },
+      "precipitation_30min": {
+        "name": "Nederbörd 30 min"
+      },
+      "visibility": {
+        "name": "Sikt"
+      },
+      "grip": {
+        "name": "Friktion"
+      },
+      "response_size": {
+        "name": "Senaste svarsstorlek"
+      },
+      "data_usage": {
+        "name": "Hämtad datamängd"
+      }
+    },
+    "weather": {
+      "local_weather": {
+        "name": "Lokalt väder"
+      }
+    }
+  }
+}

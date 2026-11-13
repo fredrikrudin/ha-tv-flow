@@ -1,0 +1,205 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Step 1 of 4 – Trafikverket API account",
+        "description": "This integration uses Trafikverket's open API. You need a free API key:\n\n1. Go to {portal} and click **Log in / Register** (Trafiklab account).\n2. Confirm your e-mail address and log in.\n3. Create a new key under **My keys** and paste it here.\n\nThe key is checked against Trafikverket right away.",
+        "data": {
+          "api_key": "API key",
+          "name": "Integration name"
+        },
+        "data_description": {
+          "name": "Shown as the device name. Leave unchanged to use the place name."
+        }
+      },
+      "location": {
+        "title": "Step 2 of 4 – Where should traffic be shown?",
+        "description": "Choose how to set the position the radius is measured from.",
+        "menu_options": {
+          "search": "Search for a town or address",
+          "map": "Pick on a map"
+        }
+      },
+      "search": {
+        "title": "Search place",
+        "description": "Type a town, address or place in Sweden, e.g. *Järvsö*.",
+        "data": {
+          "place": "Town / address"
+        }
+      },
+      "pick": {
+        "title": "Pick the right match",
+        "description": "Several places matched.",
+        "data": {
+          "choice": "Place"
+        }
+      },
+      "map": {
+        "title": "Step 3 of 4 – Position and radius",
+        "description": "Selected place: **{place}**. Move the marker if needed and drag the circle, or type the radius in km.",
+        "data": {
+          "location": "Position and radius",
+          "radius_km": "Radius (km)"
+        }
+      },
+      "settings": {
+        "title": "Step 4 of 4 – Data amount and updates",
+        "description": "Limit how often and how much data is fetched. Everything can be changed later under Configure.",
+        "data": {
+          "scan_interval_min": "Update interval (minutes)",
+          "enable_traffic_flow": "Fetch traffic flow",
+          "enable_road_condition": "Fetch road conditions",
+          "enable_weather": "Fetch weather from road weather stations",
+          "weather_radius_km": "Radius for weather stations (km)",
+          "max_objects": "Max objects per query",
+          "max_age_min": "Ignore measurements older than (minutes)",
+          "minimal_fields": "Only fetch the fields that are used"
+        },
+        "data_description": {
+          "scan_interval_min": "How often data is fetched. 5–15 minutes is usually enough.",
+          "weather_radius_km": "The nearest station is used as local weather.",
+          "max_objects": "Upper limit of records per data type and fetch.",
+          "max_age_min": "Sites that have not reported for this long are hidden.",
+          "minimal_fields": "Greatly reduces the amount of data. Turn off only if the API complains."
+        }
+      },
+      "reauth_confirm": {
+        "title": "New API key",
+        "description": "The API key no longer works. Create a new one at {portal}.",
+        "data": {
+          "api_key": "API key"
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "Invalid API key.",
+      "cannot_connect": "Could not connect to Trafikverket.",
+      "no_results": "No place found. Try another spelling or pick on the map."
+    },
+    "abort": {
+      "already_configured": "This location is already configured.",
+      "reauth_successful": "API key updated."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Settings",
+        "description": "What do you want to change?",
+        "menu_options": {
+          "search": "Search for a town or address",
+          "map": "Pick on a map",
+          "settings": "Data amount and update interval"
+        }
+      },
+      "search": {
+        "title": "Search place",
+        "description": "Type a town, address or place in Sweden, e.g. *Järvsö*.",
+        "data": {
+          "place": "Town / address"
+        }
+      },
+      "pick": {
+        "title": "Pick the right match",
+        "description": "Several places matched.",
+        "data": {
+          "choice": "Place"
+        }
+      },
+      "map": {
+        "title": "Position and radius",
+        "description": "Selected place: **{place}**. Move the marker if needed and drag the circle, or type the radius in km.",
+        "data": {
+          "location": "Position and radius",
+          "radius_km": "Radius (km)"
+        }
+      },
+      "settings": {
+        "title": "Data amount and updates",
+        "description": "Limit how often and how much data is fetched. Everything can be changed later under Configure.",
+        "data": {
+          "scan_interval_min": "Update interval (minutes)",
+          "enable_traffic_flow": "Fetch traffic flow",
+          "enable_road_condition": "Fetch road conditions",
+          "enable_weather": "Fetch weather from road weather stations",
+          "weather_radius_km": "Radius for weather stations (km)",
+          "max_objects": "Max objects per query",
+          "max_age_min": "Ignore measurements older than (minutes)",
+          "minimal_fields": "Only fetch the fields that are used"
+        },
+        "data_description": {
+          "scan_interval_min": "How often data is fetched. 5–15 minutes is usually enough.",
+          "weather_radius_km": "The nearest station is used as local weather.",
+          "max_objects": "Upper limit of records per data type and fetch.",
+          "max_age_min": "Sites that have not reported for this long are hidden.",
+          "minimal_fields": "Greatly reduces the amount of data. Turn off only if the API complains."
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "Invalid API key.",
+      "cannot_connect": "Could not connect to Trafikverket.",
+      "no_results": "No place found. Try another spelling or pick on the map."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "flow_sites": {
+        "name": "Measurement sites"
+      },
+      "total_flow": {
+        "name": "Total traffic flow"
+      },
+      "average_speed": {
+        "name": "Average speed"
+      },
+      "lowest_speed": {
+        "name": "Lowest speed"
+      },
+      "road_condition": {
+        "name": "Road condition"
+      },
+      "road_condition_count": {
+        "name": "Difficult road conditions"
+      },
+      "air_temperature": {
+        "name": "Air temperature"
+      },
+      "surface_temperature": {
+        "name": "Road surface temperature"
+      },
+      "humidity": {
+        "name": "Humidity"
+      },
+      "wind_speed": {
+        "name": "Wind speed"
+      },
+      "wind_direction": {
+        "name": "Wind direction"
+      },
+      "precipitation": {
+        "name": "Precipitation"
+      },
+      "precipitation_30min": {
+        "name": "Precipitation 30 min"
+      },
+      "visibility": {
+        "name": "Visibility"
+      },
+      "grip": {
+        "name": "Grip"
+      },
+      "response_size": {
+        "name": "Last response size"
+      },
+      "data_usage": {
+        "name": "Downloaded data"
+      }
+    },
+    "weather": {
+      "local_weather": {
+        "name": "Local weather"
+      }
+    }
+  }
+}
