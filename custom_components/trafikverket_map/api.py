@@ -97,7 +97,9 @@ class TrafikverketClient:
             weather=weather,
             limit=limit,
             minimal=minimal,
+            max_age_min=int(max_age.total_seconds() // 60),
         )
+        _LOGGER.debug("Trafikverket request: %s", body.replace(self._api_key, "***"))
         payload, size = await self._post(body)
         try:
             data = parse_response(
@@ -108,6 +110,8 @@ class TrafikverketClient:
                 raise TrafikverketAuthError(str(err)) from err
             raise TrafikverketError(str(err)) from err
         data.response_bytes = size
+        for objtype, msg in data.errors.items():
+            _LOGGER.warning("Trafikverket gav fel för %s: %s", objtype, msg)
         _LOGGER.debug(
             "Trafikverket: %s bytes, raw=%s, flow=%d road=%d weather=%d",
             size,

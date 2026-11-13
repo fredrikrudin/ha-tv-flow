@@ -173,6 +173,7 @@ class TrafikverketData:
     fetched_at: datetime | None = None
     response_bytes: int = 0
     raw_counts: dict[str, int] = field(default_factory=dict)
+    errors: dict[str, str] = field(default_factory=dict)
 
     @property
     def nearest_weather(self) -> WeatherStation | None:
@@ -196,12 +197,14 @@ def _query(
     limit: int,
     fields: list[str] | None,
     extra_filter: str = "",
+    orderby: str | None = None,
 ) -> str:
     objecttype, namespace, schema = obj
     include = "".join(f"<INCLUDE>{f}</INCLUDE>" for f in fields) if fields else ""
+    order = f' orderby="{orderby}"' if orderby else ""
     return (
         f'<QUERY objecttype="{objecttype}" namespace="{namespace}" '
-        f'schemaversion="{schema}" limit="{int(limit)}">'
+        f'schemaversion="{schema}" limit="{int(limit)}"{order}>'
         "<FILTER><AND>"
         f'<WITHIN name="{geometry_field}" shape="center" '
         f'value="{lon:.6f} {lat:.6f}" radius="{int(radius_m)}m" />'
@@ -210,6 +213,21 @@ def _query(
         f"{include}"
         "</QUERY>"
     )
+
+
+def timespan(minutes: int) -> str:
+    """Format minutes as Trafikverket's [d.]hh:mm:ss timespan."""
+    minutes = max(1, int(minutes))
+    days, rest = divmod(minutes, 1440)
+    hours, mins = divmod(rest, 60)
+    core = f"{hours:02d}:{mins:02d}:00"
+    return f"{days}.{core}" if days else core
+
+
+# WeatherObservation holds every observation from the last seven days (one
+# every 5–10 minutes per station), so only ask for the most recent ones.
+WEATHER_WINDOW_MAX_MIN = 60
+WEATHER_LIMIT_MIN = 200
 
 
 def build_request(
@@ -224,6 +242,7 @@ def build_request(
     weather: bool,
     limit: int,
     minimal: bool,
+    max_age_min: int = 60,
 ) -> tuple[str, list[str]]:
     """Build one XML request with one QUERY per enabled object type.
 
@@ -246,11 +265,14 @@ def build_request(
         )
         order.append("RoadCondition")
     if weather:
+        window = min(max(int(max_age_min), 15), WEATHER_WINDOW_MAX_MIN)
         queries.append(
             _query(WEATHER_OBJECT, "Measurepoint.Geometry.WGS84", lat, lon,
-                   weather_radius_m, max(10, min(limit, 50)),
+                   weather_radius_m, max(WEATHER_LIMIT_MIN, limit),
                    WEATHER_FIELDS if minimal else None,
-                   '<EQ name="Deleted" value="false" />')
+                   '<EQ name="Deleted" value="false" />'
+                   f'<GT name="Sample" value="$dateadd(-{timespan(window)})" />',
+                   orderby="Sample desc")
         )
         order.append("WeatherObservation")
 
@@ -371,16 +393,25 @@ class TrafikverketResponseError(Exception):
         self.auth = auth
 
 
+def _error_of(res: Any) -> TrafikverketResponseError | None:
+    err = res.get("ERROR") if isinstance(res, dict) else None
+    if not err:
+        return None
+    msg = f"{err.get('SOURCE', '')}: {err.get('MESSAGE', '')}".strip(": ")
+    low = msg.lower()
+    auth = "authenticat" in low or "login" in low or "invalid key" in low
+    return TrafikverketResponseError(msg or "Okänt fel", auth=auth)
+
+
 def check_errors(payload: dict[str, Any]) -> None:
-    """Raise if the response contains an ERROR element."""
-    resp = payload.get("RESPONSE", {})
-    results = resp.get("RESULT", []) or []
+    """Raise if any result is an ERROR (used for non-200 responses)."""
+    results = payload.get("RESPONSE", {}).get("RESULT", []) or []
     for res in results:
-        err = res.get("ERROR") if isinstance(res, dict) else None
+        err = _error_of(res)
         if err:
-            msg = f"{err.get('SOURCE', '')}: {err.get('MESSAGE', '')}".strip(": ")
-            auth = "auth" in msg.lower() or "login" in msg.lower()
-            raise TrafikverketResponseError(msg or "Okänt fel", auth=auth)
+            raise err
+    if not results and payload.get("RESPONSE", {}).get("ERROR"):
+        raise _error_of(payload["RESPONSE"]) or TrafikverketResponseError("Okänt fel")
 
 
 def parse_flow(
@@ -591,12 +622,18 @@ def parse_response(
     now: datetime | None = None,
 ) -> TrafikverketData:
     """Parse a complete multi-query response."""
-    check_errors(payload)
     now = now or datetime.now(timezone.utc)
     results = payload.get("RESPONSE", {}).get("RESULT", []) or []
     data = TrafikverketData(fetched_at=now)
+    failed: list[TrafikverketResponseError] = []
     for idx, objtype in enumerate(order):
         res = results[idx] if idx < len(results) else {}
+        err = _error_of(res)
+        if err:
+            # One failing data set (e.g. weather) must not hide the others.
+            failed.append(err)
+            data.errors[objtype] = str(err)
+            continue
         records = res.get(objtype, []) if isinstance(res, dict) else []
         data.raw_counts[objtype] = len(records)
         if objtype == "TrafficFlow":
@@ -605,4 +642,7 @@ def parse_response(
             data.road_conditions = parse_road(records, home, radius_km, now)
         elif objtype == "WeatherObservation":
             data.weather_stations = parse_weather(records, home, weather_radius_km, max_age, now)
+    if failed and len(failed) == len(order):
+        auth = next((e for e in failed if e.auth), None)
+        raise auth or failed[0]
     return data

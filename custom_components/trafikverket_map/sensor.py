@@ -254,4 +254,10 @@ class TrafikverketDataUsageSensor(_Base):
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
-        return {"requests": self.coordinator.request_count}
+        d = self.coordinator.data
+        return {
+            "requests": self.coordinator.request_count,
+            "raw_counts": d.raw_counts if d else {},
+            "errors": d.errors if d else {},
+            "weather_stations": len(d.weather_stations) if d else 0,
+        }

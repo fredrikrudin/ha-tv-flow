@@ -31,8 +31,38 @@ assert s.total_flow == 800 and s.average_speed == 70.0 and s.min_speed == 40.0 a
 assert [r.id for r in d.road_conditions] == ["RC1","RC3"] and len(d.road_conditions[1].lines) == 2
 w = d.nearest_weather
 assert w.name=="Järvsö" and w.air_temperature==-2.3 and w.wind_speed==3.5 and w.wind_direction==220 and w.ice is True and w.grip==0.42 and w.precipitation_30min==0.4
+# --- weather query asks only for recent samples, newest first
+assert p.timespan(60) == "01:00:00" and p.timespan(15) == "00:15:00" and p.timespan(1500) == "1.01:00:00"
+wq = body[body.index('objecttype="WeatherObservation"')-7:]
+assert 'orderby="Sample desc"' in wq and '<GT name="Sample" value="$dateadd(-01:00:00)" />' in wq, wq[:400]
+assert 'limit="300"' in wq
+body2, _ = p.build_request("k", 61.71, 16.17, 1000, 1000, flow=False, road=False, weather=True, limit=20, minimal=True, max_age_min=30)
+assert '$dateadd(-00:30:00)' in body2 and 'limit="200"' in body2
+
+# --- regression: many old observations + a few recent ones -> latest per station is used
+old = [{"Id": f"o{i}", "Sample": f"2026-11-0{1+i%7}T10:00:00+01:00",
+        "Measurepoint": {"Id": 2301, "Name": "Järvsö", "Geometry": {"WGS84": "POINT (16.17 61.71)"}},
+        "Air": {"Temperature": {"Value": 5.0}}} for i in range(100)]
+recent = [{"Id": "n1", "Sample": "2026-11-13T09:20:00+01:00",
+           "Measurepoint": {"Id": 2301, "Name": "Järvsö", "Geometry": {"WGS84": "POINT (16.17 61.71)"}},
+           "Air": {"Temperature": {"Value": -1.0}}},
+          {"Id": "n2", "Sample": "2026-11-13T09:25:00+01:00",
+           "Measurepoint": {"Id": 2301, "Name": "Järvsö", "Geometry": {"WGS84": "POINT (16.17 61.71)"}},
+           "Air": {"Temperature": {"Value": -1.5}}}]
+dw = p.parse_response({"RESPONSE": {"RESULT": [{"WeatherObservation": old + recent}]}},
+                      ["WeatherObservation"], (61.71, 16.17), 10, 30, timedelta(minutes=60), now)
+assert len(dw.weather_stations) == 1 and dw.nearest_weather.air_temperature == -1.5, dw.weather_stations
+
+# --- one failing data set does not hide the others
+mixed = {"RESPONSE": {"RESULT": [payload["RESPONSE"]["RESULT"][0], payload["RESPONSE"]["RESULT"][1],
+                                 {"ERROR": {"SOURCE": "WeatherObservation", "MESSAGE": "Bad filter"}}]}}
+dm = p.parse_response(mixed, order, (61.71, 16.17), 10, 30, timedelta(minutes=60), now)
+assert dm.flow_sites and dm.road_conditions and not dm.weather_stations
+assert "WeatherObservation" in dm.errors and "Bad filter" in dm.errors["WeatherObservation"]
+
+# --- all failing with auth error -> auth exception
 try:
-    p.parse_response({"RESPONSE":{"RESULT":[{"ERROR":{"SOURCE":"Request","MESSAGE":"Invalid authentication"}}]}}, order, (0,0),1,1,timedelta(1))
+    p.parse_response({"RESPONSE":{"RESULT":[{"ERROR":{"SOURCE":"Request","MESSAGE":"Invalid authentication"}}]}}, ["RoadCondition"], (0,0),1,1,timedelta(1))
     raise SystemExit("no error")
 except p.TrafikverketResponseError as e:
     assert e.auth
