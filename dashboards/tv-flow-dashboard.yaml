@@ -14,7 +14,7 @@ views:
     path: trafik
     icon: mdi:car-traffic
     type: sections
-    max_columns: 3
+    max_columns: 4
     badges:
       - type: entity
         entity: weather.tv_flow
@@ -43,100 +43,6 @@ views:
         color: amber
 
     sections:
-      # ------------------------------------------------------------------ Karta
-      - type: grid
-        column_span: 2
-        cards:
-          - type: heading
-            heading: Trafikkarta
-            heading_style: title
-            icon: mdi:map-marker-radius
-            badges:
-              - type: entity
-                entity: sensor.tv_flow_flow_sites
-                show_state: true
-                show_icon: true
-                color: blue
-          - type: custom:trafikverket-map-card
-            height: 560
-            show_flow: true
-            show_road: true
-            show_weather: true
-            grid_options:
-              columns: full
-              rows: auto
-
-      # ------------------------------------------------------------- Läget nu
-      - type: grid
-        cards:
-          - type: heading
-            heading: Läget nu
-            icon: mdi:car-clock
-
-          # Varning som bara syns när väglaget inte är normalt
-          - type: conditional
-            conditions:
-              - condition: state
-                entity: sensor.tv_flow_road_condition
-                state_not: Normalt
-              - condition: state
-                entity: sensor.tv_flow_road_condition
-                state_not: Inga uppgifter
-            card:
-              type: markdown
-              content: >-
-                <ha-alert alert-type="warning" title="{{ states('sensor.tv_flow_road_condition') }}">
-                {%- set w = state_attr('sensor.tv_flow_road_condition', 'warnings') or [] %}
-                {%- set c = state_attr('sensor.tv_flow_road_condition', 'causes') or [] %}
-                {{ states('sensor.tv_flow_road_condition_count') }} sträckor med besvärligt väglag.
-                {%- if w %} Varning: {{ w | join(', ') }}.{% endif %}
-                {%- if c %} Orsak: {{ c | join(', ') | lower }}.{% endif %}
-                </ha-alert>
-            grid_options:
-              columns: full
-
-          - type: tile
-            entity: sensor.tv_flow_average_speed
-            name: Medelhastighet
-            icon: mdi:speedometer
-            color: green
-          - type: tile
-            entity: sensor.tv_flow_lowest_speed
-            name: Lägsta hastighet
-            icon: mdi:speedometer-slow
-            color: red
-          - type: tile
-            entity: sensor.tv_flow_total_flow
-            name: Trafikflöde
-            icon: mdi:car-multiple
-            color: indigo
-          - type: tile
-            entity: sensor.tv_flow_flow_sites
-            name: Mätpunkter
-            icon: mdi:map-marker-multiple
-            color: blue
-
-          - type: markdown
-            title: Långsammast just nu
-            content: |-
-              {%- set sites = states.geo_location
-                  | selectattr('attributes.tv_type', 'defined')
-                  | selectattr('attributes.tv_type', 'eq', 'flow')
-                  | selectattr('attributes.average_speed', 'number')
-                  | sort(attribute='attributes.average_speed') | list %}
-              {%- if sites %}
-              | | Mätpunkt | km/h | fordon/h | Avstånd |
-              |:-:|:--|--:|--:|--:|
-              {% for s in sites[:6] -%}
-              {%- set v = s.attributes.average_speed -%}
-              | {{ '🔴' if v < 30 else '🟠' if v < 50 else '🟡' if v < 70 else '🟢' }} | {{ s.attributes.site_id }} | {{ v | round(0) | int }} | {{ s.attributes.flow }} | {{ s.state }} km |
-              {% endfor %}
-              {%- else %}
-              Inga mätpunkter med hastighet inom radien just nu.
-              {%- endif %}
-            grid_options:
-              columns: full
-
       # ----------------------------------------------------------------- Väder
       - type: grid
         cards:
@@ -241,6 +147,100 @@ views:
               {% endfor %}
               {%- else %}
               🟢 Normalt väglag inom radien.
+              {%- endif %}
+            grid_options:
+              columns: full
+
+      # ------------------------------------------------------------------ Karta
+      - type: grid
+        column_span: 2
+        cards:
+          - type: heading
+            heading: Trafikkarta
+            heading_style: title
+            icon: mdi:map-marker-radius
+            badges:
+              - type: entity
+                entity: sensor.tv_flow_flow_sites
+                show_state: true
+                show_icon: true
+                color: blue
+          - type: custom:trafikverket-map-card
+            height: 560
+            show_flow: true
+            show_road: true
+            show_weather: true
+            grid_options:
+              columns: full
+              rows: auto
+
+      # ------------------------------------------------------------- Läget nu
+      - type: grid
+        cards:
+          - type: heading
+            heading: Läget nu
+            icon: mdi:car-clock
+
+          # Varning som bara syns när väglaget inte är normalt
+          - type: conditional
+            conditions:
+              - condition: state
+                entity: sensor.tv_flow_road_condition
+                state_not: Normalt
+              - condition: state
+                entity: sensor.tv_flow_road_condition
+                state_not: Inga uppgifter
+            card:
+              type: markdown
+              content: >-
+                <ha-alert alert-type="warning" title="{{ states('sensor.tv_flow_road_condition') }}">
+                {%- set w = state_attr('sensor.tv_flow_road_condition', 'warnings') or [] %}
+                {%- set c = state_attr('sensor.tv_flow_road_condition', 'causes') or [] %}
+                {{ states('sensor.tv_flow_road_condition_count') }} sträckor med besvärligt väglag.
+                {%- if w %} Varning: {{ w | join(', ') }}.{% endif %}
+                {%- if c %} Orsak: {{ c | join(', ') | lower }}.{% endif %}
+                </ha-alert>
+            grid_options:
+              columns: full
+
+          - type: tile
+            entity: sensor.tv_flow_average_speed
+            name: Medelhastighet
+            icon: mdi:speedometer
+            color: green
+          - type: tile
+            entity: sensor.tv_flow_lowest_speed
+            name: Lägsta hastighet
+            icon: mdi:speedometer-slow
+            color: red
+          - type: tile
+            entity: sensor.tv_flow_total_flow
+            name: Trafikflöde
+            icon: mdi:car-multiple
+            color: indigo
+          - type: tile
+            entity: sensor.tv_flow_flow_sites
+            name: Mätpunkter
+            icon: mdi:map-marker-multiple
+            color: blue
+
+          - type: markdown
+            title: Långsammast just nu
+            content: |-
+              {%- set sites = states.geo_location
+                  | selectattr('attributes.tv_type', 'defined')
+                  | selectattr('attributes.tv_type', 'eq', 'flow')
+                  | selectattr('attributes.average_speed', 'number')
+                  | sort(attribute='attributes.average_speed') | list %}
+              {%- if sites %}
+              | | Mätpunkt | km/h | fordon/h | Avstånd |
+              |:-:|:--|--:|--:|--:|
+              {% for s in sites[:6] -%}
+              {%- set v = s.attributes.average_speed -%}
+              | {{ '🔴' if v < 30 else '🟠' if v < 50 else '🟡' if v < 70 else '🟢' }} | {{ s.attributes.site_id }} | {{ v | round(0) | int }} | {{ s.attributes.flow }} | {{ s.state }} km |
+              {% endfor %}
+              {%- else %}
+              Inga mätpunkter med hastighet inom radien just nu.
               {%- endif %}
             grid_options:
               columns: full
