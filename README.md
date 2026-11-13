@@ -7,6 +7,7 @@ Custom integration för Home Assistant som hämtar **trafikflöden**, **väglag*
 - 🌡️ **Lokalt väder** (WeatherObservation 2.1) – närmaste vägväderstation som `weather`-entitet och sensorer (luft- och vägbanetemperatur, vind, nederbörd, sikt, friktion).
 - 📍 **Valfri radie** runt hemmet eller en sökt ort.
 - 📉 **Begränsad datamängd** – du väljer uppdateringsintervall, max antal objekt, vilka datatyper som hämtas och att bara nödvändiga fält skickas. Allt hämtas i **ett** anrop per intervall.
+- 🛒 **Installeras via Marketplace** (Home Assistant 2026.11+) eller HACS.
 - 🧭 **Installationsguide** i flera steg: API-nyckel → sök ort eller välj på karta → radie → datamängd.
 
 ---
@@ -20,13 +21,23 @@ Custom integration för Home Assistant som hämtar **trafikflöden**, **väglag*
 
 ## 2. Installera integrationen
 
-### Alternativ A – HACS (rekommenderas)
+### Alternativ A – Marketplace (Home Assistant 2026.11 och senare, rekommenderas)
 
-1. Öppna **HACS** i Home Assistant.
-2. Menyn (⋮) uppe till höger → **Custom repositories**.
-3. Lägg till `https://github.com/fredrikrudin/ha-tv-flow` med typen **Integration**.
-4. Sök efter **Trafikverket Trafikkarta** i HACS och klicka **Download**.
-5. **Starta om Home Assistant.**
+1. Gå till **Inställningar → Marketplace**.
+2. Välj **Lägg till från länk** (*Add from link*) uppe till höger.
+3. Ange `fredrikrudin/ha-tv-flow` (eller hela GitHub-adressen) och välj **Lägg till**. Frågar den efter typ väljer du **Integration**.
+4. Installera **Trafikverket Trafikkarta** och starta om Home Assistant (via reparationen under **Inställningar → System → Reparationer**).
+5. Fortsätt med installationsguiden nedan.
+
+Första gången kräver Marketplace att du godkänner en riskinformation och kopplar ett GitHub-konto.
+
+### Alternativ A2 – HACS (äldre Home Assistant än 2026.11)
+
+1. Öppna **HACS** → menyn (⋮) → **Custom repositories**.
+2. Lägg till `https://github.com/fredrikrudin/ha-tv-flow` med typen **Integration**.
+3. Sök efter **Trafikverket Trafikkarta**, klicka **Download** och starta om Home Assistant.
+
+Uppgraderar du senare till 2026.11 flyttas installationen automatiskt över till Marketplace.
 
 ### Alternativ B – manuellt
 
