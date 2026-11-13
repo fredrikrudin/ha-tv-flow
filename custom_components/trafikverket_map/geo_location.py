@@ -180,7 +180,7 @@ class GeoManager:
         for rc in data.road_conditions:
             wanted[f"road_{rc.id}"] = (RoadEntity, rc)
         for ws in data.weather_stations:
-            wanted[f"weather_{ws.station_id or ws.id}"] = (WeatherStationEntity, ws)
+            wanted[f"weather_{ws.id}"] = (WeatherStationEntity, ws)
 
         new: list[TrafikverketGeoEntity] = []
         for key, (cls, item) in wanted.items():

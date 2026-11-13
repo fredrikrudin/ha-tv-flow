@@ -66,4 +66,13 @@ try:
     raise SystemExit("no error")
 except p.TrafikverketResponseError as e:
     assert e.auth
+# --- real API response (Järvsö, 2026-11-13, no ids included) -> 5 stations, latest sample each
+fixture = os.path.join(os.path.dirname(os.path.abspath(__file__)), "fixtures", "weather_jarvso.json")
+real = json.load(open(fixture, encoding="utf-8"))
+dr = p.parse_response(real, ["WeatherObservation"], (61.7095, 16.1717), 10, 30, timedelta(minutes=60),
+                      datetime(2026, 11, 13, 9, 8, tzinfo=timezone.utc))
+assert [w.name for w in dr.weather_stations] == ["Edevågen", "Snäre", "Ljusdal", "Simeå", "Färila"], dr.weather_stations
+assert all(w.sample.minute == 5 for w in dr.weather_stations)
+assert dr.nearest_weather.name == "Edevågen" and dr.nearest_weather.air_temperature == -0.4
+
 print("ALL OK")

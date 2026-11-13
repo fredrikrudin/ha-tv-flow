@@ -579,9 +579,14 @@ def parse_weather(
         if sample and now - sample > max_age:
             continue
         wind = _pick_wind(rec.get("Wind"))
-        key = str(mp.get("Id") or rec.get("Id"))
+        # Station key: measurepoint id, else name + position. Never the
+        # observation Id – that is unique per sample, not per station.
+        if mp.get("Id") is not None:
+            key = f"id:{mp['Id']}"
+        else:
+            key = f"{mp.get('Name') or ''}@{lat:.5f},{lon:.5f}"
         station = WeatherStation(
-            id=str(rec.get("Id") or key),
+            id=key,
             station_id=_int(mp.get("Id")),
             name=str(mp.get("Name") or f"Väderstation {key}"),
             latitude=lat,
