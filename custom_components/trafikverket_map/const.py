@@ -38,4 +38,4 @@ SOURCE_WEATHER = "trafikverket_weather"
 SIGNAL_UPDATE = f"{DOMAIN}_update_{{}}"
 
 CARD_URL = f"/{DOMAIN}/trafikverket-map-card.js"
-CARD_VERSION = "1.0.0"
+CARD_VERSION = "1.0.0-beta"
