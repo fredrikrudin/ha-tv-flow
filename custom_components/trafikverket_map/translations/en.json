@@ -53,14 +53,16 @@
           "weather_radius_km": "Radius for weather stations (km)",
           "max_objects": "Max objects per query",
           "max_age_min": "Ignore measurements older than (minutes)",
-          "minimal_fields": "Only fetch the fields that are used"
+          "minimal_fields": "Only fetch the fields that are used",
+          "map_style": "Map style"
         },
         "data_description": {
           "scan_interval_min": "How often data is fetched. 5–15 minutes is usually enough.",
           "weather_radius_km": "The nearest station is used as local weather.",
           "max_objects": "Upper limit of records per data type and fetch.",
           "max_age_min": "Sites that have not reported for this long are hidden.",
-          "minimal_fields": "Greatly reduces the amount of data. Turn off only if the API complains."
+          "minimal_fields": "Greatly reduces the amount of data. Turn off only if the API complains.",
+          "map_style": "Look of the map in the map card. A dark_mode set on the card takes precedence."
         }
       },
       "reauth_confirm": {
@@ -125,14 +127,16 @@
           "weather_radius_km": "Radius for weather stations (km)",
           "max_objects": "Max objects per query",
           "max_age_min": "Ignore measurements older than (minutes)",
-          "minimal_fields": "Only fetch the fields that are used"
+          "minimal_fields": "Only fetch the fields that are used",
+          "map_style": "Map style"
         },
         "data_description": {
           "scan_interval_min": "How often data is fetched. 5–15 minutes is usually enough.",
           "weather_radius_km": "The nearest station is used as local weather.",
           "max_objects": "Upper limit of records per data type and fetch.",
           "max_age_min": "Sites that have not reported for this long are hidden.",
-          "minimal_fields": "Greatly reduces the amount of data. Turn off only if the API complains."
+          "minimal_fields": "Greatly reduces the amount of data. Turn off only if the API complains.",
+          "map_style": "Look of the map in the map card. A dark_mode set on the card takes precedence."
         }
       }
     },
@@ -199,6 +203,15 @@
     "weather": {
       "local_weather": {
         "name": "Local weather"
+      }
+    }
+  },
+  "selector": {
+    "map_style": {
+      "options": {
+        "light": "Standard OpenStreetMap (light)",
+        "dark": "Dark",
+        "auto": "Follow Home Assistant theme"
       }
     }
   }

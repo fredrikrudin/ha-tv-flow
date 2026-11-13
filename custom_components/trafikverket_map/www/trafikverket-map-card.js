@@ -10,7 +10,8 @@
  *   show_flow: true
  *   show_road: true
  *   show_weather: true
- *   dark_mode: auto                # auto | true | false
+ *   dark_mode: false               # optional: true | false | auto – overrides the
+ *                                  # "Map style" setting of the integration
  *   tile_url: https://tile.openstreetmap.org/{z}/{x}/{y}.png   # optional
  *
  * Leaflet is loaded from unpkg.com the first time the card is shown.
@@ -61,7 +62,7 @@ function fmtTime(iso) {
 class TrafikverketMapCard extends HTMLElement {
   setConfig(config) {
     this._config = {
-      height: 450, show_flow: true, show_road: true, show_weather: true, dark_mode: "auto",
+      height: 450, show_flow: true, show_road: true, show_weather: true,
       tile_url: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
       ...config,
     };
@@ -120,8 +121,12 @@ class TrafikverketMapCard extends HTMLElement {
       .catch((e) => { root.getElementById("map").innerHTML = `<div class="err">${esc(e.message)}</div>`; });
   }
 
-  _isDark() {
-    const m = this._config.dark_mode;
+  _isDark(home) {
+    let m = this._config.dark_mode;
+    if (m === undefined || m === null || m === "") {
+      const style = home?.attributes?.map_style || "light";
+      m = style === "dark" ? true : style === "auto" ? "auto" : false;
+    }
     if (m === true || m === "true") return true;
     if (m === false || m === "false") return false;
     return !!this._hass?.themes?.darkMode;
@@ -190,11 +195,12 @@ class TrafikverketMapCard extends HTMLElement {
     if (!this._map || !this._hass) return;
     const L = this._L;
     const { home, geo } = this._collect();
-    const sig = (home ? home.last_updated : "") + geo.map((s) => s.entity_id + s.last_updated).join("|") + this._isDark();
+    const dark = this._isDark(home);
+    const sig = (home ? home.last_updated : "") + geo.map((s) => s.entity_id + s.last_updated).join("|") + dark;
     if (sig === this._lastSig) return;
     this._lastSig = sig;
 
-    this.shadowRoot.getElementById("map").classList.toggle("dark", this._isDark());
+    this.shadowRoot.getElementById("map").classList.toggle("dark", dark);
     Object.values(this._layers).forEach((l) => l.clearLayers());
 
     if (home) {

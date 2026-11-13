@@ -45,7 +45,7 @@ Custom integration för Home Assistant som hämtar **trafikflöden**, **väglag*
 | 2. Plats | Välj **Sök efter ort eller adress** eller **Välj på karta**. |
 | 2b. Sök | Skriv t.ex. *Järvsö* eller *Storgatan 1, Sundsvall*. Vid flera träffar väljer du rätt i en lista. Ortsökningen använder OpenStreetMap (Nominatim) och görs bara i guiden. |
 | 3. Plats och radie | Finjustera markören, dra i cirkeln eller skriv radien i km. |
-| 4. Datamängd | Uppdateringsintervall, vilka datatyper som hämtas, väderradie, max antal objekt, max ålder på mätningar och "hämta bara nödvändiga fält". |
+| 4. Datamängd | Uppdateringsintervall, vilka datatyper som hämtas, väderradie, max antal objekt, max ålder på mätningar, "hämta bara nödvändiga fält" och kartstil. |
 
 Allt kan ändras i efterhand via **Konfigurera** på integrationen (byt ort, flytta på kartan eller ändra datamängd). Du kan lägga till flera platser, t.ex. hemmet och fritidshuset.
 
@@ -59,6 +59,7 @@ Allt kan ändras i efterhand via **Konfigurera** på integrationen (byt ort, fly
 | Max objekt per fråga | 300 | Övre gräns per datatyp och hämtning. |
 | Max ålder | 60 min | Döljer mätpunkter som slutat rapportera. |
 | Bara nödvändiga fält | på | Minskar svarsstorleken kraftigt. |
+| Kartstil | Standard OpenStreetMap | Ljus standardkarta, mörk (inverterad) eller följ Home Assistant-temat. |
 
 Den diagnostiska sensorn **Hämtad datamängd** visar hur mycket som laddats ner sedan start, och **Senaste svarsstorlek** hur stort varje anrop är – bra för att finjustera.
 
@@ -78,7 +79,7 @@ height: 450
 | `height` | `450` | Höjd i pixlar |
 | `entry` | – | `config_entry_id` om du har flera platser och vill visa en specifik |
 | `show_flow` / `show_road` / `show_weather` | `true` | Visa/dölj lager |
-| `dark_mode` | `auto` | `auto`, `true` eller `false` |
+| `dark_mode` | – | `true`, `false` eller `auto`. Utelämna för att följa inställningen **Kartstil** i integrationen. |
 | `tile_url` | OpenStreetMap | Egen kartserver |
 
 Kortet laddar kartbiblioteket Leaflet från `unpkg.com` och kartbilder från OpenStreetMap, så webbläsaren behöver internetåtkomst.

@@ -216,6 +216,7 @@ class TrafikverketSensor(_Base):
                 "radius_km": s.radius_km,
                 "weather_radius_km": s.weather_radius_km,
                 "scan_interval_min": s.scan_interval_min,
+                "map_style": s.map_style,
             }
         if self.entity_description.group == "weather" and d and d.nearest_weather:
             w = d.nearest_weather

@@ -62,7 +62,6 @@ views:
             show_flow: true
             show_road: true
             show_weather: true
-            dark_mode: auto
             grid_options:
               columns: full
               rows: auto

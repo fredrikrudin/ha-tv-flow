@@ -53,14 +53,16 @@
           "weather_radius_km": "Radie för väderstationer (km)",
           "max_objects": "Max antal objekt per fråga",
           "max_age_min": "Ignorera mätningar äldre än (minuter)",
-          "minimal_fields": "Hämta bara de fält som används"
+          "minimal_fields": "Hämta bara de fält som används",
+          "map_style": "Kartstil"
         },
         "data_description": {
           "scan_interval_min": "Hur ofta data hämtas. Trafikverket uppdaterar flöden ungefär varje minut och väder var 10:e minut. 5–15 min räcker oftast.",
           "weather_radius_km": "Närmaste station används som lokalt väder, så radien kan vara större än för trafiken.",
           "max_objects": "Övre gräns för antal poster per datatyp och hämtning.",
           "max_age_min": "Mätpunkter som inte rapporterat på så här länge visas inte.",
-          "minimal_fields": "Minskar datamängden kraftigt. Stäng av bara om API:et klagar på fält."
+          "minimal_fields": "Minskar datamängden kraftigt. Stäng av bara om API:et klagar på fält.",
+          "map_style": "Utseende på kartan i kartkortet. Ett eget dark_mode i kortet går före."
         }
       },
       "reauth_confirm": {
@@ -125,14 +127,16 @@
           "weather_radius_km": "Radie för väderstationer (km)",
           "max_objects": "Max antal objekt per fråga",
           "max_age_min": "Ignorera mätningar äldre än (minuter)",
-          "minimal_fields": "Hämta bara de fält som används"
+          "minimal_fields": "Hämta bara de fält som används",
+          "map_style": "Kartstil"
         },
         "data_description": {
           "scan_interval_min": "Hur ofta data hämtas. Trafikverket uppdaterar flöden ungefär varje minut och väder var 10:e minut. 5–15 min räcker oftast.",
           "weather_radius_km": "Närmaste station används som lokalt väder, så radien kan vara större än för trafiken.",
           "max_objects": "Övre gräns för antal poster per datatyp och hämtning.",
           "max_age_min": "Mätpunkter som inte rapporterat på så här länge visas inte.",
-          "minimal_fields": "Minskar datamängden kraftigt. Stäng av bara om API:et klagar på fält."
+          "minimal_fields": "Minskar datamängden kraftigt. Stäng av bara om API:et klagar på fält.",
+          "map_style": "Utseende på kartan i kartkortet. Ett eget dark_mode i kortet går före."
         }
       }
     },
@@ -199,6 +203,15 @@
     "weather": {
       "local_weather": {
         "name": "Lokalt väder"
+      }
+    }
+  },
+  "selector": {
+    "map_style": {
+      "options": {
+        "light": "Standard OpenStreetMap (ljus)",
+        "dark": "Mörk",
+        "auto": "Följ Home Assistant-temat"
       }
     }
   }

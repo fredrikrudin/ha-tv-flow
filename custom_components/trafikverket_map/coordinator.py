@@ -19,12 +19,14 @@ from .const import (
     CONF_ENABLE_FLOW,
     CONF_ENABLE_ROAD,
     CONF_ENABLE_WEATHER,
+    CONF_MAP_STYLE,
     CONF_MAX_AGE,
     CONF_MAX_OBJECTS,
     CONF_MINIMAL_FIELDS,
     CONF_RADIUS,
     CONF_SCAN_INTERVAL,
     CONF_WEATHER_RADIUS,
+    DEFAULT_MAP_STYLE,
     DEFAULT_MAX_AGE_MIN,
     DEFAULT_MAX_OBJECTS,
     DEFAULT_RADIUS_KM,
@@ -52,6 +54,7 @@ class Settings:
     max_objects: int
     minimal_fields: bool
     max_age_min: int
+    map_style: str
 
     @classmethod
     def from_entry(cls, hass: HomeAssistant, entry: ConfigEntry) -> Settings:
@@ -70,6 +73,7 @@ class Settings:
             max_objects=int(get(CONF_MAX_OBJECTS, DEFAULT_MAX_OBJECTS)),
             minimal_fields=bool(get(CONF_MINIMAL_FIELDS, True)),
             max_age_min=int(get(CONF_MAX_AGE, DEFAULT_MAX_AGE_MIN)),
+            map_style=str(get(CONF_MAP_STYLE, DEFAULT_MAP_STYLE)),
         )
 
 

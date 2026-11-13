@@ -40,12 +40,14 @@ from .const import (
     CONF_ENABLE_FLOW,
     CONF_ENABLE_ROAD,
     CONF_ENABLE_WEATHER,
+    CONF_MAP_STYLE,
     CONF_MAX_AGE,
     CONF_MAX_OBJECTS,
     CONF_MINIMAL_FIELDS,
     CONF_RADIUS,
     CONF_SCAN_INTERVAL,
     CONF_WEATHER_RADIUS,
+    DEFAULT_MAP_STYLE,
     DEFAULT_MAX_AGE_MIN,
     DEFAULT_MAX_OBJECTS,
     DEFAULT_RADIUS_KM,
@@ -53,6 +55,7 @@ from .const import (
     DEFAULT_WEATHER_RADIUS_KM,
     DOMAIN,
     MAX_RADIUS_KM,
+    MAP_STYLES,
     MAX_SCAN_INTERVAL_MIN,
     MIN_RADIUS_KM,
     MIN_SCAN_INTERVAL_MIN,
@@ -93,6 +96,10 @@ def _settings_schema(d: Mapping[str, Any]) -> vol.Schema:
         ): NumberSelector(NumberSelectorConfig(min=5, max=1440, step=5,
                                                unit_of_measurement="min", mode=NumberSelectorMode.BOX)),
         vol.Required(CONF_MINIMAL_FIELDS, default=bool(d.get(CONF_MINIMAL_FIELDS, True))): BooleanSelector(),
+        vol.Required(
+            CONF_MAP_STYLE, default=str(d.get(CONF_MAP_STYLE, DEFAULT_MAP_STYLE))
+        ): SelectSelector(SelectSelectorConfig(
+            options=MAP_STYLES, translation_key=CONF_MAP_STYLE, mode=SelectSelectorMode.DROPDOWN)),
     })
 
 
