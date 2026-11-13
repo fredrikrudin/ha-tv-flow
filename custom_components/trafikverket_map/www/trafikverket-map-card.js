@@ -109,6 +109,8 @@ class TrafikverketMapCard extends HTMLElement {
         .leaflet-popup-content { font: 13px/1.4 sans-serif; }
         .leaflet-popup-content table { border-collapse: collapse; }
         .leaflet-popup-content td { padding: 0 6px 0 0; }
+        .area-btn { display: flex !important; align-items: center; justify-content: center; color: #333; }
+        .dark .area-btn, .area-btn:hover { color: #1976d2; }
         .footer { padding: 4px 16px 8px; font-size: 11px; color: var(--secondary-text-color); }
       </style>
       <ha-card>
@@ -152,9 +154,11 @@ class TrafikverketMapCard extends HTMLElement {
     if (this._config.show_weather) overlays["Väder"] = this._layers.weather;
     L.control.layers(null, overlays, { collapsed: true }).addTo(this._map);
     this._addLegend(L);
+    this._addAreaButton(L);
     this._map.setView([59.33, 18.06], 10);
     new ResizeObserver(() => this._map && this._map.invalidateSize()).observe(el);
-    this._fitted = false;
+    this._area = null;
+    this._areaKey = "";
     this._lastSig = "";
     this._update();
   }
@@ -175,6 +179,33 @@ class TrafikverketMapCard extends HTMLElement {
       return d;
     };
     legend.addTo(this._map);
+  }
+
+  _addAreaButton(L) {
+    const ctrl = L.control({ position: "topleft" });
+    ctrl.onAdd = () => {
+      const bar = L.DomUtil.create("div", "leaflet-bar leaflet-control");
+      const a = L.DomUtil.create("a", "area-btn", bar);
+      a.href = "#";
+      a.title = "Zooma till området";
+      a.setAttribute("role", "button");
+      a.setAttribute("aria-label", "Zooma till området");
+      a.innerHTML =
+        '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="' +
+        "M12,8A4,4 0 0,1 16,12A4,4 0 0,1 12,16A4,4 0 0,1 8,12A4,4 0 0,1 12,8M3.05,13H1V11H3.05C3.5,6.83 6.83,3.5 11,3.05V1H13V3.05" +
+        "C17.17,3.5 20.5,6.83 20.95,11H23V13H20.95C20.5,17.17 17.17,20.5 13,20.95V23H11V20.95C6.83,20.5 3.5,17.17 3.05,13" +
+        "M12,5A7,7 0 0,0 5,12A7,7 0 0,0 12,19A7,7 0 0,0 19,12A7,7 0 0,0 12,5Z" + '"/></svg>';
+      L.DomEvent.disableClickPropagation(bar);
+      L.DomEvent.on(a, "click", (e) => { L.DomEvent.preventDefault(e); this._fitArea(true); });
+      return bar;
+    };
+    ctrl.addTo(this._map);
+  }
+
+  _fitArea(animate = false) {
+    if (!this._map || !this._area) return;
+    const { center, radiusKm } = this._area;
+    this._map.fitBounds(this._L.latLng(center).toBounds(radiusKm * 2000), { padding: [8, 8], animate });
   }
 
   _scheduleUpdate() {
@@ -209,10 +240,15 @@ class TrafikverketMapCard extends HTMLElement {
       L.circle(center, { radius: a.radius_km * 1000, color: "#1976d2", weight: 1, fill: true, fillOpacity: 0.04, interactive: false })
         .addTo(this._layers.home);
       L.circleMarker(center, { radius: 6, color: "#fff", weight: 2, fillColor: "#1976d2", fillOpacity: 1 })
-        .bindTooltip("Hem").addTo(this._layers.home);
-      if (!this._fitted) {
-        this._map.fitBounds(L.latLng(center).toBounds(a.radius_km * 2000));
-        this._fitted = true;
+        .bindTooltip("Hem – klicka för att zooma till området")
+        .on("click", () => this._fitArea(true))
+        .addTo(this._layers.home);
+      this._area = { center, radiusKm: a.radius_km };
+      // Zoom to the area the first time and whenever position or radius changes.
+      const key = `${a.home_latitude},${a.home_longitude},${a.radius_km}`;
+      if (key !== this._areaKey) {
+        this._areaKey = key;
+        this._fitArea(false);
       }
     }
 

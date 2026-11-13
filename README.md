@@ -93,6 +93,8 @@ height: 450
 | `dark_mode` | – | `true`, `false` eller `auto`. Utelämna för att följa inställningen **Kartstil** i integrationen. |
 | `tile_url` | OpenStreetMap | Egen kartserver |
 
+Knappen ⌖ under +/– (eller ett klick på hemmarkören) zoomar tillbaka till det inställda området. Kartan zoomar också om automatiskt när du ändrar plats eller radie.
+
 Kortet laddar kartbiblioteket Leaflet från `unpkg.com` och kartbilder från OpenStreetMap, så webbläsaren behöver internetåtkomst.
 
 ### Färger
