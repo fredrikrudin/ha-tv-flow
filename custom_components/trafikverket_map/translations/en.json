@@ -91,7 +91,8 @@
         "menu_options": {
           "search": "Search for a town or address",
           "map": "Pick on a map",
-          "settings": "Data amount and update interval"
+          "settings": "Data amount and update interval",
+          "dashboard": "Dashboard – order and content"
         }
       },
       "search": {
@@ -138,12 +139,29 @@
           "minimal_fields": "Greatly reduces the amount of data. Turn off only if the API complains.",
           "map_style": "Look of the map in the map card. A dark_mode set on the card takes precedence."
         }
+      },
+      "dashboard": {
+        "title": "Dashboard",
+        "description": "Choose what is shown in each position of the generated dashboard (`strategy: type: custom:tv-flow`). Pick **Hidden** to hide a section. Reload the dashboard in the browser after saving.",
+        "data": {
+          "position_1": "Position 1",
+          "position_2": "Position 2",
+          "position_3": "Position 3",
+          "position_4": "Position 4",
+          "position_5": "Position 5",
+          "position_6": "Position 6",
+          "map_height": "Map height"
+        },
+        "data_description": {
+          "map_height": "Height of the map in pixels."
+        }
       }
     },
     "error": {
       "invalid_auth": "Invalid API key.",
       "cannot_connect": "Could not connect to Trafikverket.",
-      "no_results": "No place found. Try another spelling or pick on the map."
+      "no_results": "No place found. Try another spelling or pick on the map.",
+      "no_sections": "Select at least one section to show."
     }
   },
   "entity": {
@@ -212,6 +230,17 @@
         "light": "Standard OpenStreetMap (light)",
         "dark": "Dark",
         "auto": "Follow Home Assistant theme"
+      }
+    },
+    "dashboard_section": {
+      "options": {
+        "weather": "Roadside weather",
+        "road": "Road conditions",
+        "map": "Traffic map",
+        "now": "Current situation",
+        "history": "History",
+        "data": "Data usage",
+        "none": "Hidden"
       }
     }
   }

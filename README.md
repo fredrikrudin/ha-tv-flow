@@ -8,6 +8,7 @@ Custom integration för Home Assistant som hämtar **trafikflöden**, **väglag*
 - 📍 **Valfri radie** runt hemmet eller en sökt ort.
 - 📉 **Begränsad datamängd** – du väljer uppdateringsintervall, max antal objekt, vilka datatyper som hämtas och att bara nödvändiga fält skickas. Allt hämtas i **ett** anrop per intervall.
 - 🛒 **Installeras via Marketplace** (Home Assistant 2026.11+) eller HACS.
+- 🗂️ **Automatisk dashboard** – välj ordning och innehåll i inställningarna.
 - 🧭 **Installationsguide** i flera steg: API-nyckel → sök ort eller välj på karta → radie → datamängd.
 
 ---
@@ -119,21 +120,44 @@ entities:
 
 ## 5. Färdig dashboard
 
-I [`dashboards/tv-flow-dashboard.yaml`](dashboards/tv-flow-dashboard.yaml) finns en komplett dashboard i sektionslayout som bara använder inbyggda kort och integrationens kartkort.
+### Automatisk dashboard (rekommenderas)
 
-- **Märken** överst med väder, luft- och vägbanetemperatur, medelhastighet och väglag.
-- **Stor trafikkarta** med mätpunkter, väglag och väderstationer.
-- **Läget nu:** varningsruta som bara syns vid besvärligt väglag, rutor för hastighet och flöde, och en lista över de långsammaste mätpunkterna.
-- **Väder vid vägen:** väderkort och rutor för luft, vägbana, vind, nederbörd, sikt och friktion.
-- **Väglag:** sämsta väglag och en lista över besvärliga sträckor med varning och åtgärd.
-- **Historik:** hastighet och temperaturer senaste dygnet, trafikflöde senaste veckan.
-- **Datamängd:** hur mycket som hämtas och aktuella inställningar.
-
-**Så lägger du till den:**
+Integrationen kan bygga hela dashboarden åt dig. Du väljer ordning och innehåll i inställningarna, så behöver du aldrig redigera YAML.
 
 1. **Inställningar → Instrumentpaneler → Lägg till instrumentpanel → Ny instrumentpanel från grunden**, ge den t.ex. namnet *Trafik*.
-2. Öppna den, klicka **✏️ Redigera → ⋮ → Rå konfigurationsredigerare**.
-3. Ersätt allt med innehållet i `tv-flow-dashboard.yaml` och klicka **Spara**.
+2. Öppna den och välj **✏️ Redigera → ⋮ → Rå konfigurationsredigerare**.
+3. Ersätt allt med:
+
+   ```yaml
+   strategy:
+     type: custom:tv-flow
+     title: Trafik
+   ```
+
+4. Klicka **Spara**.
+
+**Ändra ordning och innehåll:** **Inställningar → Enheter och tjänster → Trafikverket Trafikkarta → Konfigurera → Dashboard**. Välj vad som ska visas på *Plats 1–6*, eller *Visa inte* för att dölja en sektion. Där ställer du också in kartans höjd. Ladda sedan om dashboarden i webbläsaren.
+
+Tillgängliga sektioner:
+
+| Sektion | Innehåll |
+|---|---|
+| Väder vid vägen | Väderkort och rutor för luft, vägbana, vind, fukt, nederbörd, sikt och friktion |
+| Väglag | Sämsta väglag, antal besvärliga sträckor och en lista med varningar och åtgärder |
+| Trafikkarta | Kartan med mätpunkter, väglag och väderstationer (två kolumner bred) |
+| Läget nu | Varning vid besvärligt väglag, hastighet, flöde och de långsammaste mätpunkterna |
+| Historik | Hastighet och temperaturer senaste dygnet, trafikflöde senaste veckan |
+| Datamängd | Hämtad datamängd och aktuella inställningar |
+
+Standardordningen är Väder vid vägen → Väglag → Trafikkarta → Läget nu → Historik → Datamängd. Sektioner vars data är avstängd, till exempel väder, hoppas över automatiskt.
+
+Har du flera platser lägger du till `entry: <config_entry_id>` under `strategy:`. Värdet finns som attributet `config_entry_id` på `sensor.tv_flow_flow_sites` (eller `_2` osv.).
+
+Vill du ändra enskilda kort kan du välja **⋮ → Ta kontroll** i redigeringsläget. Då görs dashboarden om till vanlig YAML som du redigerar själv, men den följer inte längre inställningarna.
+
+### Statisk dashboard
+
+[`dashboards/tv-flow-dashboard.yaml`](dashboards/tv-flow-dashboard.yaml) innehåller samma dashboard som vanlig YAML, för den som vill redigera allt själv.
 
 ## 6. Entiteter
 

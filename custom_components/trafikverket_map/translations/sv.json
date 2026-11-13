@@ -91,7 +91,8 @@
         "menu_options": {
           "search": "Sök efter ort eller adress",
           "map": "Välj på karta",
-          "settings": "Datamängd och uppdateringsintervall"
+          "settings": "Datamängd och uppdateringsintervall",
+          "dashboard": "Dashboard – ordning och innehåll"
         }
       },
       "search": {
@@ -138,12 +139,29 @@
           "minimal_fields": "Minskar datamängden kraftigt. Stäng av bara om API:et klagar på fält.",
           "map_style": "Utseende på kartan i kartkortet. Ett eget dark_mode i kortet går före."
         }
+      },
+      "dashboard": {
+        "title": "Dashboard",
+        "description": "Välj vad som visas på varje plats i den genererade dashboarden (`strategy: type: custom:tv-flow`). Välj **Visa inte** för att dölja en sektion. Ladda om dashboarden i webbläsaren efter att du sparat.",
+        "data": {
+          "position_1": "Plats 1",
+          "position_2": "Plats 2",
+          "position_3": "Plats 3",
+          "position_4": "Plats 4",
+          "position_5": "Plats 5",
+          "position_6": "Plats 6",
+          "map_height": "Kartans höjd"
+        },
+        "data_description": {
+          "map_height": "Höjd på kartan i pixlar."
+        }
       }
     },
     "error": {
       "invalid_auth": "Ogiltig API-nyckel – kontrollera att hela nyckeln är inklistrad.",
       "cannot_connect": "Kunde inte ansluta till Trafikverket. Försök igen om en stund.",
-      "no_results": "Hittade ingen plats med det namnet. Prova en annan stavning eller välj på kartan."
+      "no_results": "Hittade ingen plats med det namnet. Prova en annan stavning eller välj på kartan.",
+      "no_sections": "Välj minst en sektion att visa."
     }
   },
   "entity": {
@@ -212,6 +230,17 @@
         "light": "Standard OpenStreetMap (ljus)",
         "dark": "Mörk",
         "auto": "Följ Home Assistant-temat"
+      }
+    },
+    "dashboard_section": {
+      "options": {
+        "weather": "Väder vid vägen",
+        "road": "Väglag",
+        "map": "Trafikkarta",
+        "now": "Läget nu",
+        "history": "Historik",
+        "data": "Datamängd",
+        "none": "Visa inte"
       }
     }
   }

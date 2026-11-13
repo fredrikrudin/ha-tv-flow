@@ -40,6 +40,8 @@ from .const import (
     CONF_ENABLE_FLOW,
     CONF_ENABLE_ROAD,
     CONF_ENABLE_WEATHER,
+    CONF_DASHBOARD_SECTIONS,
+    CONF_MAP_HEIGHT,
     CONF_MAP_STYLE,
     CONF_MAX_AGE,
     CONF_MAX_OBJECTS,
@@ -47,6 +49,9 @@ from .const import (
     CONF_RADIUS,
     CONF_SCAN_INTERVAL,
     CONF_WEATHER_RADIUS,
+    DASHBOARD_NONE,
+    DASHBOARD_SECTIONS,
+    DEFAULT_MAP_HEIGHT,
     DEFAULT_MAP_STYLE,
     DEFAULT_MAX_AGE_MIN,
     DEFAULT_MAX_OBJECTS,
@@ -304,7 +309,9 @@ class TrafikverketMapOptionsFlow(_LocationSteps, OptionsFlow):
         self._lon = float(cur.get(CONF_LONGITUDE, self.hass.config.longitude))
         self._radius_km = float(cur.get(CONF_RADIUS, DEFAULT_RADIUS_KM))
         self._hits = []
-        return self.async_show_menu(step_id="init", menu_options=["search", "map", "settings"])
+        return self.async_show_menu(
+            step_id="init", menu_options=["search", "map", "settings", "dashboard"]
+        )
 
     async def _location_done(self) -> ConfigFlowResult:
         cur = dict(self.config_entry.options)
@@ -317,3 +324,44 @@ class TrafikverketMapOptionsFlow(_LocationSteps, OptionsFlow):
             cur.update(_clean_settings(user_input))
             return self.async_create_entry(data=cur)
         return self.async_show_form(step_id="settings", data_schema=_settings_schema(self._current()))
+
+    async def async_step_dashboard(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        """Order and visibility of the sections in the generated dashboard."""
+        errors: dict[str, str] = {}
+        cur = self._current()
+        if user_input is not None:
+            sections: list[str] = []
+            for i in range(1, len(DASHBOARD_SECTIONS) + 1):
+                value = user_input.get(f"position_{i}", DASHBOARD_NONE)
+                if value in DASHBOARD_SECTIONS and value not in sections:
+                    sections.append(value)
+            if not sections:
+                errors["base"] = "no_sections"
+            else:
+                data = dict(self.config_entry.options)
+                data[CONF_DASHBOARD_SECTIONS] = sections
+                data[CONF_MAP_HEIGHT] = int(user_input[CONF_MAP_HEIGHT])
+                return self.async_create_entry(data=data)
+
+        current = list(cur.get(CONF_DASHBOARD_SECTIONS, DASHBOARD_SECTIONS))
+        current += [DASHBOARD_NONE] * (len(DASHBOARD_SECTIONS) - len(current))
+        choices = SelectSelector(SelectSelectorConfig(
+            options=[*DASHBOARD_SECTIONS, DASHBOARD_NONE],
+            translation_key="dashboard_section",
+            mode=SelectSelectorMode.DROPDOWN,
+        ))
+        schema: dict[Any, Any] = {
+            vol.Required(f"position_{i + 1}", default=current[i]): choices
+            for i in range(len(DASHBOARD_SECTIONS))
+        }
+        schema[vol.Required(CONF_MAP_HEIGHT, default=int(cur.get(CONF_MAP_HEIGHT, DEFAULT_MAP_HEIGHT)))] = (
+            NumberSelector(NumberSelectorConfig(min=250, max=1200, step=10,
+                                                unit_of_measurement="px", mode=NumberSelectorMode.BOX))
+        )
+        if user_input is not None:
+            return self.async_show_form(
+                step_id="dashboard",
+                data_schema=self.add_suggested_values_to_schema(vol.Schema(schema), user_input),
+                errors=errors,
+            )
+        return self.async_show_form(step_id="dashboard", data_schema=vol.Schema(schema), errors=errors)

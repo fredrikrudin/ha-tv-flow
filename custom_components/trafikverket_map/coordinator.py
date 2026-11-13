@@ -19,6 +19,8 @@ from .const import (
     CONF_ENABLE_FLOW,
     CONF_ENABLE_ROAD,
     CONF_ENABLE_WEATHER,
+    CONF_DASHBOARD_SECTIONS,
+    CONF_MAP_HEIGHT,
     CONF_MAP_STYLE,
     CONF_MAX_AGE,
     CONF_MAX_OBJECTS,
@@ -26,6 +28,8 @@ from .const import (
     CONF_RADIUS,
     CONF_SCAN_INTERVAL,
     CONF_WEATHER_RADIUS,
+    DASHBOARD_SECTIONS,
+    DEFAULT_MAP_HEIGHT,
     DEFAULT_MAP_STYLE,
     DEFAULT_MAX_AGE_MIN,
     DEFAULT_MAX_OBJECTS,
@@ -55,6 +59,8 @@ class Settings:
     minimal_fields: bool
     max_age_min: int
     map_style: str
+    dashboard_sections: tuple[str, ...]
+    map_height: int
 
     @classmethod
     def from_entry(cls, hass: HomeAssistant, entry: ConfigEntry) -> Settings:
@@ -74,6 +80,10 @@ class Settings:
             minimal_fields=bool(get(CONF_MINIMAL_FIELDS, True)),
             max_age_min=int(get(CONF_MAX_AGE, DEFAULT_MAX_AGE_MIN)),
             map_style=str(get(CONF_MAP_STYLE, DEFAULT_MAP_STYLE)),
+            dashboard_sections=tuple(
+                s for s in get(CONF_DASHBOARD_SECTIONS, DASHBOARD_SECTIONS) if s in DASHBOARD_SECTIONS
+            ) or tuple(DASHBOARD_SECTIONS),
+            map_height=int(get(CONF_MAP_HEIGHT, DEFAULT_MAP_HEIGHT)),
         )
 
 

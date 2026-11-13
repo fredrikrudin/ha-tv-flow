@@ -316,7 +316,7 @@ class TrafikverketMapCard extends HTMLElement {
   }
 }
 
-customElements.define("trafikverket-map-card", TrafikverketMapCard);
+if (!customElements.get("trafikverket-map-card")) customElements.define("trafikverket-map-card", TrafikverketMapCard);
 window.customCards = window.customCards || [];
 window.customCards.push({
   type: "trafikverket-map-card",
@@ -324,3 +324,295 @@ window.customCards.push({
   description: "Trafikflöden, väglag och vägväder från Trafikverket på en karta.",
   preview: false,
 });
+
+/* ==========================================================================
+ * Dashboard strategy:  strategy: { type: custom:tv-flow }
+ *
+ * Builds the whole dashboard from the integration's settings
+ * (Konfigurera → Dashboard): which sections, in which order, map height.
+ *   strategy:
+ *     type: custom:tv-flow
+ *     entry: <config_entry_id>   # optional, if you have several locations
+ *     title: Trafik              # optional
+ * ========================================================================== */
+
+const TV_SECTION_ORDER = ["weather", "road", "map", "now", "history", "data"];
+
+function tvFindHome(hass, entry) {
+  return Object.values(hass.states).find(
+    (s) => s.attributes.trafikverket_home && (!entry || s.attributes.config_entry_id === entry)
+  );
+}
+
+function tvCompact(list) {
+  return list.filter(Boolean);
+}
+
+function tvTile(id, name, color, icon, extra = {}) {
+  if (!id) return null;
+  return { type: "tile", entity: id, name, color, ...(icon ? { icon } : {}), ...extra };
+}
+
+function tvBadge(id, name, color, extra = {}) {
+  if (!id) return null;
+  return { type: "entity", entity: id, name, show_name: !!name, ...(color ? { color } : {}), ...extra };
+}
+
+function tvGeoFilter(entry, type) {
+  return (
+    "states.geo_location\n" +
+    "    | selectattr('attributes.tv_type', 'defined')\n" +
+    `    | selectattr('attributes.tv_type', 'eq', '${type}')\n` +
+    `    | selectattr('attributes.config_entry_id', 'eq', '${entry}')`
+  );
+}
+
+const TV_SECTIONS = {
+  weather(ids) {
+    if (!ids.weather && !ids.air_temperature) return null;
+    const w = ids.weather;
+    return {
+      type: "grid",
+      cards: tvCompact([
+        { type: "heading", heading: "Väder vid vägen", icon: "mdi:weather-partly-snowy-rainy" },
+        w && {
+          type: "weather-forecast", entity: w, name: "Lokalt väder", show_current: true, show_forecast: false,
+          secondary_info_attribute: "wind_speed", grid_options: { columns: "full" },
+        },
+        tvTile(ids.air_temperature, "Luft", "orange"),
+        tvTile(ids.surface_temperature, "Vägbana", "blue-grey"),
+        tvTile(ids.wind_speed, "Vind", "cyan", "mdi:weather-windy"),
+        tvTile(ids.humidity, "Luftfuktighet", "light-blue"),
+        tvTile(ids.precipitation, "Nederbörd", "blue"),
+        tvTile(ids.precipitation_30min, "Senaste 30 min", "blue", "mdi:cup-water"),
+        tvTile(ids.visibility, "Sikt", "grey"),
+        tvTile(ids.grip, "Friktion", "amber"),
+        w && {
+          type: "markdown", text_only: true, grid_options: { columns: "full" },
+          content:
+            `<small>Station: **{{ state_attr('${w}', 'station') or '–' }}**, ` +
+            `{{ state_attr('${w}', 'distance_km') or '–' }} km bort · ` +
+            `mätt {{ (as_datetime(state_attr('${w}', 'sample')) | as_local).strftime('%H:%M') ` +
+            `if state_attr('${w}', 'sample') else '–' }}</small>`,
+        },
+      ]),
+    };
+  },
+
+  road(ids, entry) {
+    if (!ids.road_condition) return null;
+    return {
+      type: "grid",
+      cards: tvCompact([
+        { type: "heading", heading: "Väglag", icon: "mdi:road-variant" },
+        tvTile(ids.road_condition, "Sämsta väglag", "amber", null, { grid_options: { columns: "full" } }),
+        tvTile(ids.road_condition_count, "Besvärliga sträckor", "deep-orange", "mdi:alert-outline"),
+        tvTile(ids.surface_temperature, "Vägbana", "blue-grey"),
+        {
+          type: "markdown", grid_options: { columns: "full" },
+          content:
+            `{%- set roads = ${tvGeoFilter(entry, "road")}\n` +
+            "    | selectattr('attributes.condition_code', 'number')\n" +
+            "    | selectattr('attributes.condition_code', 'gt', 1)\n" +
+            "    | sort(attribute='attributes.condition_code', reverse=true) | list %}\n" +
+            "{%- if roads %}\n" +
+            "{% for r in roads[:6] -%}\n" +
+            "{%- set icon = {2: '🟡', 3: '🔴', 4: '🔵'}[r.attributes.condition_code] | default('⚪') -%}\n" +
+            "{{ icon }} **{{ r.attributes.road_number or 'Väg' }}** – {{ r.attributes.condition_text }}\n" +
+            "{%- if r.attributes.warning %} · {{ r.attributes.warning }}{% endif %}\n" +
+            "{%- if r.attributes.measure %} · {{ r.attributes.measure | lower }}{% endif %}\n" +
+            "<br><small>{{ r.attributes.location_text or '' }} ({{ r.state }} km)</small>\n\n" +
+            "{% endfor %}\n" +
+            "{%- else %}\n" +
+            "🟢 Normalt väglag inom radien.\n" +
+            "{%- endif %}",
+        },
+      ]),
+    };
+  },
+
+  map(ids, entry, home) {
+    return {
+      type: "grid",
+      column_span: 2,
+      cards: tvCompact([
+        {
+          type: "heading", heading: "Trafikkarta", heading_style: "title", icon: "mdi:map-marker-radius",
+          badges: tvCompact([tvBadge(ids.flow_sites, null, "blue", { show_state: true, show_icon: true })]),
+        },
+        {
+          type: "custom:trafikverket-map-card", entry,
+          height: Number(home.attributes.map_height) || 560,
+          grid_options: { columns: "full", rows: "auto" },
+        },
+      ]),
+    };
+  },
+
+  now(ids, entry) {
+    if (!ids.average_speed && !ids.flow_sites) return null;
+    const rc = ids.road_condition;
+    return {
+      type: "grid",
+      cards: tvCompact([
+        { type: "heading", heading: "Läget nu", icon: "mdi:car-clock" },
+        rc && {
+          type: "conditional",
+          conditions: [
+            { condition: "state", entity: rc, state_not: "Normalt" },
+            { condition: "state", entity: rc, state_not: "Inga uppgifter" },
+          ],
+          card: {
+            type: "markdown",
+            content:
+              `<ha-alert alert-type="warning" title="{{ states('${rc}') }}">` +
+              `{%- set w = state_attr('${rc}', 'warnings') or [] %}` +
+              `{%- set c = state_attr('${rc}', 'causes') or [] %} ` +
+              (ids.road_condition_count ? `{{ states('${ids.road_condition_count}') }} sträckor med besvärligt väglag.` : "") +
+              `{%- if w %} Varning: {{ w | join(', ') }}.{% endif %}` +
+              `{%- if c %} Orsak: {{ c | join(', ') | lower }}.{% endif %}</ha-alert>`,
+          },
+          grid_options: { columns: "full" },
+        },
+        tvTile(ids.average_speed, "Medelhastighet", "green", "mdi:speedometer"),
+        tvTile(ids.lowest_speed, "Lägsta hastighet", "red", "mdi:speedometer-slow"),
+        tvTile(ids.total_flow, "Trafikflöde", "indigo", "mdi:car-multiple"),
+        tvTile(ids.flow_sites, "Mätpunkter", "blue", "mdi:map-marker-multiple"),
+        {
+          type: "markdown", title: "Långsammast just nu", grid_options: { columns: "full" },
+          content:
+            `{%- set sites = ${tvGeoFilter(entry, "flow")}\n` +
+            "    | selectattr('attributes.average_speed', 'number')\n" +
+            "    | sort(attribute='attributes.average_speed') | list %}\n" +
+            "{%- if sites %}\n" +
+            "| | Mätpunkt | km/h | fordon/h | Avstånd |\n" +
+            "|:-:|:--|--:|--:|--:|\n" +
+            "{% for s in sites[:6] -%}\n" +
+            "{%- set v = s.attributes.average_speed -%}\n" +
+            "| {{ '🔴' if v < 30 else '🟠' if v < 50 else '🟡' if v < 70 else '🟢' }} | {{ s.attributes.site_id }} | " +
+            "{{ v | round(0) | int }} | {{ s.attributes.flow }} | {{ s.state }} km |\n" +
+            "{% endfor %}\n" +
+            "{%- else %}\n" +
+            "Inga mätpunkter med hastighet inom radien just nu.\n" +
+            "{%- endif %}",
+        },
+      ]),
+    };
+  },
+
+  history(ids) {
+    const speed = tvCompact([
+      ids.average_speed && { entity: ids.average_speed, name: "Medel" },
+      ids.lowest_speed && { entity: ids.lowest_speed, name: "Lägsta" },
+    ]);
+    const temp = tvCompact([
+      ids.air_temperature && { entity: ids.air_temperature, name: "Luft" },
+      ids.surface_temperature && { entity: ids.surface_temperature, name: "Vägbana" },
+    ]);
+    if (!speed.length && !temp.length && !ids.total_flow) return null;
+    return {
+      type: "grid",
+      column_span: 2,
+      cards: tvCompact([
+        { type: "heading", heading: "Historik", icon: "mdi:chart-line" },
+        speed.length && {
+          type: "history-graph", title: "Hastighet senaste dygnet", hours_to_show: 24,
+          entities: speed, grid_options: { columns: 12 },
+        },
+        temp.length && {
+          type: "history-graph", title: "Temperatur luft och vägbana", hours_to_show: 24,
+          entities: temp, grid_options: { columns: 12 },
+        },
+        ids.total_flow && {
+          type: "statistics-graph", title: "Trafikflöde senaste veckan",
+          entities: [{ entity: ids.total_flow, name: "Fordon/h" }], period: "hour", days_to_show: 7,
+          stat_types: ["mean", "max"], chart_type: "line", grid_options: { columns: "full" },
+        },
+      ]),
+    };
+  },
+
+  data(ids, entry, home) {
+    if (!ids.data_usage) return null;
+    const a = home.attributes;
+    return {
+      type: "grid",
+      cards: tvCompact([
+        { type: "heading", heading: "Datamängd", icon: "mdi:download-network", heading_style: "subtitle" },
+        tvTile(ids.data_usage, "Hämtat sedan start", "purple"),
+        tvTile(ids.response_size, "Per hämtning", "purple"),
+        {
+          type: "markdown", text_only: true, grid_options: { columns: "full" },
+          content:
+            `<small>Radie **{{ state_attr('${home.entity_id}', 'radius_km') }} km** · ` +
+            `väder **{{ state_attr('${home.entity_id}', 'weather_radius_km') }} km** · ` +
+            `uppdateras var **{{ state_attr('${home.entity_id}', 'scan_interval_min') }} min** · ` +
+            `{{ state_attr('${ids.data_usage}', 'requests') or 0 }} anrop sedan start. ` +
+            "Ordning och innehåll ändras under Inställningar → Enheter och tjänster → " +
+            "Trafikverket Trafikkarta → Konfigurera → Dashboard.</small>",
+        },
+      ]),
+    };
+  },
+};
+
+class TvFlowDashboardStrategy {
+  static async generate(config, hass) {
+    const home = tvFindHome(hass, config.entry);
+    if (!home) {
+      return {
+        title: config.title || "Trafik",
+        views: [{
+          title: "Trafik",
+          cards: [{
+            type: "markdown",
+            content:
+              "## Trafikverket Trafikkarta\n" +
+              "Hittar ingen konfigurerad plats. Lägg till integrationen under " +
+              "**Inställningar → Enheter och tjänster**, och ladda sedan om sidan.",
+          }],
+        }],
+      };
+    }
+    const a = home.attributes;
+    const ids = { flow_sites: home.entity_id, ...(a.entity_ids || {}) };
+    const entry = a.config_entry_id;
+    const order = Array.isArray(a.dashboard_sections) && a.dashboard_sections.length
+      ? a.dashboard_sections
+      : TV_SECTION_ORDER;
+
+    const sections = order
+      .filter((key, i) => TV_SECTIONS[key] && order.indexOf(key) === i)
+      .map((key) => TV_SECTIONS[key](ids, entry, home))
+      .filter(Boolean);
+
+    const badges = tvCompact([
+      ids.weather && { type: "entity", entity: ids.weather, show_name: false, show_state: true, show_icon: true },
+      tvBadge(ids.air_temperature, "Luft", "orange"),
+      tvBadge(ids.surface_temperature, "Vägbana", "blue-grey"),
+      tvBadge(ids.average_speed, "Snitt", "green"),
+      tvBadge(ids.road_condition, "Väglag", "amber"),
+    ]);
+
+    return {
+      title: config.title || "Trafik",
+      views: [{
+        title: config.title || "Trafik",
+        path: "trafik",
+        icon: "mdi:car-traffic",
+        type: "sections",
+        max_columns: 4,
+        badges,
+        sections,
+      }],
+    };
+  }
+}
+
+if (!customElements.get("ll-strategy-dashboard-tv-flow")) {
+  customElements.define("ll-strategy-dashboard-tv-flow", class extends HTMLElement {
+    static async generate(config, hass) {
+      return TvFlowDashboardStrategy.generate(config, hass);
+    }
+  });
+}

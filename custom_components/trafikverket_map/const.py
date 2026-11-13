@@ -19,6 +19,8 @@ CONF_MAX_OBJECTS = "max_objects"
 CONF_MINIMAL_FIELDS = "minimal_fields"
 CONF_MAX_AGE = "max_age_min"
 CONF_MAP_STYLE = "map_style"
+CONF_DASHBOARD_SECTIONS = "dashboard_sections"
+CONF_MAP_HEIGHT = "map_height"
 
 DEFAULT_RADIUS_KM = 10.0
 DEFAULT_WEATHER_RADIUS_KM = 30.0
@@ -27,6 +29,11 @@ DEFAULT_MAX_OBJECTS = 300
 DEFAULT_MAX_AGE_MIN = 60
 DEFAULT_MAP_STYLE = "light"
 MAP_STYLES = ["light", "dark", "auto"]
+
+# Sections of the generated dashboard (custom:tv-flow strategy), in default order
+DASHBOARD_SECTIONS = ["weather", "road", "map", "now", "history", "data"]
+DASHBOARD_NONE = "none"
+DEFAULT_MAP_HEIGHT = 560
 
 MIN_SCAN_INTERVAL_MIN = 1
 MAX_SCAN_INTERVAL_MIN = 1440
@@ -41,4 +48,4 @@ SOURCE_WEATHER = "trafikverket_weather"
 SIGNAL_UPDATE = f"{DOMAIN}_update_{{}}"
 
 CARD_URL = f"/{DOMAIN}/trafikverket-map-card.js"
-CARD_VERSION = "1.0.0"
+CARD_VERSION = "1.1.0"

@@ -22,7 +22,9 @@ from homeassistant.const import (
     UnitOfSpeed,
     UnitOfTemperature,
 )
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
+from homeassistant.helpers.event import async_call_later
+from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.device_registry import DeviceEntryType, DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
@@ -165,6 +167,18 @@ async def async_setup_entry(
     entities.append(TrafikverketDataUsageSensor(coordinator, entry))
     async_add_entities(entities)
 
+    # The "flow_sites" sensor lists the entity ids of its siblings for the
+    # generated dashboard; refresh it once they are all registered.
+    home = next((e for e in entities if getattr(e, "entity_description", None)
+                 and e.entity_description.key == "flow_sites"), None)
+
+    @callback
+    def _refresh(_now) -> None:
+        if home is not None and home.hass is not None:
+            home.async_write_ha_state()
+
+    entry.async_on_unload(async_call_later(hass, 5, _refresh))
+
 
 class _Base(CoordinatorEntity[TrafikverketCoordinator], SensorEntity):
     _attr_has_entity_name = True
@@ -187,6 +201,12 @@ class TrafikverketSensor(_Base):
     """A summary value computed from the latest data."""
 
     entity_description: TvSensorDescription
+    # Dashboard/map metadata on the "flow_sites" sensor is not history worth keeping.
+    _unrecorded_attributes = frozenset({
+        "trafikverket_home", "config_entry_id", "home_latitude", "home_longitude",
+        "radius_km", "weather_radius_km", "scan_interval_min", "map_style",
+        "dashboard_sections", "map_height", "entity_ids",
+    })
 
     def __init__(self, coordinator, entry, description: TvSensorDescription) -> None:
         super().__init__(coordinator, entry)
@@ -200,6 +220,20 @@ class TrafikverketSensor(_Base):
         if self.coordinator.data is None:
             return None
         return self.entity_description.value_fn(self.coordinator.data)
+
+    def _sibling_entity_ids(self) -> dict[str, str]:
+        """Entity ids of this location's entities, for the generated dashboard."""
+        reg = er.async_get(self.hass)
+        eid = self._entry.entry_id
+        out: dict[str, str] = {}
+        for desc in SENSORS:
+            if entity_id := reg.async_get_entity_id("sensor", DOMAIN, f"{eid}_{desc.key}"):
+                out[desc.key] = entity_id
+        if entity_id := reg.async_get_entity_id("sensor", DOMAIN, f"{eid}_data_usage"):
+            out["data_usage"] = entity_id
+        if entity_id := reg.async_get_entity_id("weather", DOMAIN, f"{eid}_weather"):
+            out["weather"] = entity_id
+        return out
 
     @property
     def extra_state_attributes(self) -> dict[str, Any] | None:
@@ -217,6 +251,9 @@ class TrafikverketSensor(_Base):
                 "weather_radius_km": s.weather_radius_km,
                 "scan_interval_min": s.scan_interval_min,
                 "map_style": s.map_style,
+                "dashboard_sections": list(s.dashboard_sections),
+                "map_height": s.map_height,
+                "entity_ids": self._sibling_entity_ids(),
             }
         if self.entity_description.group == "weather" and d and d.nearest_weather:
             w = d.nearest_weather

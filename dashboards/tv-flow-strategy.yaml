@@ -1,0 +1,15 @@
+# Trafikverket Trafikkarta – automatisk dashboard (v1.1.0+)
+#
+# Ordning och innehåll styrs från integrationen:
+#   Inställningar → Enheter och tjänster → Trafikverket Trafikkarta → Konfigurera → Dashboard
+#
+# Installation:
+#   Inställningar → Instrumentpaneler → Lägg till instrumentpanel → Ny instrumentpanel från grunden
+#   Öppna den → ✏️ Redigera → ⋮ → Rå konfigurationsredigerare → klistra in → Spara.
+#
+# Har du flera platser: lägg till "entry: <config_entry_id>" (finns som attribut
+# config_entry_id på sensor.tv_flow_flow_sites / _2 …).
+
+strategy:
+  type: custom:tv-flow
+  title: Trafik
