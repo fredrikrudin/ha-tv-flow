@@ -148,6 +148,7 @@ class WeatherStationEntity(TrafikverketGeoEntity):
             "grip": item.grip,
             "ice": item.ice,
             "snow": item.snow,
+            "water": item.water,
             "sample": _iso(item.sample),
         }
         self._write(write)

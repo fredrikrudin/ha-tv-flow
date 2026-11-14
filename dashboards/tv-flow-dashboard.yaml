@@ -15,6 +15,7 @@ views:
     icon: mdi:car-traffic
     type: sections
     max_columns: 4
+    dense_section_placement: true
     badges:
       - type: entity
         entity: weather.tv_flow
@@ -43,6 +44,17 @@ views:
         color: amber
 
     sections:
+      # ----------------------------------------------------------- Vägöversikt
+      - type: grid
+        cards:
+          - type: heading
+            heading: Vägöversikt
+            icon: mdi:road-variant
+          - type: custom:trafikverket-road-card
+            max_roads: 3
+            grid_options:
+              columns: full
+
       # ----------------------------------------------------------------- Väder
       - type: grid
         cards:

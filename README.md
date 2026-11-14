@@ -99,6 +99,26 @@ Kartan startar utzoomad till inställd radie + 10 km (t.ex. 20 km runt hemmet vi
 
 Kortet laddar kartbiblioteket Leaflet från `unpkg.com` och kartbilder från OpenStreetMap, så webbläsaren behöver internetåtkomst.
 
+### Vägöversikt – kort sammanfattning
+
+`custom:trafikverket-road-card` visar det viktigaste om väglaget på ett ställe:
+
+- **Status** i färg: normalt, risk för halka, mycket besvärligt eller is/snö. Statusen bygger på det sämsta av Trafikverkets väglag inom radien och en egen uppskattning från närmaste väderstation.
+- **Varför:** till exempel *Vägbanan under 0 °C*, *Daggpunkt över vägbanans temperatur – risk för rimfrost*, *Snöfall* eller *Friktion dålig*.
+- **Mätvärden:** vägbanetemperatur, lufttemperatur med daggpunkt, friktion (bra/måttlig/dålig), nederbörd och vind med byar.
+- **Varningar och orsaker** från Trafikverket, och de besvärligaste sträckorna närmast dig.
+
+```yaml
+type: custom:trafikverket-road-card
+title: Väglag nu
+max_roads: 3        # antal besvärliga sträckor i listan (0 = ingen lista)
+# entry: <config_entry_id>   # vid flera platser
+```
+
+Klicka på statusraden eller en sträcka för att öppna detaljerna. Uppskattningen är en hjälp och ersätter inte Trafikverkets bedömning eller egen uppmärksamhet. Friktionsklasserna är ungefärliga: bra ≥ 0,5, måttlig 0,35–0,5, dålig 0,25–0,35, mycket halt < 0,25.
+
+Kortet finns också som sektionen **Vägöversikt** i den automatiska dashboarden, och ligger först i standardordningen.
+
 ### Färger
 
 - **Mätpunkter:** grön ≥ 70 km/h, gulgrön 50–70, orange 30–50, röd < 30, grå = okänd. Större cirkel = mer trafik.
@@ -136,12 +156,13 @@ Integrationen kan bygga hela dashboarden åt dig. Du väljer ordning och innehå
 
 4. Klicka **Spara**.
 
-**Ändra ordning och innehåll:** **Inställningar → Enheter och tjänster → Trafikverket Trafikkarta → Konfigurera → Dashboard**. Välj vad som ska visas på *Plats 1–6*, eller *Visa inte* för att dölja en sektion. Där ställer du också in kartans höjd. Ladda sedan om dashboarden i webbläsaren.
+**Ändra ordning och innehåll:** **Inställningar → Enheter och tjänster → Trafikverket Trafikkarta → Konfigurera → Dashboard**. Välj vad som ska visas på *Plats 1–7*, eller *Visa inte* för att dölja en sektion. Där ställer du också in kartans höjd. Ladda sedan om dashboarden i webbläsaren.
 
 Tillgängliga sektioner:
 
 | Sektion | Innehåll |
 |---|---|
+| Vägöversikt | Kort sammanfattning: status, varför, vägbana, friktion, nederbörd, vind, varningar |
 | Väder vid vägen | Väderkort och rutor för luft, vägbana, vind, fukt, nederbörd, sikt och friktion |
 | Väglag | Sämsta väglag, antal besvärliga sträckor och en lista med varningar och åtgärder |
 | Trafikkarta | Kartan med mätpunkter, väglag och väderstationer (två kolumner bred) |
@@ -149,7 +170,7 @@ Tillgängliga sektioner:
 | Historik | Hastighet och temperaturer senaste dygnet, trafikflöde senaste veckan |
 | Datamängd | Hämtad datamängd och aktuella inställningar |
 
-Standardordningen är Väder vid vägen → Väglag → Trafikkarta → Läget nu → Historik → Datamängd. Sektioner vars data är avstängd, till exempel väder, hoppas över automatiskt.
+Standardordningen är Vägöversikt → Väder vid vägen → Väglag → Trafikkarta → Läget nu → Historik → Datamängd. Sektioner vars data är avstängd, till exempel väder, hoppas över automatiskt.
 
 Har du flera platser lägger du till `entry: <config_entry_id>` under `strategy:`. Värdet finns som attributet `config_entry_id` på `sensor.tv_flow_flow_sites` (eller `_2` osv.).
 

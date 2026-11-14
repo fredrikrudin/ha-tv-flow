@@ -31,7 +31,7 @@ DEFAULT_MAP_STYLE = "light"
 MAP_STYLES = ["light", "dark", "auto"]
 
 # Sections of the generated dashboard (custom:tv-flow strategy), in default order
-DASHBOARD_SECTIONS = ["weather", "road", "map", "now", "history", "data"]
+DASHBOARD_SECTIONS = ["summary", "weather", "road", "map", "now", "history", "data"]
 DASHBOARD_NONE = "none"
 DEFAULT_MAP_HEIGHT = 560
 
@@ -48,4 +48,5 @@ SOURCE_WEATHER = "trafikverket_weather"
 SIGNAL_UPDATE = f"{DOMAIN}_update_{{}}"
 
 CARD_URL = f"/{DOMAIN}/trafikverket-map-card.js"
-CARD_VERSION = "1.1.0"
+ROAD_CARD_URL = f"/{DOMAIN}/trafikverket-road-card.js"
+CARD_VERSION = "1.2.0"

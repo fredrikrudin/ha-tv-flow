@@ -336,7 +336,7 @@ window.customCards.push({
  *     title: Trafik              # optional
  * ========================================================================== */
 
-const TV_SECTION_ORDER = ["weather", "road", "map", "now", "history", "data"];
+const TV_SECTION_ORDER = ["summary", "weather", "road", "map", "now", "history", "data"];
 
 function tvFindHome(hass, entry) {
   return Object.values(hass.states).find(
@@ -368,6 +368,16 @@ function tvGeoFilter(entry, type) {
 }
 
 const TV_SECTIONS = {
+  summary(ids, entry) {
+    return {
+      type: "grid",
+      cards: [
+        { type: "heading", heading: "Vägöversikt", icon: "mdi:road-variant" },
+        { type: "custom:trafikverket-road-card", entry, max_roads: 3, grid_options: { columns: "full" } },
+      ],
+    };
+  },
+
   weather(ids) {
     if (!ids.weather && !ids.air_temperature) return null;
     const w = ids.weather;
@@ -602,6 +612,7 @@ class TvFlowDashboardStrategy {
         icon: "mdi:car-traffic",
         type: "sections",
         max_columns: 4,
+        dense_section_placement: true,
         badges,
         sections,
       }],
