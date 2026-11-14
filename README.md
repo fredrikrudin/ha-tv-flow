@@ -273,6 +273,10 @@ python3 tests/test_parser.py
 
 API-schemana (XSD) som integrationen bygger på finns i `docs/schemas/`.
 
+## Ändringslogg
+
+Alla ändringar per version finns i [CHANGELOG.md](CHANGELOG.md).
+
 ## Licens
 
 [CC BY-NC 4.0](LICENSE) – fri att använda, dela och ändra för icke-kommersiellt bruk med angivande av upphovsperson.
