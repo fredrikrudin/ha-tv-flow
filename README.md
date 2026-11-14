@@ -4,7 +4,7 @@ Custom integration för Home Assistant som hämtar **trafikflöden**, **väglag*
 
 - 🚗 **Trafikflöden** (TrafficFlow 1.5) – mätpunkter färgade efter medelhastighet och storleksatta efter flöde (fordon/h), med detaljer per körfält och riktning.
 - 🛣️ **Väglag** (RoadCondition 1.3) – vägsträckor ritade som linjer, färgade efter väglagskod, med varningar, orsak och åtgärd.
-- 🚨 **Trafikhändelser** (Situation 1.5) – olyckor, hinder, viktig trafikinformation, restriktioner och vägarbeten på kartan, och ett varningskort som bara syns när något har hänt.
+- 🧪 **Experimentellt:** olyckor, hinder och vägarbeten som ett eget lager på kartan.
 - 🌡️ **Lokalt väder** (WeatherObservation 2.1) – närmaste vägväderstation som `weather`-entitet och sensorer (luft- och vägbanetemperatur, vind, nederbörd, sikt, friktion).
 - 📍 **Valfri radie** runt hemmet eller en sökt ort.
 - 📉 **Begränsad datamängd** – du väljer uppdateringsintervall, max antal objekt, vilka datatyper som hämtas och att bara nödvändiga fält skickas. Allt hämtas i **ett** anrop per intervall.
@@ -72,7 +72,6 @@ Allt kan ändras i efterhand via **Konfigurera** på integrationen (byt ort, fly
 | Max objekt per fråga | 300 | Övre gräns per datatyp och hämtning. |
 | Max ålder | 60 min | Döljer mätpunkter som slutat rapportera. |
 | Bara nödvändiga fält | på | Minskar svarsstorleken kraftigt. |
-| Trafikhändelser | på | Olyckor, hinder, vägarbeten m.m. Behövs för varningskortet. |
 
 Den diagnostiska sensorn **Hämtad datamängd** visar hur mycket som laddats ner sedan start, och **Senaste svarsstorlek** hur stort varje anrop är – bra för att finjustera.
 
@@ -100,40 +99,6 @@ Kartan startar utzoomad till inställd radie + 10 km (t.ex. 20 km runt hemmet vi
 
 Kortet laddar kartbiblioteket Leaflet från `unpkg.com` och kartbilder från OpenStreetMap, så webbläsaren behöver internetåtkomst.
 
-### Varningskort – syns bara vid varning
-
-`custom:trafikverket-warning-card` är dolt så länge allt är lugnt. Det dyker upp när det finns en **olycka, ett hinder, viktig trafikinformation, en restriktion eller ett trafikmeddelande**, eller en **sträcka med besvärligt väglag**, inom din radie.
-
-- Överst visas den allvarligaste händelsen, till exempel *Olycka på Väg 83*, och hur många händelser och sträckor som finns.
-- Under den listas händelserna, allvarligast först, med rubrik, beskrivning, plats, påverkan, tillfällig begränsning, hur länge den pågått och avstånd.
-- Längst ned visas aktuella förhållanden från närmaste väderstation: vägbana, luft, friktion, nederbörd och vind. Minusgrader och låg friktion markeras.
-
-```yaml
-type: custom:trafikverket-warning-card
-# types: [Olycka, Hinder, Viktig trafikinformation, Restriktion, Trafikmeddelande]
-# include_road_conditions: true   # varna även för besvärligt väglag
-# include_road_works: false       # ta med vägarbeten
-# min_severity: 0                 # 1–5, ignorera händelser med lägre påverkan
-# max_items: 5
-# show_conditions: true
-# show_when_empty: false          # true = visa "Inga trafikvarningar" i stället för att dölja
-```
-
-Kortet döljer sig självt. I en sektionsvy kan du dessutom dölja hela sektionen med villkoret `sensor.tv_flow_active_warnings` över 0, så att ingen tom plats blir kvar. Både den automatiska och den statiska dashboarden gör så.
-
-`sensor.tv_flow_active_warnings`, `sensor.tv_flow_accidents`, `sensor.tv_flow_incidents` och `sensor.tv_flow_road_works` kan också användas i automationer:
-
-```yaml
-trigger:
-  - platform: numeric_state
-    entity_id: sensor.tv_flow_accidents
-    above: 0
-action:
-  - service: notify.mobile_app_telefon
-    data:
-      message: "Olycka i närheten: {{ state_attr('sensor.tv_flow_active_warnings', 'top_header') }}"
-```
-
 ### Vägöversikt – kort sammanfattning
 
 `custom:trafikverket-road-card` visar det viktigaste om väglaget på ett ställe:
@@ -154,10 +119,21 @@ Klicka på statusraden eller en sträcka för att öppna detaljerna. Uppskattnin
 
 Kortet finns också som sektionen **Vägöversikt** i den automatiska dashboarden, och ligger först i standardordningen.
 
+### Experimentella funktioner
+
+Under **Konfigurera → Experimentella funktioner** finns funktioner som fortfarande testas. De är avstängda som standard och kan ändras eller tas bort i kommande versioner.
+
+| Funktion | Vad den gör |
+|---|---|
+| **Händelser på kartan** | Hämtar Trafikverkets trafikhändelser (Situation 1.5) inom radien och visar dem som lagret *Händelser* i kartkortet: 🔴 **olyckor**, 🟠 **hinder** och 🟤 **vägarbeten**. Klicka på en markör för rubrik, beskrivning, plats och tider. Sträckor ritas som streckade linjer. Sensorerna `sensor.tv_flow_accidents`, `_incidents` och `_road_works` skapas när funktionen är på. |
+
+Lagret kan döljas i kartans lagerväljare eller med `show_situations: false` på kortet. Om Trafikverket inte godtar frågan stängs bara händelserna av, och resten fortsätter fungera (se Felsökning).
+
 ### Färger
 
 - **Mätpunkter:** grön ≥ 70 km/h, gulgrön 50–70, orange 30–50, röd < 30, grå = okänd. Större cirkel = mer trafik.
 - **Väglag:** grön normalt, gul besvärligt (risk för), röd mycket besvärligt, blå is- och snövägbana.
+- **Händelser** (experimentellt): röd olycka, orange hinder, brun vägarbete.
 
 ### Inbyggda kartkortet
 
@@ -191,13 +167,12 @@ Integrationen kan bygga hela dashboarden åt dig. Du väljer ordning och innehå
 
 4. Klicka **Spara**.
 
-**Ändra ordning och innehåll:** **Inställningar → Enheter och tjänster → Trafikverket Trafikkarta → Konfigurera → Dashboard och karta**. Välj vad som ska visas på *Plats 1–8*, eller *Visa inte* för att dölja en sektion. Där ställer du också in **kartstil** (standard OpenStreetMap, mörk eller följ temat) och kartans höjd. Ladda sedan om dashboarden i webbläsaren.
+**Ändra ordning och innehåll:** **Inställningar → Enheter och tjänster → Trafikverket Trafikkarta → Konfigurera → Dashboard och karta**. Välj vad som ska visas på *Plats 1–7*, eller *Visa inte* för att dölja en sektion. Där ställer du också in **kartstil** (standard OpenStreetMap, mörk eller följ temat) och kartans höjd. Ladda sedan om dashboarden i webbläsaren.
 
 Tillgängliga sektioner:
 
 | Sektion | Innehåll |
 |---|---|
-| Varningar | Varningskortet – syns bara vid olycka, hinder m.m. eller besvärligt väglag |
 | Vägöversikt | Kort sammanfattning: status, varför, vägbana, friktion, nederbörd, vind, varningar |
 | Väder vid vägen | Väderkort och rutor för luft, vägbana, vind, fukt, nederbörd, sikt och friktion |
 | Väglag | Sämsta väglag, antal besvärliga sträckor och en lista med varningar och åtgärder |
@@ -206,7 +181,7 @@ Tillgängliga sektioner:
 | Historik | Hastighet och temperaturer senaste dygnet, trafikflöde senaste veckan |
 | Datamängd | Hämtad datamängd och aktuella inställningar |
 
-Standardordningen är Varningar → Vägöversikt → Väder vid vägen → Väglag → Trafikkarta → Läget nu → Historik → Datamängd. Sektioner vars data är avstängd, till exempel väder, hoppas över automatiskt.
+Standardordningen är Vägöversikt → Väder vid vägen → Väglag → Trafikkarta → Läget nu → Historik → Datamängd. Sektioner vars data är avstängd, till exempel väder, hoppas över automatiskt.
 
 Har du flera platser lägger du till `entry: <config_entry_id>` under `strategy:`. Värdet finns som attributet `config_entry_id` på `sensor.tv_flow_flow_sites` (eller `_2` osv.).
 

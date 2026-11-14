@@ -13,7 +13,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.typing import ConfigType
 
-from .const import CARD_URL, CARD_VERSION, DOMAIN, ROAD_CARD_URL, WARNING_CARD_URL
+from .const import CARD_URL, CARD_VERSION, DOMAIN, ROAD_CARD_URL
 from .coordinator import TrafikverketCoordinator
 
 _LOGGER = logging.getLogger(__name__)
@@ -31,9 +31,7 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     await hass.http.async_register_static_paths([
         StaticPathConfig(CARD_URL, str(www / "trafikverket-map-card.js"), False),
         StaticPathConfig(ROAD_CARD_URL, str(www / "trafikverket-road-card.js"), False),
-        StaticPathConfig(WARNING_CARD_URL, str(www / "trafikverket-warning-card.js"), False),
     ])
-    add_extra_js_url(hass, f"{WARNING_CARD_URL}?v={CARD_VERSION}")
     add_extra_js_url(hass, f"{ROAD_CARD_URL}?v={CARD_VERSION}")
     add_extra_js_url(hass, f"{CARD_URL}?v={CARD_VERSION}")
     return True

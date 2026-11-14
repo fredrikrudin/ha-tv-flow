@@ -97,11 +97,6 @@ SENSORS: tuple[TvSensorDescription, ...] = (
         value_fn=lambda d: len([r for r in d.road_conditions if (r.code or 1) > 1]),
     ),
     TvSensorDescription(
-        key="active_warnings", translation_key="active_warnings", icon="mdi:alert-decagram",
-        group="warn", state_class=SensorStateClass.MEASUREMENT,
-        value_fn=lambda d: d.active_warning_count,
-    ),
-    TvSensorDescription(
         key="incidents", translation_key="incidents", icon="mdi:alert-circle-outline",
         group="situation", state_class=SensorStateClass.MEASUREMENT,
         value_fn=lambda d: len(d.warnings),
@@ -182,7 +177,7 @@ async def async_setup_entry(
     s = coordinator.settings
     enabled = {
         "flow": s.flow, "road": s.road, "weather": s.weather, "meta": True,
-        "situation": s.situation, "warn": s.situation or s.road,
+        "situation": s.situation,
     }
     entities: list[SensorEntity] = [
         TrafikverketSensor(coordinator, entry, desc) for desc in SENSORS if enabled[desc.group]
@@ -284,15 +279,6 @@ class TrafikverketSensor(_Base):
                 "station": w.name,
                 "distance_km": w.distance_km,
                 "sample": w.sample.isoformat() if w.sample else None,
-            }
-        if key == "active_warnings" and d:
-            top = d.warnings[0] if d.warnings else None
-            return {
-                "events": len(d.warnings),
-                "difficult_roads": len([r for r in d.road_conditions if (r.code or 1) > 1]),
-                "top_type": top.message_type if top else None,
-                "top_header": (top.header or top.message) if top else None,
-                "top_road": top.road_number if top else None,
             }
         if key == "road_condition" and d:
             return {

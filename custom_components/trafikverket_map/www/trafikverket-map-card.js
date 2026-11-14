@@ -10,7 +10,7 @@
  *   show_flow: true
  *   show_road: true
  *   show_weather: true
- *   show_situations: true          # traffic events (olyckor, hinder, vägarbeten …)
+ *   show_situations: true          # experimental: olyckor, hinder, vägarbeten (needs the setting)
  *   dark_mode: false               # optional: true | false | auto – overrides the
  *                                  # "Map style" setting of the integration
  *   zoom_margin_km: 10             # start view = radius + this margin (km)
@@ -49,14 +49,11 @@ function speedColor(speed) {
   return "#c62828";
 }
 
+// Experimental "Händelser" layer: only these event types are drawn.
 const SIT_STYLE = {
-  "Olycka": { color: "#d50000", label: "!" },
-  "Hinder": { color: "#ef6c00", label: "!" },
-  "Viktig trafikinformation": { color: "#6a1b9a", label: "i" },
-  "Restriktion": { color: "#f9a825", label: "R" },
-  "Trafikmeddelande": { color: "#455a64", label: "i" },
-  "Vägarbete": { color: "#8d6e63", label: "V" },
-  "Färjor": { color: "#1565c0", label: "F" },
+  "Olycka": { color: "#d50000", label: "!", legend: "Olycka" },
+  "Hinder": { color: "#ef6c00", label: "!", legend: "Hinder" },
+  "Vägarbete": { color: "#795548", label: "V", legend: "Vägarbete" },
 };
 const ROAD_COLORS = { 1: "#43a047", 2: "#ffb300", 3: "#e53935", 4: "#1e88e5" };
 const ROAD_TEXT = { 1: "Normalt", 2: "Besvärligt (risk för)", 3: "Mycket besvärligt", 4: "Is- och snövägbana" };
@@ -189,8 +186,12 @@ class TrafikverketMapCard extends HTMLElement {
         (this._config.show_road
           ? "<b>Väglag</b>" + Object.entries(ROAD_COLORS)
               .map(([k, c]) => `<div><i style="background:${c};border-radius:0;height:4px"></i>${ROAD_TEXT[k]}</div>`).join("")
-          : "");
+          : "") +
+        '<div class="ev-legend" style="display:none"><b>Händelser</b>' +
+        Object.values(SIT_STYLE).map((st) => `<div><i style="background:${st.color}"></i>${st.legend}</div>`).join("") +
+        "</div>";
       L.DomEvent.disableClickPropagation(d);
+      this._legendEl = d;
       return d;
     };
     legend.addTo(this._map);
@@ -306,9 +307,10 @@ class TrafikverketMapCard extends HTMLElement {
             L.circleMarker(line[0], { radius: 5, color, fillOpacity: 0.8 }).bindPopup(popup).addTo(this._layers.road);
           }
         }
-      } else if (a.tv_type === "situation" && this._config.show_situations) {
+      } else if (a.tv_type === "situation" && this._config.show_situations && SIT_STYLE[a.message_type]) {
         nSit++;
-        const st = SIT_STYLE[a.message_type] || { color: "#455a64", label: "i" };
+        this._hasEvents = true;
+        const st = SIT_STYLE[a.message_type];
         const popup =
           `<b>${esc(a.message_type || "Händelse")}${a.road_number ? " – " + esc(a.road_number) : ""}</b><br>` +
           (a.header ? `${esc(a.header)}<br>` : "") +
@@ -342,9 +344,12 @@ class TrafikverketMapCard extends HTMLElement {
       }
     }
 
+    const evLegend = this._legendEl && this._legendEl.querySelector && this._legendEl.querySelector(".ev-legend");
+    if (evLegend) evLegend.style.display = nSit > 0 ? "" : "none";
+
     const footer = this.shadowRoot.getElementById("footer");
     footer.textContent = home
-      ? `${nFlow} mätpunkter · ${nRoad} väglagssträckor · ${nSit} händelser · ${nWeather} väderstationer · senaste mätning ${fmtTime(newest)} · uppdateras var ${home.attributes.scan_interval_min} min`
+      ? `${nFlow} mätpunkter · ${nRoad} väglagssträckor · ${nSit ? nSit + " händelser · " : ""}${nWeather} väderstationer · senaste mätning ${fmtTime(newest)} · uppdateras var ${home.attributes.scan_interval_min} min`
       : "Hittar ingen Trafikverket Trafikkarta-integration.";
   }
 }
@@ -369,7 +374,7 @@ window.customCards.push({
  *     title: Trafik              # optional
  * ========================================================================== */
 
-const TV_SECTION_ORDER = ["warnings", "summary", "weather", "road", "map", "now", "history", "data"];
+const TV_SECTION_ORDER = ["summary", "weather", "road", "map", "now", "history", "data"];
 
 function tvFindHome(hass, entry) {
   return Object.values(hass.states).find(
@@ -401,17 +406,6 @@ function tvGeoFilter(entry, type) {
 }
 
 const TV_SECTIONS = {
-  warnings(ids, entry) {
-    if (!ids.active_warnings) return null;
-    return {
-      type: "grid",
-      column_span: 4,
-      // Only shown while there is an active warning
-      visibility: [{ condition: "numeric_state", entity: ids.active_warnings, above: 0 }],
-      cards: [{ type: "custom:trafikverket-warning-card", entry, grid_options: { columns: "full" } }],
-    };
-  },
-
   summary(ids, entry) {
     return {
       type: "grid",

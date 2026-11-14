@@ -7,6 +7,19 @@ Nyaste versionen står överst. Varje release på GitHub har taggen `vX.Y.Z`.
 
 ## [Ej släppt]
 
+## [1.3.0] – 2026-11-14
+
+### Borttaget
+- **Trafikvarningarna** är borttagna tills vidare: varningskortet `custom:trafikverket-warning-card`, sektionen *Varningar* i dashboarderna och sensorn `sensor.tv_flow_active_warnings`. Har du kvar kortet eller sensorn i en egen dashboard kan du ta bort dem.
+
+### Tillagt
+- Inställningssteget **Experimentella funktioner** under Konfigurera.
+- Den experimentella funktionen **Händelser på kartan** (av som standard). Den visar trafikhändelser som lagret *Händelser* i kartkortet: röd för olyckor, orange för hinder och brun för vägarbeten. Andra händelsetyper visas inte. Teckenförklaringen får en rad för händelser när det finns några på kartan.
+
+### Ändrat
+- Trafikhändelser (Situation) hämtas bara när den experimentella funktionen är på. Inställningen *Hämta trafikhändelser* under datamängder är borttagen.
+- Dashboard-steget har nu *Plats 1–7* igen.
+
 ## [1.2.7] – 2026-11-14
 
 ### Rättat
@@ -96,7 +109,8 @@ Första publika versionen.
 - README med installation via Marketplace (Home Assistant 2026.11+), HACS och manuellt.
 - Licens CC BY-NC 4.0.
 
-[Ej släppt]: https://github.com/fredrikrudin/ha-tv-flow/compare/v1.2.7...HEAD
+[Ej släppt]: https://github.com/fredrikrudin/ha-tv-flow/compare/v1.3.0...HEAD
+[1.3.0]: https://github.com/fredrikrudin/ha-tv-flow/releases/tag/v1.3.0
 [1.2.7]: https://github.com/fredrikrudin/ha-tv-flow/releases/tag/v1.2.7
 [1.2.6]: https://github.com/fredrikrudin/ha-tv-flow/releases/tag/v1.2.6
 [1.2.5]: https://github.com/fredrikrudin/ha-tv-flow/compare/58311e7...2aebc4c

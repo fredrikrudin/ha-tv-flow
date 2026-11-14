@@ -50,7 +50,6 @@
           "enable_traffic_flow": "Hämta trafikflöden",
           "enable_road_condition": "Hämta väglag",
           "enable_weather": "Hämta väder från vägväderstationer",
-          "enable_situation": "Hämta trafikhändelser (olyckor, hinder, viktig trafikinformation)",
           "weather_radius_km": "Radie för väderstationer (km)",
           "max_objects": "Max antal objekt per fråga",
           "max_age_min": "Ignorera mätningar äldre än (minuter)",
@@ -61,8 +60,7 @@
           "weather_radius_km": "Närmaste station används som lokalt väder, så radien kan vara större än för trafiken.",
           "max_objects": "Övre gräns för antal poster per datatyp och hämtning.",
           "max_age_min": "Mätpunkter som inte rapporterat på så här länge visas inte.",
-          "minimal_fields": "Minskar datamängden kraftigt. Stäng av bara om API:et klagar på fält.",
-          "enable_situation": "Trafikverkets trafikmeddelanden inom radien. Behövs för varningskortet."
+          "minimal_fields": "Minskar datamängden kraftigt. Stäng av bara om API:et klagar på fält."
         }
       },
       "reauth_confirm": {
@@ -92,7 +90,8 @@
           "search": "Sök efter ort eller adress",
           "map": "Välj på karta",
           "settings": "Datamängd och uppdateringsintervall",
-          "dashboard": "Dashboard och karta"
+          "dashboard": "Dashboard och karta",
+          "experimental": "Experimentella funktioner"
         }
       },
       "search": {
@@ -125,7 +124,6 @@
           "enable_traffic_flow": "Hämta trafikflöden",
           "enable_road_condition": "Hämta väglag",
           "enable_weather": "Hämta väder från vägväderstationer",
-          "enable_situation": "Hämta trafikhändelser (olyckor, hinder, viktig trafikinformation)",
           "weather_radius_km": "Radie för väderstationer (km)",
           "max_objects": "Max antal objekt per fråga",
           "max_age_min": "Ignorera mätningar äldre än (minuter)",
@@ -136,8 +134,7 @@
           "weather_radius_km": "Närmaste station används som lokalt väder, så radien kan vara större än för trafiken.",
           "max_objects": "Övre gräns för antal poster per datatyp och hämtning.",
           "max_age_min": "Mätpunkter som inte rapporterat på så här länge visas inte.",
-          "minimal_fields": "Minskar datamängden kraftigt. Stäng av bara om API:et klagar på fält.",
-          "enable_situation": "Trafikverkets trafikmeddelanden inom radien. Behövs för varningskortet."
+          "minimal_fields": "Minskar datamängden kraftigt. Stäng av bara om API:et klagar på fält."
         }
       },
       "dashboard": {
@@ -152,12 +149,21 @@
           "position_5": "Plats 5",
           "position_6": "Plats 6",
           "position_7": "Plats 7",
-          "position_8": "Plats 8",
           "map_height": "Kartans höjd"
         },
         "data_description": {
           "map_style": "Utseende på kartan i kartkortet. Ett eget dark_mode i kortet går före.",
           "map_height": "Höjd på kartan i pixlar."
+        }
+      },
+      "experimental": {
+        "title": "Experimentella funktioner",
+        "description": "Funktioner som fortfarande testas. De kan ändras eller tas bort i kommande versioner.\n\n**Händelser på kartan** hämtar Trafikverkets trafikhändelser inom radien och visar dem som lagret *Händelser* i kartkortet: 🔴 olyckor, 🟠 hinder och 🟤 vägarbeten. Det ger något mer data per hämtning.",
+        "data": {
+          "experimental_events": "Händelser på kartan (olyckor, hinder, vägarbeten)"
+        },
+        "data_description": {
+          "experimental_events": "Av som standard. Kartkortet visar lagret när funktionen är på."
         }
       }
     },
@@ -221,9 +227,6 @@
       "data_usage": {
         "name": "Hämtad datamängd"
       },
-      "active_warnings": {
-        "name": "Aktiva varningar"
-      },
       "incidents": {
         "name": "Trafikhändelser"
       },
@@ -250,7 +253,6 @@
     },
     "dashboard_section": {
       "options": {
-        "warnings": "Varningar (visas bara vid varning)",
         "summary": "Vägöversikt",
         "weather": "Väder vid vägen",
         "road": "Väglag",

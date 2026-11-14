@@ -39,7 +39,7 @@ from .api import TrafikverketAuthError, TrafikverketClient, TrafikverketError
 from .const import (
     CONF_ENABLE_FLOW,
     CONF_ENABLE_ROAD,
-    CONF_ENABLE_SITUATION,
+    CONF_EXPERIMENTAL_EVENTS,
     CONF_ENABLE_WEATHER,
     CONF_DASHBOARD_SECTIONS,
     CONF_MAP_HEIGHT,
@@ -91,7 +91,6 @@ def _settings_schema(d: Mapping[str, Any]) -> vol.Schema:
         vol.Required(CONF_ENABLE_FLOW, default=bool(d.get(CONF_ENABLE_FLOW, True))): BooleanSelector(),
         vol.Required(CONF_ENABLE_ROAD, default=bool(d.get(CONF_ENABLE_ROAD, True))): BooleanSelector(),
         vol.Required(CONF_ENABLE_WEATHER, default=bool(d.get(CONF_ENABLE_WEATHER, True))): BooleanSelector(),
-        vol.Required(CONF_ENABLE_SITUATION, default=bool(d.get(CONF_ENABLE_SITUATION, True))): BooleanSelector(),
         vol.Required(
             CONF_WEATHER_RADIUS, default=float(d.get(CONF_WEATHER_RADIUS, DEFAULT_WEATHER_RADIUS_KM))
         ): _km(1, 150, 1),
@@ -308,7 +307,23 @@ class TrafikverketMapOptionsFlow(_LocationSteps, OptionsFlow):
         self._radius_km = float(cur.get(CONF_RADIUS, DEFAULT_RADIUS_KM))
         self._hits = []
         return self.async_show_menu(
-            step_id="init", menu_options=["search", "map", "settings", "dashboard"]
+            step_id="init", menu_options=["search", "map", "settings", "dashboard", "experimental"]
+        )
+
+    async def async_step_experimental(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        """Opt-in features that are not finished yet."""
+        cur = self._current()
+        if user_input is not None:
+            data = dict(self.config_entry.options)
+            data[CONF_EXPERIMENTAL_EVENTS] = bool(user_input[CONF_EXPERIMENTAL_EVENTS])
+            return self.async_create_entry(data=data)
+        return self.async_show_form(
+            step_id="experimental",
+            data_schema=vol.Schema({
+                vol.Required(
+                    CONF_EXPERIMENTAL_EVENTS, default=bool(cur.get(CONF_EXPERIMENTAL_EVENTS, False))
+                ): BooleanSelector(),
+            }),
         )
 
     async def _location_done(self) -> ConfigFlowResult:

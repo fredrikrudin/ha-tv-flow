@@ -44,19 +44,6 @@ views:
         color: amber
 
     sections:
-      # ------------------------------------------------------------ Varningar
-      # Visas bara när det finns en aktiv varning inom radien
-      - type: grid
-        column_span: 4
-        visibility:
-          - condition: numeric_state
-            entity: sensor.tv_flow_active_warnings
-            above: 0
-        cards:
-          - type: custom:trafikverket-warning-card
-            grid_options:
-              columns: full
-
       # ----------------------------------------------------------- Vägöversikt
       - type: grid
         cards:
