@@ -90,7 +90,9 @@ height: 450
 | `title` | – | Rubrik |
 | `height` | `450` | Höjd i pixlar |
 | `entry` | – | `config_entry_id` om du har flera platser och vill visa en specifik |
-| `show_flow` / `show_road` / `show_weather` / `show_situations` | `true` | Visa/dölj lager |
+| `show_flow` / `show_road` / `show_weather` / `show_situations` | `true` | Ta med lagret alls |
+| `legend` | `true` | Visa teckenförklaringen |
+| `hidden` | – | Kategorier som är dolda från början, t.ex. `[speed:fast, road:1]` (se nedan) |
 | `dark_mode` | – | `true`, `false` eller `auto`. Utelämna för att följa inställningen **Kartstil** under Konfigurera → Dashboard och karta. |
 | `zoom_margin_km` | `10` | Startvyn visar inställd radie plus så här många km runt hemmet |
 | `tile_url` | OpenStreetMap | Egen kartserver |
@@ -128,6 +130,26 @@ Under **Konfigurera → Experimentella funktioner** finns funktioner som fortfar
 | **Händelser på kartan** | Hämtar Trafikverkets trafikhändelser (Situation 1.6) inom radien och visar dem som lagret *Händelser* i kartkortet: 🔴 **olyckor**, 🟠 **hinder** och 🟤 **vägarbeten**. Klicka på en markör för rubrik, beskrivning, plats och tider. Sträckor ritas som streckade linjer. Sensorerna `sensor.tv_flow_accidents`, `_incidents` och `_road_works` skapas när funktionen är på. |
 
 Lagret kan döljas i kartans lagerväljare eller med `show_situations: false` på kortet. Om Trafikverket inte godtar frågan stängs bara händelserna av, och resten fortsätter fungera (se Felsökning).
+
+### Välj vad som visas i teckenförklaringen
+
+Klicka på en rad i **teckenförklaringen** för att dölja eller visa den kategorin på kartan. Dolda rader blir grå, och **Visa alla** återställer. Siffran till höger visar hur många objekt varje rad har. Rubriken *Teckenförklaring* fäller ihop eller ut rutan.
+
+Valet sparas i webbläsaren per kort och plats, så kartan ser likadan ut nästa gång. Vill du ha ett annat utgångsläge för alla användare anger du `hidden:` på kortet med någon av dessa nycklar:
+
+| Nyckel | Kategori |
+|---|---|
+| `speed:fast`, `speed:medium`, `speed:slow`, `speed:crawl`, `speed:unknown` | Mätpunkter ≥ 70, 50–70, 30–50, < 30 km/h, okänd |
+| `road:1`, `road:2`, `road:3`, `road:4` | Väglag normalt, besvärligt, mycket besvärligt, is/snö |
+| `event:Olycka`, `event:Hinder`, `event:Vägarbete` | Händelser (experimentellt) |
+| `weather` | Väderstationer |
+
+Exempel – visa bara köer och besvärligt väglag från början:
+
+```yaml
+type: custom:trafikverket-map-card
+hidden: [speed:fast, speed:medium, road:1]
+```
 
 ### Färger
 

@@ -14,6 +14,8 @@
  *   dark_mode: false               # optional: true | false | auto – overrides the
  *                                  # "Map style" setting of the integration
  *   zoom_margin_km: 10             # start view = radius + this margin (km)
+ *   legend: true                   # show the legend (click rows to show/hide)
+ *   hidden: [speed:fast, road:1]   # optional default for hidden legend rows
  *   tile_url: https://tile.openstreetmap.org/{z}/{x}/{y}.png   # optional
  *
  * Leaflet is loaded from unpkg.com the first time the card is shown.
@@ -40,6 +42,15 @@ function loadLeaflet() {
 
 const esc = (v) =>
   String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+const SPEED_CLASSES = [
+  { key: "speed:fast", color: "#2e7d32", label: "≥ 70 km/h", test: (v) => v != null && v >= 70 },
+  { key: "speed:medium", color: "#9e9d24", label: "50–70", test: (v) => v != null && v >= 50 && v < 70 },
+  { key: "speed:slow", color: "#ef6c00", label: "30–50", test: (v) => v != null && v >= 30 && v < 50 },
+  { key: "speed:crawl", color: "#c62828", label: "< 30", test: (v) => v != null && v < 30 },
+  { key: "speed:unknown", color: "#9e9e9e", label: "okänd", test: (v) => v == null },
+];
+const speedKey = (v) => (SPEED_CLASSES.find((c) => c.test(v)) || SPEED_CLASSES[4]).key;
 
 function speedColor(speed) {
   if (speed == null) return "#9e9e9e";
@@ -70,7 +81,7 @@ function fmtTime(iso) {
 class TrafikverketMapCard extends HTMLElement {
   setConfig(config) {
     this._config = {
-      height: 450, show_flow: true, show_road: true, show_weather: true, show_situations: true, zoom_margin_km: 10,
+      height: 450, show_flow: true, show_road: true, show_weather: true, show_situations: true, zoom_margin_km: 10, legend: true,
       tile_url: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
       ...config,
     };
@@ -108,8 +119,17 @@ class TrafikverketMapCard extends HTMLElement {
         .legend { background: var(--card-background-color, #fff); color: var(--primary-text-color, #000);
                   padding: 6px 8px; border-radius: 6px; font: 12px/1.4 var(--paper-font-body1_-_font-family, sans-serif);
                   box-shadow: 0 1px 4px rgba(0,0,0,.3); }
-        .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 4px; }
-        .legend b { display:block; margin-top: 4px; }
+        .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; flex: none; }
+        .legend b { display: block; margin-top: 6px; }
+        .legend .lh { display: flex; align-items: center; gap: 8px; cursor: pointer; font-weight: 600; user-select: none; }
+        .legend .lh span { margin-left: auto; color: var(--secondary-text-color, #666); }
+        .legend .li { display: flex; align-items: center; padding: 2px 4px; margin: 0 -4px; border-radius: 4px;
+                      cursor: pointer; user-select: none; }
+        .legend .li:hover { background: var(--secondary-background-color, #eee); }
+        .legend .li.off { opacity: .4; text-decoration: line-through; }
+        .legend .li em { margin-left: auto; padding-left: 10px; font-style: normal; color: var(--secondary-text-color, #666); }
+        .legend .all { display: block; margin-top: 6px; color: var(--primary-color, #1976d2); cursor: pointer; }
+        .legend.collapsed .lb { display: none; }
         .temp { background: var(--card-background-color, #fff); color: var(--primary-text-color, #000);
                 border: 1px solid #1976d2; border-radius: 10px; padding: 1px 5px; font: 600 11px sans-serif;
                 white-space: nowrap; box-shadow: 0 1px 3px rgba(0,0,0,.3); }
@@ -159,13 +179,8 @@ class TrafikverketMapCard extends HTMLElement {
       weather: L.layerGroup().addTo(this._map),
       situation: L.layerGroup().addTo(this._map),
     };
-    const overlays = {};
-    if (this._config.show_flow) overlays["Trafikflöden"] = this._layers.flow;
-    if (this._config.show_road) overlays["Väglag"] = this._layers.road;
-    if (this._config.show_weather) overlays["Väder"] = this._layers.weather;
-    if (this._config.show_situations) overlays["Händelser"] = this._layers.situation;
-    L.control.layers(null, overlays, { collapsed: true }).addTo(this._map);
-    this._addLegend(L);
+    this._loadLegendState();
+    if (this._config.legend !== false) this._addLegend(L);
     this._addAreaButton(L);
     this._map.setView([59.33, 18.06], 10);
     new ResizeObserver(() => this._map && this._map.invalidateSize()).observe(el);
@@ -175,26 +190,86 @@ class TrafikverketMapCard extends HTMLElement {
     this._update();
   }
 
+  _storageKey() {
+    return `tv-flow-map-legend:${this._config.entry || "default"}`;
+  }
+
+  _loadLegendState() {
+    this._hidden = new Set(Array.isArray(this._config.hidden) ? this._config.hidden : []);
+    this._legendCollapsed = false;
+    try {
+      const raw = window.localStorage && window.localStorage.getItem(this._storageKey());
+      if (raw) {
+        const st = JSON.parse(raw);
+        this._hidden = new Set(st.hidden || []);
+        this._legendCollapsed = !!st.collapsed;
+      }
+    } catch (e) { /* storage unavailable – use defaults */ }
+  }
+
+  _saveLegendState() {
+    try {
+      window.localStorage && window.localStorage.setItem(this._storageKey(),
+        JSON.stringify({ hidden: [...this._hidden], collapsed: this._legendCollapsed }));
+    } catch (e) { /* ignore */ }
+  }
+
   _addLegend(L) {
     const legend = L.control({ position: "bottomleft" });
     legend.onAdd = () => {
       const d = L.DomUtil.create("div", "legend");
-      d.innerHTML =
-        "<b>Medelhastighet</b>" +
-        [["#2e7d32", "≥ 70 km/h"], ["#9e9d24", "50–70"], ["#ef6c00", "30–50"], ["#c62828", "< 30"], ["#9e9e9e", "okänd"]]
-          .map(([c, t]) => `<div><i style="background:${c}"></i>${t}</div>`).join("") +
-        (this._config.show_road
-          ? "<b>Väglag</b>" + Object.entries(ROAD_COLORS)
-              .map(([k, c]) => `<div><i style="background:${c};border-radius:0;height:4px"></i>${ROAD_TEXT[k]}</div>`).join("")
-          : "") +
-        '<div class="ev-legend" style="display:none"><b>Händelser</b>' +
-        Object.values(SIT_STYLE).map((st) => `<div><i style="background:${st.color}"></i>${st.legend}</div>`).join("") +
-        "</div>";
       L.DomEvent.disableClickPropagation(d);
+      L.DomEvent.disableScrollPropagation && L.DomEvent.disableScrollPropagation(d);
+      L.DomEvent.on(d, "click", (e) => this._onLegendClick(e));
       this._legendEl = d;
       return d;
     };
     legend.addTo(this._map);
+  }
+
+  _onLegendClick(e) {
+    const t = e && e.target && e.target.closest ? e.target.closest("[data-key],[data-act]") : null;
+    if (!t) return;
+    const act = t.dataset.act;
+    if (act === "collapse") {
+      this._legendCollapsed = !this._legendCollapsed;
+    } else if (act === "all") {
+      this._hidden.clear();
+    } else if (t.dataset.key) {
+      const k = t.dataset.key;
+      this._hidden.has(k) ? this._hidden.delete(k) : this._hidden.add(k);
+    }
+    this._saveLegendState();
+    this._lastSig = ""; // force redraw
+    this._update();
+  }
+
+  _renderLegend(counts) {
+    const d = this._legendEl;
+    if (!d) return;
+    const c = this._config;
+    const row = (key, color, label, shape = "") =>
+      `<div class="li${this._hidden.has(key) ? " off" : ""}" data-key="${key}" title="Klicka för att visa/dölja">` +
+      `<i style="background:${color};${shape}"></i>${esc(label)}<em>${counts[key] || 0}</em></div>`;
+    let body = "";
+    if (c.show_flow) {
+      body += "<b>Medelhastighet</b>" + SPEED_CLASSES.map((sc) => row(sc.key, sc.color, sc.label)).join("");
+    }
+    if (c.show_road) {
+      body += "<b>Väglag</b>" + Object.entries(ROAD_COLORS)
+        .map(([k, col]) => row(`road:${k}`, col, ROAD_TEXT[k], "border-radius:0;height:4px")).join("");
+    }
+    const events = Object.keys(SIT_STYLE).some((t) => counts[`event:${t}`]);
+    if (c.show_situations && events) {
+      body += "<b>Händelser</b>" + Object.entries(SIT_STYLE).map(([t, st]) => row(`event:${t}`, st.color, st.legend)).join("");
+    }
+    if (c.show_weather) {
+      body += "<b>Övrigt</b>" + row("weather", "#1976d2", "Väderstationer", "border-radius:3px");
+    }
+    if (this._hidden.size) body += '<a class="all" data-act="all">Visa alla</a>';
+    d.classList.toggle("collapsed", this._legendCollapsed);
+    d.innerHTML = `<div class="lh" data-act="collapse">Teckenförklaring<span>${this._legendCollapsed ? "▸" : "▾"}</span></div>` +
+      `<div class="lb">${body}</div>`;
   }
 
   _addAreaButton(L) {
@@ -271,10 +346,17 @@ class TrafikverketMapCard extends HTMLElement {
     }
 
     let nFlow = 0, nRoad = 0, nWeather = 0, nSit = 0, newest = null;
+    const counts = {};
+    const hidden = this._hidden || new Set();
+    const visible = (key) => {
+      counts[key] = (counts[key] || 0) + 1;
+      return !hidden.has(key);
+    };
     for (const s of geo) {
       const a = s.attributes;
       const ll = [a.latitude, a.longitude];
       if (a.tv_type === "flow" && this._config.show_flow) {
+        if (!visible(speedKey(a.average_speed))) continue;
         nFlow++;
         const color = speedColor(a.average_speed);
         const r = Math.min(18, 5 + Math.sqrt(a.flow || 0) / 3);
@@ -290,6 +372,7 @@ class TrafikverketMapCard extends HTMLElement {
           .addTo(this._layers.flow);
         if (a.measurement_time && (!newest || a.measurement_time > newest)) newest = a.measurement_time;
       } else if (a.tv_type === "road" && this._config.show_road) {
+        if (!visible(`road:${ROAD_COLORS[a.condition_code] ? a.condition_code : 1}`)) continue;
         nRoad++;
         const color = ROAD_COLORS[a.condition_code] || "#757575";
         const popup = `<b>${esc(a.road_number || "Väg")}: ${esc(a.condition_text || "")}</b><br>` +
@@ -308,8 +391,8 @@ class TrafikverketMapCard extends HTMLElement {
           }
         }
       } else if (a.tv_type === "situation" && this._config.show_situations && SIT_STYLE[a.message_type]) {
+        if (!visible(`event:${a.message_type}`)) continue;
         nSit++;
-        this._hasEvents = true;
         const st = SIT_STYLE[a.message_type];
         const popup =
           `<b>${esc(a.message_type || "Händelse")}${a.road_number ? " – " + esc(a.road_number) : ""}</b><br>` +
@@ -328,6 +411,7 @@ class TrafikverketMapCard extends HTMLElement {
         L.marker(ll, { icon, zIndexOffset: a.is_warning ? 1000 : 300, title: a.message_type || "" })
           .bindPopup(popup, { maxWidth: 320 }).addTo(this._layers.situation);
       } else if (a.tv_type === "weather" && this._config.show_weather) {
+        if (!visible("weather")) continue;
         nWeather++;
         const t = a.air_temperature != null ? `${Math.round(a.air_temperature * 10) / 10}°` : "–";
         const icon = L.divIcon({ className: "", html: `<div class="temp">${esc(t)}</div>`, iconSize: null, iconAnchor: [18, 10] });
@@ -344,12 +428,13 @@ class TrafikverketMapCard extends HTMLElement {
       }
     }
 
-    const evLegend = this._legendEl && this._legendEl.querySelector && this._legendEl.querySelector(".ev-legend");
-    if (evLegend) evLegend.style.display = nSit > 0 ? "" : "none";
+    this._renderLegend(counts);
 
     const footer = this.shadowRoot.getElementById("footer");
     footer.textContent = home
-      ? `${nFlow} mätpunkter · ${nRoad} väglagssträckor · ${nSit ? nSit + " händelser · " : ""}${nWeather} väderstationer · senaste mätning ${fmtTime(newest)} · uppdateras var ${home.attributes.scan_interval_min} min`
+      ? `${nFlow} mätpunkter · ${nRoad} väglagssträckor · ${nSit ? nSit + " händelser · " : ""}${nWeather} väderstationer` +
+        (hidden.size ? ` (${hidden.size} ${hidden.size === 1 ? "kategori dold" : "kategorier dolda"})` : "") +
+        ` · senaste mätning ${fmtTime(newest)} · uppdateras var ${home.attributes.scan_interval_min} min`
       : "Hittar ingen Trafikverket Trafikkarta-integration.";
   }
 }

@@ -7,6 +7,17 @@ Nyaste versionen står överst. Varje release på GitHub har taggen `vX.Y.Z`.
 
 ## [Ej släppt]
 
+## [1.4.0] – 2026-11-14
+
+### Tillagt
+- **Valbar teckenförklaring i kartkortet.** Klicka på en rad för att dölja eller visa en kategori: hastighetsklasser för mätpunkter, väglagsklasser, händelsetyper och väderstationer. Varje rad visar antal objekt, dolda rader blir grå, *Visa alla* återställer och rubriken fäller ihop rutan.
+- Valet sparas i webbläsaren per kort och plats.
+- Kortalternativen `hidden:` (dolda kategorier från början) och `legend: false` (ingen teckenförklaring).
+- Sidfoten visar hur många kategorier som är dolda.
+
+### Ändrat
+- Lagerväljaren uppe till höger är borttagen; teckenförklaringen ersätter den.
+
 ## [1.3.1] – 2026-11-14
 
 ### Rättat
@@ -118,7 +129,8 @@ Första publika versionen.
 - README med installation via Marketplace (Home Assistant 2026.11+), HACS och manuellt.
 - Licens CC BY-NC 4.0.
 
-[Ej släppt]: https://github.com/fredrikrudin/ha-tv-flow/compare/v1.3.1...HEAD
+[Ej släppt]: https://github.com/fredrikrudin/ha-tv-flow/compare/v1.4.0...HEAD
+[1.4.0]: https://github.com/fredrikrudin/ha-tv-flow/releases/tag/v1.4.0
 [1.3.1]: https://github.com/fredrikrudin/ha-tv-flow/releases/tag/v1.3.1
 [1.3.0]: https://github.com/fredrikrudin/ha-tv-flow/releases/tag/v1.3.0
 [1.2.7]: https://github.com/fredrikrudin/ha-tv-flow/releases/tag/v1.2.7
