@@ -2,6 +2,10 @@
 
 Custom integration för Home Assistant som hämtar **trafikflöden**, **väglag** och **vägväder** från Trafikverkets öppna API och visar dem på en karta runt ditt hem (eller valfri plats).
 
+> **Obs!** Det här är ett fristående hobbyprojekt. Det är **inte** knutet till, godkänt av eller sponsrat av Trafikverket på något sätt. Vi uppskattar helt enkelt deras öppna API! 💚
+>
+> *This is an independent project, not affiliated with, endorsed by or sponsored by Trafikverket in any way. We just appreciate their open API!*
+
 - 🚗 **Trafikflöden** (TrafficFlow 1.5) – mätpunkter färgade efter medelhastighet och storleksatta efter flöde (fordon/h), med detaljer per körfält och riktning.
 - 🛣️ **Väglag** (RoadCondition 1.3) – vägsträckor ritade som linjer, färgade efter väglagskod, med varningar, orsak och åtgärd.
 - 🧪 **Experimentellt:** olyckor, hinder och vägarbeten som ett eget lager på kartan.
@@ -277,4 +281,6 @@ Alla ändringar per version finns i [CHANGELOG.md](CHANGELOG.md).
 ## Licens
 
 [CC BY-NC 4.0](LICENSE) – fri att använda, dela och ändra för icke-kommersiellt bruk med angivande av upphovsperson.
-Data kommer från Trafikverket. Kartdata © OpenStreetMap-bidragsgivare.
+Data kommer från Trafikverkets öppna API och används enligt Trafikverkets villkor. Kartdata © OpenStreetMap-bidragsgivare.
+
+Projektet är inte knutet till, godkänt av eller sponsrat av Trafikverket. Namnet Trafikverket används bara för att beskriva var datan kommer ifrån.

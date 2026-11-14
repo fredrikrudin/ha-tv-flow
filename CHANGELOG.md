@@ -7,6 +7,9 @@ Nyaste versionen står överst. Varje release på GitHub har taggen `vX.Y.Z`.
 
 ## [Ej släppt]
 
+### Dokumentation
+- Ny notis i README och LICENSE om att projektet inte är knutet till, godkänt av eller sponsrat av Trafikverket. Vi uppskattar bara deras öppna API.
+
 ## [1.4.0] – 2026-11-14
 
 ### Tillagt
