@@ -7,6 +7,16 @@ Nyaste versionen står överst. Varje release på GitHub har taggen `vX.Y.Z`.
 
 ## [Ej släppt]
 
+## [1.2.7] – 2026-11-14
+
+### Rättat
+- Uppstarten misslyckades fortfarande, nu med *"För många ogiltiga fält i frågan"*. Trafikverket avvisade fler fält i frågan för trafikhändelser än vad omförsöken hann ta bort ett i taget.
+
+### Ändrat
+- Avvisar Trafikverket ett fält hämtas den datamängden i stället **utan fältlista** (hela objektet) från nästa försök. Det behövs högst ett extra anrop, och de andra datamängderna behåller sina begränsade fältlistor.
+- Avvisas en datamängd även utan fältlista, till exempel på grund av filterfältet, **stängs den av** tills Home Assistant startas om. Trafik, väglag och väder fortsätter då att fungera, och felet visas i `errors`.
+- `sensor.tv_flow_data_usage` har de nya attributen `fetched_without_field_list` och `disabled_data_sets`.
+
 ## [1.2.6] – 2026-11-14
 
 ### Rättat
@@ -86,7 +96,8 @@ Första publika versionen.
 - README med installation via Marketplace (Home Assistant 2026.11+), HACS och manuellt.
 - Licens CC BY-NC 4.0.
 
-[Ej släppt]: https://github.com/fredrikrudin/ha-tv-flow/compare/v1.2.6...HEAD
+[Ej släppt]: https://github.com/fredrikrudin/ha-tv-flow/compare/v1.2.7...HEAD
+[1.2.7]: https://github.com/fredrikrudin/ha-tv-flow/releases/tag/v1.2.7
 [1.2.6]: https://github.com/fredrikrudin/ha-tv-flow/releases/tag/v1.2.6
 [1.2.5]: https://github.com/fredrikrudin/ha-tv-flow/compare/58311e7...2aebc4c
 [1.2.0]: https://github.com/fredrikrudin/ha-tv-flow/compare/7b2a0f0...58311e7

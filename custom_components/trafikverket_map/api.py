@@ -31,6 +31,9 @@ class TrafikverketAuthError(TrafikverketError):
     """Invalid API key."""
 
 
+# Object type -> keyword argument that enables it in async_fetch
+_FLAG = {"TrafficFlow": "flow", "RoadCondition": "road", "WeatherObservation": "weather", "Situation": "situation"}
+
 _INVALID_FIELD = re.compile(r"Invalid query attribute\s+([\w.]+)", re.IGNORECASE)
 
 
@@ -40,18 +43,37 @@ class TrafikverketClient:
     def __init__(self, session: aiohttp.ClientSession, api_key: str) -> None:
         self._session = session
         self._api_key = api_key
-        # INCLUDE fields Trafikverket has rejected; left out of later requests.
+        # INCLUDE fields Trafikverket has rejected (for diagnostics) and the
+        # object types that are therefore fetched whole, without INCLUDE.
         self.rejected_fields: set[str] = set()
+        self.full_objects: set[str] = set()
+        # Object types the API rejects even without INCLUDE – skipped so the
+        # remaining data sets keep working. objtype -> error message.
+        self.disabled_objects: dict[str, str] = {}
 
     def _learn_rejected(self, message: str) -> bool:
-        """Remember a field the API called invalid. True if it is new."""
+        """React to 'Invalid query attribute X'. True if the next attempt differs."""
         match = _INVALID_FIELD.search(message or "")
-        if not match or match.group(1) in self.rejected_fields:
+        if not match:
             return False
-        self.rejected_fields.add(match.group(1))
+        field = match.group(1)
+        objtype = field.split(".", 1)[0]
+        self.rejected_fields.add(field)
+        if objtype in self.full_objects:
+            if objtype in self.disabled_objects or objtype not in _FLAG:
+                return False
+            self.disabled_objects[objtype] = message
+            _LOGGER.error(
+                "Trafikverket avvisar %s även utan fältlista (%s). Datamängden stängs av tills "
+                "Home Assistant startas om; övriga datamängder fortsätter. Rapportera gärna detta.",
+                objtype, message,
+            )
+            return True
+        self.full_objects.add(objtype)
         _LOGGER.warning(
-            "Trafikverket godtar inte fältet %s – hämtar utan det. Rapportera gärna detta.",
-            match.group(1),
+            "Trafikverket godtar inte fältet %s – hämtar %s utan fältlista. "
+            "Rapportera gärna detta som ett issue på GitHub.",
+            field, objtype,
         )
         return True
 
@@ -103,16 +125,31 @@ class TrafikverketClient:
         situation: bool = False,
     ) -> TrafikverketData:
         """Fetch and parse all enabled data sets."""
-        if not (flow or road or weather or situation):
-            return TrafikverketData()
-        for _attempt in range(8):
-            data = await self._fetch_once(
-                lat, lon, radius_km, weather_radius_km, flow=flow, road=road, weather=weather,
-                limit=limit, minimal=minimal, max_age=max_age, situation=situation,
-            )
+        wanted = {"flow": flow, "road": road, "weather": weather, "situation": situation}
+        for _attempt in range(10):
+            enabled = dict(wanted)
+            for objtype in self.disabled_objects:
+                enabled[_FLAG[objtype]] = False
+            if not any(enabled.values()):
+                data = TrafikverketData()
+            else:
+                data = await self._fetch_once(
+                    lat, lon, radius_km, weather_radius_km, limit=limit, minimal=minimal,
+                    max_age=max_age, **enabled,
+                )
             if data is not None:
+                for objtype, msg in self.disabled_objects.items():
+                    if wanted[_FLAG[objtype]]:
+                        data.errors[objtype] = f"Avstängd: {msg}"
+                if not any(enabled.values()) and self.disabled_objects:
+                    raise TrafikverketError(
+                        "Trafikverket avvisar alla valda datamängder: "
+                        + "; ".join(f"{k}: {v}" for k, v in self.disabled_objects.items())
+                    )
                 return data
-        raise TrafikverketError("För många ogiltiga fält i frågan")
+        raise TrafikverketError(
+            f"Trafikverket avvisar frågan även utan fältlista (avvisade fält: {sorted(self.rejected_fields)})"
+        )
 
     async def _fetch_once(
         self, lat, lon, radius_km, weather_radius_km, *, flow, road, weather,
@@ -132,7 +169,7 @@ class TrafikverketClient:
             minimal=minimal,
             max_age_min=int(max_age.total_seconds() // 60),
             situation=situation,
-            exclude=frozenset(self.rejected_fields),
+            exclude=frozenset(self.rejected_fields | self.full_objects),
         )
         _LOGGER.debug("Trafikverket request: %s", body.replace(self._api_key, "***"))
         try:

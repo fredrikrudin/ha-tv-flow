@@ -253,7 +253,7 @@ action:
 - **"Ogiltig API-nyckel"** – kontrollera att hela nyckeln är inklistrad. Om nyckeln senare slutar fungera ber Home Assistant automatiskt om en ny.
 - **Inga mätpunkter** – det finns inga trafikflödesdetektorer inom radien. Öka radien eller välj en plats nära en större väg.
 - **Inget väder / tomma värden** – öppna `sensor.tv_flow_data_usage` → attribut. `errors` visar eventuella fel per datatyp från Trafikverket och `raw_counts` hur många poster som kom tillbaka. Ett fel i en datatyp stoppar inte de andra.
-- **"Invalid query attribute …"** – integrationen tar automatiskt bort fält som Trafikverket inte godtar och hämtar igen. Vilka fält det gäller syns i attributet `rejected_fields` på `sensor.tv_flow_data_usage`. Rapportera dem gärna som ett issue.
+- **"Invalid query attribute …"** – godtar Trafikverket inte ett fält hämtas den datamängden automatiskt utan fältlista. Fungerar inte heller det stängs datamängden av, och resten fortsätter fungera. Se attributen `rejected_fields`, `fetched_without_field_list` och `disabled_data_sets` på `sensor.tv_flow_data_usage`, och rapportera gärna som ett issue.
 - **API-fel om fält** – stäng av "Hämta bara de fält som används".
 - Debuglogg:
 

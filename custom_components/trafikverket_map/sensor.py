@@ -331,4 +331,6 @@ class TrafikverketDataUsageSensor(_Base):
             "weather_stations": len(d.weather_stations) if d else 0,
             "situations": len(d.situations) if d else 0,
             "rejected_fields": sorted(self.coordinator.client.rejected_fields),
+            "fetched_without_field_list": sorted(self.coordinator.client.full_objects),
+            "disabled_data_sets": sorted(self.coordinator.client.disabled_objects),
         }

@@ -280,6 +280,8 @@ def _query(
     exclude: set[str] | frozenset[str] = frozenset(),
 ) -> str:
     objecttype, namespace, schema = obj
+    if objecttype in exclude:
+        fields = None  # fetch the whole object (no INCLUDE) – always a valid query
     if fields:
         fields = [f for f in fields if f"{objecttype}.{f}" not in exclude and f not in exclude]
     include = "".join(f"<INCLUDE>{f}</INCLUDE>" for f in fields) if fields else ""
