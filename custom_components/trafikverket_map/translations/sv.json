@@ -50,11 +50,11 @@
           "enable_traffic_flow": "Hämta trafikflöden",
           "enable_road_condition": "Hämta väglag",
           "enable_weather": "Hämta väder från vägväderstationer",
+          "enable_situation": "Hämta trafikhändelser (olyckor, hinder, viktig trafikinformation)",
           "weather_radius_km": "Radie för väderstationer (km)",
           "max_objects": "Max antal objekt per fråga",
           "max_age_min": "Ignorera mätningar äldre än (minuter)",
-          "minimal_fields": "Hämta bara de fält som används",
-          "map_style": "Kartstil"
+          "minimal_fields": "Hämta bara de fält som används"
         },
         "data_description": {
           "scan_interval_min": "Hur ofta data hämtas. Trafikverket uppdaterar flöden ungefär varje minut och väder var 10:e minut. 5–15 min räcker oftast.",
@@ -62,7 +62,7 @@
           "max_objects": "Övre gräns för antal poster per datatyp och hämtning.",
           "max_age_min": "Mätpunkter som inte rapporterat på så här länge visas inte.",
           "minimal_fields": "Minskar datamängden kraftigt. Stäng av bara om API:et klagar på fält.",
-          "map_style": "Utseende på kartan i kartkortet. Ett eget dark_mode i kortet går före."
+          "enable_situation": "Trafikverkets trafikmeddelanden inom radien. Behövs för varningskortet."
         }
       },
       "reauth_confirm": {
@@ -92,7 +92,7 @@
           "search": "Sök efter ort eller adress",
           "map": "Välj på karta",
           "settings": "Datamängd och uppdateringsintervall",
-          "dashboard": "Dashboard – ordning och innehåll"
+          "dashboard": "Dashboard och karta"
         }
       },
       "search": {
@@ -125,11 +125,11 @@
           "enable_traffic_flow": "Hämta trafikflöden",
           "enable_road_condition": "Hämta väglag",
           "enable_weather": "Hämta väder från vägväderstationer",
+          "enable_situation": "Hämta trafikhändelser (olyckor, hinder, viktig trafikinformation)",
           "weather_radius_km": "Radie för väderstationer (km)",
           "max_objects": "Max antal objekt per fråga",
           "max_age_min": "Ignorera mätningar äldre än (minuter)",
-          "minimal_fields": "Hämta bara de fält som används",
-          "map_style": "Kartstil"
+          "minimal_fields": "Hämta bara de fält som används"
         },
         "data_description": {
           "scan_interval_min": "Hur ofta data hämtas. Trafikverket uppdaterar flöden ungefär varje minut och väder var 10:e minut. 5–15 min räcker oftast.",
@@ -137,13 +137,14 @@
           "max_objects": "Övre gräns för antal poster per datatyp och hämtning.",
           "max_age_min": "Mätpunkter som inte rapporterat på så här länge visas inte.",
           "minimal_fields": "Minskar datamängden kraftigt. Stäng av bara om API:et klagar på fält.",
-          "map_style": "Utseende på kartan i kartkortet. Ett eget dark_mode i kortet går före."
+          "enable_situation": "Trafikverkets trafikmeddelanden inom radien. Behövs för varningskortet."
         }
       },
       "dashboard": {
-        "title": "Dashboard",
-        "description": "Välj vad som visas på varje plats i den genererade dashboarden (`strategy: type: custom:tv-flow`). Välj **Visa inte** för att dölja en sektion. Ladda om dashboarden i webbläsaren efter att du sparat.",
+        "title": "Dashboard och karta",
+        "description": "Kartans utseende och vad som visas på varje plats i den genererade dashboarden (`strategy: type: custom:tv-flow`). Välj **Visa inte** för att dölja en sektion. Ladda om dashboarden i webbläsaren efter att du sparat.",
         "data": {
+          "map_style": "Kartstil",
           "position_1": "Plats 1",
           "position_2": "Plats 2",
           "position_3": "Plats 3",
@@ -151,9 +152,11 @@
           "position_5": "Plats 5",
           "position_6": "Plats 6",
           "position_7": "Plats 7",
+          "position_8": "Plats 8",
           "map_height": "Kartans höjd"
         },
         "data_description": {
+          "map_style": "Utseende på kartan i kartkortet. Ett eget dark_mode i kortet går före.",
           "map_height": "Höjd på kartan i pixlar."
         }
       }
@@ -217,6 +220,18 @@
       },
       "data_usage": {
         "name": "Hämtad datamängd"
+      },
+      "active_warnings": {
+        "name": "Aktiva varningar"
+      },
+      "incidents": {
+        "name": "Trafikhändelser"
+      },
+      "accidents": {
+        "name": "Olyckor"
+      },
+      "road_works": {
+        "name": "Vägarbeten"
       }
     },
     "weather": {
@@ -235,6 +250,7 @@
     },
     "dashboard_section": {
       "options": {
+        "warnings": "Varningar (visas bara vid varning)",
         "summary": "Vägöversikt",
         "weather": "Väder vid vägen",
         "road": "Väglag",

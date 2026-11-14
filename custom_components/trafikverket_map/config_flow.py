@@ -39,6 +39,7 @@ from .api import TrafikverketAuthError, TrafikverketClient, TrafikverketError
 from .const import (
     CONF_ENABLE_FLOW,
     CONF_ENABLE_ROAD,
+    CONF_ENABLE_SITUATION,
     CONF_ENABLE_WEATHER,
     CONF_DASHBOARD_SECTIONS,
     CONF_MAP_HEIGHT,
@@ -90,6 +91,7 @@ def _settings_schema(d: Mapping[str, Any]) -> vol.Schema:
         vol.Required(CONF_ENABLE_FLOW, default=bool(d.get(CONF_ENABLE_FLOW, True))): BooleanSelector(),
         vol.Required(CONF_ENABLE_ROAD, default=bool(d.get(CONF_ENABLE_ROAD, True))): BooleanSelector(),
         vol.Required(CONF_ENABLE_WEATHER, default=bool(d.get(CONF_ENABLE_WEATHER, True))): BooleanSelector(),
+        vol.Required(CONF_ENABLE_SITUATION, default=bool(d.get(CONF_ENABLE_SITUATION, True))): BooleanSelector(),
         vol.Required(
             CONF_WEATHER_RADIUS, default=float(d.get(CONF_WEATHER_RADIUS, DEFAULT_WEATHER_RADIUS_KM))
         ): _km(1, 150, 1),
@@ -101,10 +103,6 @@ def _settings_schema(d: Mapping[str, Any]) -> vol.Schema:
         ): NumberSelector(NumberSelectorConfig(min=5, max=1440, step=5,
                                                unit_of_measurement="min", mode=NumberSelectorMode.BOX)),
         vol.Required(CONF_MINIMAL_FIELDS, default=bool(d.get(CONF_MINIMAL_FIELDS, True))): BooleanSelector(),
-        vol.Required(
-            CONF_MAP_STYLE, default=str(d.get(CONF_MAP_STYLE, DEFAULT_MAP_STYLE))
-        ): SelectSelector(SelectSelectorConfig(
-            options=MAP_STYLES, translation_key=CONF_MAP_STYLE, mode=SelectSelectorMode.DROPDOWN)),
     })
 
 
@@ -341,6 +339,7 @@ class TrafikverketMapOptionsFlow(_LocationSteps, OptionsFlow):
                 data = dict(self.config_entry.options)
                 data[CONF_DASHBOARD_SECTIONS] = sections
                 data[CONF_MAP_HEIGHT] = int(user_input[CONF_MAP_HEIGHT])
+                data[CONF_MAP_STYLE] = user_input[CONF_MAP_STYLE]
                 return self.async_create_entry(data=data)
 
         current = list(cur.get(CONF_DASHBOARD_SECTIONS, DASHBOARD_SECTIONS))
@@ -351,9 +350,12 @@ class TrafikverketMapOptionsFlow(_LocationSteps, OptionsFlow):
             mode=SelectSelectorMode.DROPDOWN,
         ))
         schema: dict[Any, Any] = {
-            vol.Required(f"position_{i + 1}", default=current[i]): choices
-            for i in range(len(DASHBOARD_SECTIONS))
+            vol.Required(CONF_MAP_STYLE, default=str(cur.get(CONF_MAP_STYLE, DEFAULT_MAP_STYLE))): SelectSelector(
+                SelectSelectorConfig(options=MAP_STYLES, translation_key=CONF_MAP_STYLE,
+                                     mode=SelectSelectorMode.DROPDOWN)),
         }
+        for i in range(len(DASHBOARD_SECTIONS)):
+            schema[vol.Required(f"position_{i + 1}", default=current[i])] = choices
         schema[vol.Required(CONF_MAP_HEIGHT, default=int(cur.get(CONF_MAP_HEIGHT, DEFAULT_MAP_HEIGHT)))] = (
             NumberSelector(NumberSelectorConfig(min=250, max=1200, step=10,
                                                 unit_of_measurement="px", mode=NumberSelectorMode.BOX))

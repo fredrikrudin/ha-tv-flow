@@ -82,9 +82,10 @@ class TrafikverketClient:
         limit: int,
         minimal: bool,
         max_age: timedelta,
+        situation: bool = False,
     ) -> TrafikverketData:
         """Fetch and parse all enabled data sets."""
-        if not (flow or road or weather):
+        if not (flow or road or weather or situation):
             return TrafikverketData()
         body, order = build_request(
             self._api_key,
@@ -98,6 +99,7 @@ class TrafikverketClient:
             limit=limit,
             minimal=minimal,
             max_age_min=int(max_age.total_seconds() // 60),
+            situation=situation,
         )
         _LOGGER.debug("Trafikverket request: %s", body.replace(self._api_key, "***"))
         payload, size = await self._post(body)
@@ -113,12 +115,13 @@ class TrafikverketClient:
         for objtype, msg in data.errors.items():
             _LOGGER.warning("Trafikverket gav fel för %s: %s", objtype, msg)
         _LOGGER.debug(
-            "Trafikverket: %s bytes, raw=%s, flow=%d road=%d weather=%d",
+            "Trafikverket: %s bytes, raw=%s, flow=%d road=%d weather=%d situations=%d",
             size,
             data.raw_counts,
             len(data.flow_sites),
             len(data.road_conditions),
             len(data.weather_stations),
+            len(data.situations),
         )
         return data
 

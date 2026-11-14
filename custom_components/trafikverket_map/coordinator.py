@@ -18,6 +18,7 @@ from .api import TrafikverketAuthError, TrafikverketClient, TrafikverketError
 from .const import (
     CONF_ENABLE_FLOW,
     CONF_ENABLE_ROAD,
+    CONF_ENABLE_SITUATION,
     CONF_ENABLE_WEATHER,
     CONF_DASHBOARD_SECTIONS,
     CONF_MAP_HEIGHT,
@@ -55,6 +56,7 @@ class Settings:
     flow: bool
     road: bool
     weather: bool
+    situation: bool
     max_objects: int
     minimal_fields: bool
     max_age_min: int
@@ -76,6 +78,7 @@ class Settings:
             flow=bool(get(CONF_ENABLE_FLOW, True)),
             road=bool(get(CONF_ENABLE_ROAD, True)),
             weather=bool(get(CONF_ENABLE_WEATHER, True)),
+            situation=bool(get(CONF_ENABLE_SITUATION, True)),
             max_objects=int(get(CONF_MAX_OBJECTS, DEFAULT_MAX_OBJECTS)),
             minimal_fields=bool(get(CONF_MINIMAL_FIELDS, True)),
             max_age_min=int(get(CONF_MAX_AGE, DEFAULT_MAX_AGE_MIN)),
@@ -118,6 +121,7 @@ class TrafikverketCoordinator(DataUpdateCoordinator[TrafikverketData]):
                 flow=s.flow,
                 road=s.road,
                 weather=s.weather,
+                situation=s.situation,
                 limit=s.max_objects,
                 minimal=s.minimal_fields,
                 max_age=timedelta(minutes=s.max_age_min),

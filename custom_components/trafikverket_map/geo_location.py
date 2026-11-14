@@ -16,9 +16,9 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from . import TrafikverketConfigEntry
-from .const import ATTRIBUTION, SOURCE_FLOW, SOURCE_ROAD, SOURCE_WEATHER
+from .const import ATTRIBUTION, SOURCE_FLOW, SOURCE_ROAD, SOURCE_SITUATION, SOURCE_WEATHER
 from .coordinator import TrafikverketCoordinator
-from .parser import PRECIPITATION_TEXT, FlowSite, RoadConditionItem, WeatherStation
+from .parser import PRECIPITATION_TEXT, FlowSite, RoadConditionItem, SituationItem, WeatherStation
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -154,6 +154,52 @@ class WeatherStationEntity(TrafikverketGeoEntity):
         self._write(write)
 
 
+SITUATION_ICONS = {
+    "Olycka": "mdi:car-emergency",
+    "Hinder": "mdi:alert-octagon",
+    "Viktig trafikinformation": "mdi:alert-circle",
+    "Restriktion": "mdi:sign-caution",
+    "Vägarbete": "mdi:account-hard-hat",
+    "Färjor": "mdi:ferry",
+}
+
+
+class SituationEntity(TrafikverketGeoEntity):
+    """Traffic event (olycka, hinder, vägarbete …)."""
+
+    _attr_source = SOURCE_SITUATION
+    _unrecorded_attributes = frozenset({"lines", "message", "start_time", "end_time", "web_link"})
+
+    def update_item(self, item: SituationItem, write: bool = True) -> None:
+        mtype = item.message_type or "Händelse"
+        self._attr_name = f"{mtype} {item.road_number or ''} {item.id[-6:]}".replace("  ", " ")
+        self._attr_icon = SITUATION_ICONS.get(mtype, "mdi:information")
+        self._set_pos(item.latitude, item.longitude, item.distance_km)
+        self._attrs = {
+            "tv_type": "situation",
+            "message_type": item.message_type,
+            "message_type_value": item.message_type_value,
+            "message_code": item.message_code,
+            "is_warning": item.is_warning,
+            "header": item.header,
+            "message": item.message,
+            "severity_code": item.severity_code,
+            "severity_text": item.severity_text,
+            "road_number": item.road_number,
+            "road_name": item.road_name,
+            "location_text": item.location,
+            "direction": item.direction,
+            "temporary_limit": item.temporary_limit,
+            "restriction": item.restriction,
+            "start_time": _iso(item.start_time),
+            "end_time": _iso(item.end_time),
+            "until_further_notice": item.until_further_notice,
+            "web_link": item.web_link,
+            "lines": item.lines,
+        }
+        self._write(write)
+
+
 class GeoManager:
     """Adds, updates and removes geo location entities as data changes."""
 
@@ -180,6 +226,8 @@ class GeoManager:
             wanted[f"flow_{site.site_id}"] = (FlowEntity, site)
         for rc in data.road_conditions:
             wanted[f"road_{rc.id}"] = (RoadEntity, rc)
+        for sit in data.situations:
+            wanted[f"situation_{sit.id}"] = (SituationEntity, sit)
         for ws in data.weather_stations:
             wanted[f"weather_{ws.id}"] = (WeatherStationEntity, ws)
 

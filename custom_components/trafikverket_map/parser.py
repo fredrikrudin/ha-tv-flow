@@ -21,6 +21,7 @@ from xml.sax.saxutils import quoteattr
 FLOW_OBJECT = ("TrafficFlow", "road.trafficinfo", "1.5")
 ROAD_OBJECT = ("RoadCondition", "road.trafficinfo", "1.3")
 WEATHER_OBJECT = ("WeatherObservation", "road.weatherinfo", "2.1")
+SITUATION_OBJECT = ("Situation", "road.trafficinfo", "1.5")
 
 FLOW_FIELDS = [
     "SiteId",
@@ -75,6 +76,36 @@ WEATHER_FIELDS = [
     "Aggregated30minutes.Precipitation.Rain",
     "Aggregated30minutes.Precipitation.Snow",
 ]
+
+SITUATION_FIELDS = [
+    "Id",
+    "Deviation.Id",
+    "Deviation.MessageType",
+    "Deviation.MessageTypeValue",
+    "Deviation.MessageCode",
+    "Deviation.Header",
+    "Deviation.Message",
+    "Deviation.SeverityCode",
+    "Deviation.SeverityText",
+    "Deviation.RoadNumber",
+    "Deviation.RoadName",
+    "Deviation.LocationDescriptor",
+    "Deviation.PositionalDescription",
+    "Deviation.AffectedDirection",
+    "Deviation.TemporaryLimit",
+    "Deviation.TrafficRestrictionType",
+    "Deviation.StartTime",
+    "Deviation.EndTime",
+    "Deviation.ValidUntilFurtherNotice",
+    "Deviation.WebLink",
+    "Deviation.Geometry.Point.WGS84",
+    "Deviation.Geometry.Line.WGS84",
+]
+
+# Message types that count as a warning (road works and ferries are routine).
+WARNING_TYPES = ("Olycka", "Hinder", "Viktig trafikinformation", "Restriktion", "Trafikmeddelande")
+TYPE_RANK = {"Olycka": 5, "Hinder": 4, "Viktig trafikinformation": 3, "Restriktion": 2,
+             "Trafikmeddelande": 1, "Vägarbete": 0, "Färjor": 0}
 
 ROAD_CONDITION_TEXT = {
     1: "Normalt",
@@ -164,16 +195,65 @@ class WeatherStation:
 
 
 @dataclass
+class SituationItem:
+    """One deviation (händelse) from a Situation."""
+
+    id: str
+    situation_id: str | None
+    message_type: str | None
+    message_type_value: str | None
+    message_code: str | None
+    header: str | None
+    message: str | None
+    severity_code: int | None
+    severity_text: str | None
+    road_number: str | None
+    road_name: str | None
+    location: str | None
+    direction: str | None
+    temporary_limit: str | None
+    restriction: str | None
+    start_time: datetime | None
+    end_time: datetime | None
+    until_further_notice: bool | None
+    web_link: str | None
+    latitude: float
+    longitude: float
+    distance_km: float
+    lines: list[list[list[float]]] = field(default_factory=list)
+
+    @property
+    def is_warning(self) -> bool:
+        return (self.message_type or "") in WARNING_TYPES
+
+    @property
+    def rank(self) -> tuple[int, int]:
+        return (TYPE_RANK.get(self.message_type or "", 1), self.severity_code or 0)
+
+
+@dataclass
 class TrafikverketData:
     """Everything fetched in one update."""
 
     flow_sites: list[FlowSite] = field(default_factory=list)
     road_conditions: list[RoadConditionItem] = field(default_factory=list)
     weather_stations: list[WeatherStation] = field(default_factory=list)
+    situations: list[SituationItem] = field(default_factory=list)
     fetched_at: datetime | None = None
     response_bytes: int = 0
     raw_counts: dict[str, int] = field(default_factory=dict)
     errors: dict[str, str] = field(default_factory=dict)
+
+    @property
+    def warnings(self) -> list[SituationItem]:
+        """Active warning-type events, most serious first."""
+        return sorted((s for s in self.situations if s.is_warning),
+                      key=lambda s: (s.rank, -s.distance_km), reverse=True)
+
+    @property
+    def active_warning_count(self) -> int:
+        """Warning events + road sections with difficult conditions."""
+        return len(self.warnings) + len([r for r in self.road_conditions if (r.code or 1) > 1])
 
     @property
     def nearest_weather(self) -> WeatherStation | None:
@@ -243,6 +323,7 @@ def build_request(
     limit: int,
     minimal: bool,
     max_age_min: int = 60,
+    situation: bool = False,
 ) -> tuple[str, list[str]]:
     """Build one XML request with one QUERY per enabled object type.
 
@@ -275,6 +356,13 @@ def build_request(
                    orderby="Sample desc")
         )
         order.append("WeatherObservation")
+    if situation:
+        queries.append(
+            _query(SITUATION_OBJECT, "Deviation.Geometry.Point.WGS84", lat, lon, radius_m, limit,
+                   SITUATION_FIELDS if minimal else None,
+                   '<EQ name="Deleted" value="false" />')
+        )
+        order.append("Situation")
 
     body = (
         "<REQUEST>"
@@ -617,6 +705,70 @@ def parse_weather(
     return stations
 
 
+def parse_situations(
+    records: list[dict[str, Any]], home: tuple[float, float], radius_km: float, now: datetime,
+) -> list[SituationItem]:
+    """Flatten Situation → Deviation and keep active ones inside the radius."""
+    items: list[SituationItem] = []
+    seen: set[str] = set()
+    for sit in records:
+        if sit.get("Deleted"):
+            continue
+        devs = sit.get("Deviation") or []
+        if isinstance(devs, dict):
+            devs = [devs]
+        for idx, dev in enumerate(devs):
+            if not isinstance(dev, dict):
+                continue
+            start = parse_time(dev.get("StartTime"))
+            end = parse_time(dev.get("EndTime"))
+            if end and end < now and not dev.get("ValidUntilFurtherNotice"):
+                continue
+            if start and start > now:
+                continue  # planned, not started yet
+            point = parse_wkt(_value(dev, "Geometry", "Point", "WGS84"))
+            lines = parse_wkt(_value(dev, "Geometry", "Line", "WGS84"))
+            pts = [p for part in (lines or point) for p in part]
+            if not pts:
+                continue
+            nearest = min(pts, key=lambda p: haversine_km(home[0], home[1], p[0], p[1]))
+            dist = haversine_km(home[0], home[1], nearest[0], nearest[1])
+            if dist > radius_km * 1.05:
+                continue
+            lat, lon = point[0][0] if point else lines[0][len(lines[0]) // 2]
+            dev_id = str(dev.get("Id") or f"{sit.get('Id', 'sit')}:{idx}")
+            if dev_id in seen:
+                continue
+            seen.add(dev_id)
+            items.append(SituationItem(
+                id=dev_id,
+                situation_id=sit.get("Id"),
+                message_type=dev.get("MessageType"),
+                message_type_value=dev.get("MessageTypeValue"),
+                message_code=dev.get("MessageCode"),
+                header=dev.get("Header"),
+                message=dev.get("Message"),
+                severity_code=_int(dev.get("SeverityCode")),
+                severity_text=dev.get("SeverityText"),
+                road_number=dev.get("RoadNumber"),
+                road_name=dev.get("RoadName"),
+                location=dev.get("LocationDescriptor") or dev.get("PositionalDescription"),
+                direction=dev.get("AffectedDirection"),
+                temporary_limit=dev.get("TemporaryLimit"),
+                restriction=dev.get("TrafficRestrictionType"),
+                start_time=start,
+                end_time=end,
+                until_further_notice=_bool(dev.get("ValidUntilFurtherNotice")),
+                web_link=dev.get("WebLink"),
+                latitude=lat,
+                longitude=lon,
+                distance_km=round(dist, 2),
+                lines=lines,
+            ))
+    items.sort(key=lambda i: (i.rank, -i.distance_km), reverse=True)
+    return items
+
+
 def parse_response(
     payload: dict[str, Any],
     order: list[str],
@@ -647,6 +799,8 @@ def parse_response(
             data.road_conditions = parse_road(records, home, radius_km, now)
         elif objtype == "WeatherObservation":
             data.weather_stations = parse_weather(records, home, weather_radius_km, max_age, now)
+        elif objtype == "Situation":
+            data.situations = parse_situations(records, home, radius_km, now)
     if failed and len(failed) == len(order):
         auth = next((e for e in failed if e.auth), None)
         raise auth or failed[0]

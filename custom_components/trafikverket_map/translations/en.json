@@ -50,11 +50,11 @@
           "enable_traffic_flow": "Fetch traffic flow",
           "enable_road_condition": "Fetch road conditions",
           "enable_weather": "Fetch weather from road weather stations",
+          "enable_situation": "Fetch traffic events (accidents, obstacles, important information)",
           "weather_radius_km": "Radius for weather stations (km)",
           "max_objects": "Max objects per query",
           "max_age_min": "Ignore measurements older than (minutes)",
-          "minimal_fields": "Only fetch the fields that are used",
-          "map_style": "Map style"
+          "minimal_fields": "Only fetch the fields that are used"
         },
         "data_description": {
           "scan_interval_min": "How often data is fetched. 5–15 minutes is usually enough.",
@@ -62,7 +62,7 @@
           "max_objects": "Upper limit of records per data type and fetch.",
           "max_age_min": "Sites that have not reported for this long are hidden.",
           "minimal_fields": "Greatly reduces the amount of data. Turn off only if the API complains.",
-          "map_style": "Look of the map in the map card. A dark_mode set on the card takes precedence."
+          "enable_situation": "Trafikverket traffic messages within the radius. Needed for the warning card."
         }
       },
       "reauth_confirm": {
@@ -92,7 +92,7 @@
           "search": "Search for a town or address",
           "map": "Pick on a map",
           "settings": "Data amount and update interval",
-          "dashboard": "Dashboard – order and content"
+          "dashboard": "Dashboard and map"
         }
       },
       "search": {
@@ -125,11 +125,11 @@
           "enable_traffic_flow": "Fetch traffic flow",
           "enable_road_condition": "Fetch road conditions",
           "enable_weather": "Fetch weather from road weather stations",
+          "enable_situation": "Fetch traffic events (accidents, obstacles, important information)",
           "weather_radius_km": "Radius for weather stations (km)",
           "max_objects": "Max objects per query",
           "max_age_min": "Ignore measurements older than (minutes)",
-          "minimal_fields": "Only fetch the fields that are used",
-          "map_style": "Map style"
+          "minimal_fields": "Only fetch the fields that are used"
         },
         "data_description": {
           "scan_interval_min": "How often data is fetched. 5–15 minutes is usually enough.",
@@ -137,13 +137,14 @@
           "max_objects": "Upper limit of records per data type and fetch.",
           "max_age_min": "Sites that have not reported for this long are hidden.",
           "minimal_fields": "Greatly reduces the amount of data. Turn off only if the API complains.",
-          "map_style": "Look of the map in the map card. A dark_mode set on the card takes precedence."
+          "enable_situation": "Trafikverket traffic messages within the radius. Needed for the warning card."
         }
       },
       "dashboard": {
-        "title": "Dashboard",
-        "description": "Choose what is shown in each position of the generated dashboard (`strategy: type: custom:tv-flow`). Pick **Hidden** to hide a section. Reload the dashboard in the browser after saving.",
+        "title": "Dashboard and map",
+        "description": "Map style and what is shown in each position of the generated dashboard (`strategy: type: custom:tv-flow`). Pick **Hidden** to hide a section. Reload the dashboard in the browser after saving.",
         "data": {
+          "map_style": "Map style",
           "position_1": "Position 1",
           "position_2": "Position 2",
           "position_3": "Position 3",
@@ -151,9 +152,11 @@
           "position_5": "Position 5",
           "position_6": "Position 6",
           "position_7": "Position 7",
+          "position_8": "Position 8",
           "map_height": "Map height"
         },
         "data_description": {
+          "map_style": "Look of the map in the map card. A dark_mode set on the card takes precedence.",
           "map_height": "Height of the map in pixels."
         }
       }
@@ -217,6 +220,18 @@
       },
       "data_usage": {
         "name": "Downloaded data"
+      },
+      "active_warnings": {
+        "name": "Active warnings"
+      },
+      "incidents": {
+        "name": "Traffic events"
+      },
+      "accidents": {
+        "name": "Accidents"
+      },
+      "road_works": {
+        "name": "Road works"
       }
     },
     "weather": {
@@ -235,6 +250,7 @@
     },
     "dashboard_section": {
       "options": {
+        "warnings": "Warnings (only shown when active)",
         "summary": "Road status",
         "weather": "Roadside weather",
         "road": "Road conditions",

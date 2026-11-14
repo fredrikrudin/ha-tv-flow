@@ -75,4 +75,35 @@ assert [w.name for w in dr.weather_stations] == ["Edevågen", "Snäre", "Ljusdal
 assert all(w.sample.minute == 5 for w in dr.weather_stations)
 assert dr.nearest_weather.name == "Edevågen" and dr.nearest_weather.air_temperature == -0.4
 
+# --- Situation (traffic events)
+bs, ords = p.build_request("k", 61.71, 16.17, 10000, 30000, flow=False, road=False, weather=False,
+                           situation=True, limit=100, minimal=True)
+assert ords == ["Situation"] and 'objecttype="Situation" namespace="road.trafficinfo" schemaversion="1.5"' in bs
+assert '<WITHIN name="Deviation.Geometry.Point.WGS84" shape="center" value="16.170000 61.710000" radius="10000m" />' in bs
+assert "<INCLUDE>Deviation.Geometry.Line.WGS84</INCLUDE>" in bs
+sit_payload = {"RESPONSE": {"RESULT": [{"Situation": [
+  {"Id": "S1", "Deviation": [
+    {"Id": "D1", "MessageType": "Olycka", "Header": "Trafikolycka", "Message": "Två bilar inblandade.",
+     "SeverityCode": 4, "SeverityText": "Stor påverkan", "RoadNumber": "Väg 83",
+     "StartTime": "2026-11-13T09:20:00+01:00", "Geometry": {"Point": {"WGS84": "POINT (16.20 61.72)"}}},
+    {"Id": "D2", "MessageType": "Vägarbete", "Header": "Beläggningsarbete", "SeverityCode": 2,
+     "StartTime": "2026-11-01T07:00:00+01:00", "EndTime": "2026-12-01T17:00:00+01:00",
+     "Geometry": {"Point": {"WGS84": "POINT (16.15 61.70)"}, "Line": {"WGS84": "LINESTRING (16.14 61.70, 16.16 61.70)"}}}]},
+  {"Id": "S2", "Deviation": {"Id": "D3", "MessageType": "Hinder", "Header": "Fordon i diket", "SeverityCode": 3,
+     "StartTime": "2026-11-13T09:00:00+01:00", "Geometry": {"Point": {"WGS84": "POINT (16.30 61.75)"}}}},
+  {"Id": "S3", "Deviation": [{"Id": "D4", "MessageType": "Olycka", "StartTime": "2026-11-13T09:00:00+01:00",
+     "Geometry": {"Point": {"WGS84": "POINT (18.06 59.33)"}}}]},            # Stockholm – outside radius
+  {"Id": "S4", "Deviation": [{"Id": "D5", "MessageType": "Hinder", "StartTime": "2026-11-12T09:00:00+01:00",
+     "EndTime": "2026-11-12T12:00:00+01:00", "Geometry": {"Point": {"WGS84": "POINT (16.17 61.71)"}}}]},  # ended
+  {"Id": "S5", "Deviation": [{"Id": "D6", "MessageType": "Vägarbete", "StartTime": "2026-11-20T07:00:00+01:00",
+     "Geometry": {"Point": {"WGS84": "POINT (16.17 61.71)"}}}]},            # planned
+]}]}}
+dsit = p.parse_response(sit_payload, ["Situation"], (61.71, 16.17), 10, 30, timedelta(minutes=60), now)
+assert [x.id for x in dsit.situations] == ["D1", "D3", "D2"], [x.id for x in dsit.situations]
+assert [x.id for x in dsit.warnings] == ["D1", "D3"]
+assert dsit.situations[0].header == "Trafikolycka" and dsit.situations[0].severity_code == 4
+assert dsit.situations[2].lines and dsit.active_warning_count == 2
+dsit.road_conditions = d.road_conditions  # RC1 (code 2) + RC3 (code 4) from earlier
+assert dsit.active_warning_count == 4
+
 print("ALL OK")

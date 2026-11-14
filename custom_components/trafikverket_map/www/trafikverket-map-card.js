@@ -10,6 +10,7 @@
  *   show_flow: true
  *   show_road: true
  *   show_weather: true
+ *   show_situations: true          # traffic events (olyckor, hinder, vägarbeten …)
  *   dark_mode: false               # optional: true | false | auto – overrides the
  *                                  # "Map style" setting of the integration
  *   zoom_margin_km: 10             # start view = radius + this margin (km)
@@ -48,6 +49,15 @@ function speedColor(speed) {
   return "#c62828";
 }
 
+const SIT_STYLE = {
+  "Olycka": { color: "#d50000", label: "!" },
+  "Hinder": { color: "#ef6c00", label: "!" },
+  "Viktig trafikinformation": { color: "#6a1b9a", label: "i" },
+  "Restriktion": { color: "#f9a825", label: "R" },
+  "Trafikmeddelande": { color: "#455a64", label: "i" },
+  "Vägarbete": { color: "#8d6e63", label: "V" },
+  "Färjor": { color: "#1565c0", label: "F" },
+};
 const ROAD_COLORS = { 1: "#43a047", 2: "#ffb300", 3: "#e53935", 4: "#1e88e5" };
 const ROAD_TEXT = { 1: "Normalt", 2: "Besvärligt (risk för)", 3: "Mycket besvärligt", 4: "Is- och snövägbana" };
 const SIDE = { northBound: "Norrgående", southBound: "Södergående", eastBound: "Östgående", westBound: "Västgående",
@@ -63,7 +73,7 @@ function fmtTime(iso) {
 class TrafikverketMapCard extends HTMLElement {
   setConfig(config) {
     this._config = {
-      height: 450, show_flow: true, show_road: true, show_weather: true, zoom_margin_km: 10,
+      height: 450, show_flow: true, show_road: true, show_weather: true, show_situations: true, zoom_margin_km: 10,
       tile_url: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
       ...config,
     };
@@ -106,6 +116,8 @@ class TrafikverketMapCard extends HTMLElement {
         .temp { background: var(--card-background-color, #fff); color: var(--primary-text-color, #000);
                 border: 1px solid #1976d2; border-radius: 10px; padding: 1px 5px; font: 600 11px sans-serif;
                 white-space: nowrap; box-shadow: 0 1px 3px rgba(0,0,0,.3); }
+        .sit { width: 22px; height: 22px; border-radius: 50%; color: #fff; font: 700 13px/22px sans-serif;
+               text-align: center; border: 2px solid #fff; box-shadow: 0 1px 4px rgba(0,0,0,.5); }
         .err { padding: 16px; color: var(--error-color, red); }
         .leaflet-popup-content { font: 13px/1.4 sans-serif; }
         .leaflet-popup-content table { border-collapse: collapse; }
@@ -148,11 +160,13 @@ class TrafikverketMapCard extends HTMLElement {
       road: L.layerGroup().addTo(this._map),
       flow: L.layerGroup().addTo(this._map),
       weather: L.layerGroup().addTo(this._map),
+      situation: L.layerGroup().addTo(this._map),
     };
     const overlays = {};
     if (this._config.show_flow) overlays["Trafikflöden"] = this._layers.flow;
     if (this._config.show_road) overlays["Väglag"] = this._layers.road;
     if (this._config.show_weather) overlays["Väder"] = this._layers.weather;
+    if (this._config.show_situations) overlays["Händelser"] = this._layers.situation;
     L.control.layers(null, overlays, { collapsed: true }).addTo(this._map);
     this._addLegend(L);
     this._addAreaButton(L);
@@ -255,7 +269,7 @@ class TrafikverketMapCard extends HTMLElement {
       }
     }
 
-    let nFlow = 0, nRoad = 0, nWeather = 0, newest = null;
+    let nFlow = 0, nRoad = 0, nWeather = 0, nSit = 0, newest = null;
     for (const s of geo) {
       const a = s.attributes;
       const ll = [a.latitude, a.longitude];
@@ -292,6 +306,25 @@ class TrafikverketMapCard extends HTMLElement {
             L.circleMarker(line[0], { radius: 5, color, fillOpacity: 0.8 }).bindPopup(popup).addTo(this._layers.road);
           }
         }
+      } else if (a.tv_type === "situation" && this._config.show_situations) {
+        nSit++;
+        const st = SIT_STYLE[a.message_type] || { color: "#455a64", label: "i" };
+        const popup =
+          `<b>${esc(a.message_type || "Händelse")}${a.road_number ? " – " + esc(a.road_number) : ""}</b><br>` +
+          (a.header ? `${esc(a.header)}<br>` : "") +
+          (a.message && a.message !== a.header ? `<small>${esc(a.message)}</small><br>` : "") +
+          (a.location_text ? `<i>${esc(a.location_text)}</i><br>` : "") +
+          (a.temporary_limit ? `Tillfällig begränsning: ${esc(a.temporary_limit)}<br>` : "") +
+          (a.severity_text ? `Påverkan: ${esc(a.severity_text)}<br>` : "") +
+          `Från ${fmtTime(a.start_time)}${a.end_time ? " till " + fmtTime(a.end_time) : ""} · ${esc(s.state)} km bort`;
+        for (const line of a.lines || []) {
+          if (line.length > 1) {
+            L.polyline(line, { color: st.color, weight: 5, opacity: 0.8, dashArray: "6 6" }).bindPopup(popup).addTo(this._layers.situation);
+          }
+        }
+        const icon = L.divIcon({ className: "", html: `<div class="sit" style="background:${st.color}">${st.label}</div>`, iconSize: [22, 22], iconAnchor: [11, 11] });
+        L.marker(ll, { icon, zIndexOffset: a.is_warning ? 1000 : 300, title: a.message_type || "" })
+          .bindPopup(popup, { maxWidth: 320 }).addTo(this._layers.situation);
       } else if (a.tv_type === "weather" && this._config.show_weather) {
         nWeather++;
         const t = a.air_temperature != null ? `${Math.round(a.air_temperature * 10) / 10}°` : "–";
@@ -311,7 +344,7 @@ class TrafikverketMapCard extends HTMLElement {
 
     const footer = this.shadowRoot.getElementById("footer");
     footer.textContent = home
-      ? `${nFlow} mätpunkter · ${nRoad} väglagssträckor · ${nWeather} väderstationer · senaste mätning ${fmtTime(newest)} · uppdateras var ${home.attributes.scan_interval_min} min`
+      ? `${nFlow} mätpunkter · ${nRoad} väglagssträckor · ${nSit} händelser · ${nWeather} väderstationer · senaste mätning ${fmtTime(newest)} · uppdateras var ${home.attributes.scan_interval_min} min`
       : "Hittar ingen Trafikverket Trafikkarta-integration.";
   }
 }
@@ -329,14 +362,14 @@ window.customCards.push({
  * Dashboard strategy:  strategy: { type: custom:tv-flow }
  *
  * Builds the whole dashboard from the integration's settings
- * (Konfigurera → Dashboard): which sections, in which order, map height.
+ * (Konfigurera → Dashboard och karta): which sections, in which order, map height.
  *   strategy:
  *     type: custom:tv-flow
  *     entry: <config_entry_id>   # optional, if you have several locations
  *     title: Trafik              # optional
  * ========================================================================== */
 
-const TV_SECTION_ORDER = ["summary", "weather", "road", "map", "now", "history", "data"];
+const TV_SECTION_ORDER = ["warnings", "summary", "weather", "road", "map", "now", "history", "data"];
 
 function tvFindHome(hass, entry) {
   return Object.values(hass.states).find(
@@ -368,6 +401,17 @@ function tvGeoFilter(entry, type) {
 }
 
 const TV_SECTIONS = {
+  warnings(ids, entry) {
+    if (!ids.active_warnings) return null;
+    return {
+      type: "grid",
+      column_span: 4,
+      // Only shown while there is an active warning
+      visibility: [{ condition: "numeric_state", entity: ids.active_warnings, above: 0 }],
+      cards: [{ type: "custom:trafikverket-warning-card", entry, grid_options: { columns: "full" } }],
+    };
+  },
+
   summary(ids, entry) {
     return {
       type: "grid",
@@ -559,7 +603,7 @@ const TV_SECTIONS = {
             `uppdateras var **{{ state_attr('${home.entity_id}', 'scan_interval_min') }} min** · ` +
             `{{ state_attr('${ids.data_usage}', 'requests') or 0 }} anrop sedan start. ` +
             "Ordning och innehåll ändras under Inställningar → Enheter och tjänster → " +
-            "Trafikverket Trafikkarta → Konfigurera → Dashboard.</small>",
+            "Trafikverket Trafikkarta → Konfigurera → Dashboard och karta.</small>",
         },
       ]),
     };
