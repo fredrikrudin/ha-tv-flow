@@ -21,7 +21,7 @@ from xml.sax.saxutils import quoteattr
 FLOW_OBJECT = ("TrafficFlow", "road.trafficinfo", "1.5")
 ROAD_OBJECT = ("RoadCondition", "road.trafficinfo", "1.3")
 WEATHER_OBJECT = ("WeatherObservation", "road.weatherinfo", "2.1")
-SITUATION_OBJECT = ("Situation", "road.trafficinfo", "1.5")
+SITUATION_OBJECT = ("Situation", "road.trafficinfo", "1.6")
 
 FLOW_FIELDS = [
     "SiteId",
@@ -329,23 +329,30 @@ def build_request(
     max_age_min: int = 60,
     situation: bool = False,
     exclude: set[str] | frozenset[str] = frozenset(),
+    versions: dict[str, str] | None = None,
 ) -> tuple[str, list[str]]:
     """Build one XML request with one QUERY per enabled object type.
 
     Returns the XML body and the order of object types (RESULT is returned in
     the same order as the QUERY elements).
     """
+    versions = versions or {}
+
+    def obj(o: tuple[str, str, str]) -> tuple[str, str, str]:
+        """Apply a schema version learnt from the API ("Valid versions … are X")."""
+        return (o[0], o[1], versions.get(o[0], o[2]))
+
     queries: list[str] = []
     order: list[str] = []
     if flow:
         queries.append(
-            _query(FLOW_OBJECT, "Geometry.WGS84", lat, lon, radius_m, limit,
+            _query(obj(FLOW_OBJECT), "Geometry.WGS84", lat, lon, radius_m, limit,
                    FLOW_FIELDS if minimal else None, exclude=exclude)
         )
         order.append("TrafficFlow")
     if road:
         queries.append(
-            _query(ROAD_OBJECT, "Geometry.WGS84", lat, lon, radius_m, limit,
+            _query(obj(ROAD_OBJECT), "Geometry.WGS84", lat, lon, radius_m, limit,
                    ROAD_FIELDS if minimal else None,
                    '<EQ name="Deleted" value="false" />', exclude=exclude)
         )
@@ -353,7 +360,7 @@ def build_request(
     if weather:
         window = min(max(int(max_age_min), 15), WEATHER_WINDOW_MAX_MIN)
         queries.append(
-            _query(WEATHER_OBJECT, "Measurepoint.Geometry.WGS84", lat, lon,
+            _query(obj(WEATHER_OBJECT), "Measurepoint.Geometry.WGS84", lat, lon,
                    weather_radius_m, max(WEATHER_LIMIT_MIN, limit),
                    WEATHER_FIELDS if minimal else None,
                    '<EQ name="Deleted" value="false" />'
@@ -363,7 +370,7 @@ def build_request(
         order.append("WeatherObservation")
     if situation:
         queries.append(
-            _query(SITUATION_OBJECT, "Deviation.Geometry.Point.WGS84", lat, lon, radius_m, limit,
+            _query(obj(SITUATION_OBJECT), "Deviation.Geometry.Point.WGS84", lat, lon, radius_m, limit,
                    SITUATION_FIELDS if minimal else None,
                    '<EQ name="Deleted" value="false" />', exclude=exclude)
         )

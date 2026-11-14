@@ -78,7 +78,10 @@ assert dr.nearest_weather.name == "Edevågen" and dr.nearest_weather.air_tempera
 # --- Situation (traffic events)
 bs, ords = p.build_request("k", 61.71, 16.17, 10000, 30000, flow=False, road=False, weather=False,
                            situation=True, limit=100, minimal=True)
-assert ords == ["Situation"] and 'objecttype="Situation" namespace="road.trafficinfo" schemaversion="1.5"' in bs
+assert ords == ["Situation"] and 'objecttype="Situation" namespace="road.trafficinfo" schemaversion="1.6"' in bs
+bv, _ = p.build_request("k", 61.71, 16.17, 10000, 30000, flow=False, road=False, weather=False, situation=True,
+                        limit=100, minimal=True, versions={"Situation": "1.7"})
+assert 'schemaversion="1.7"' in bv
 assert '<WITHIN name="Deviation.Geometry.Point.WGS84" shape="center" value="16.170000 61.710000" radius="10000m" />' in bs
 assert "<INCLUDE>Deviation.Geometry.Line.WGS84</INCLUDE>" in bs
 assert "<INCLUDE>Deviation.Id</INCLUDE>" not in bs   # rejected by the API (v1.2.5 bug)

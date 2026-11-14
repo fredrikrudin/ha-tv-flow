@@ -7,6 +7,15 @@ Nyaste versionen står överst. Varje release på GitHub har taggen `vX.Y.Z`.
 
 ## [Ej släppt]
 
+## [1.3.1] – 2026-11-14
+
+### Rättat
+- Uppstarten misslyckades med *"Situation does not contain schemaversion 1.5. Valid versions for Situation are 1.6"* när **Händelser på kartan** var påslaget. Situation använder nu schemaversion **1.6**.
+
+### Ändrat
+- Byter Trafikverket schemaversion igen väljer integrationen själv den version som felmeddelandet anger och hämtar på nytt. Versionen visas i attributet `schema_overrides` på `sensor.tv_flow_data_usage`.
+- Andra fel som nämner en viss datamängd stänger bara av den datamängden, i stället för att hela uppstarten misslyckas.
+
 ## [1.3.0] – 2026-11-14
 
 ### Borttaget
@@ -109,7 +118,8 @@ Första publika versionen.
 - README med installation via Marketplace (Home Assistant 2026.11+), HACS och manuellt.
 - Licens CC BY-NC 4.0.
 
-[Ej släppt]: https://github.com/fredrikrudin/ha-tv-flow/compare/v1.3.0...HEAD
+[Ej släppt]: https://github.com/fredrikrudin/ha-tv-flow/compare/v1.3.1...HEAD
+[1.3.1]: https://github.com/fredrikrudin/ha-tv-flow/releases/tag/v1.3.1
 [1.3.0]: https://github.com/fredrikrudin/ha-tv-flow/releases/tag/v1.3.0
 [1.2.7]: https://github.com/fredrikrudin/ha-tv-flow/releases/tag/v1.2.7
 [1.2.6]: https://github.com/fredrikrudin/ha-tv-flow/releases/tag/v1.2.6

@@ -125,7 +125,7 @@ Under **Konfigurera → Experimentella funktioner** finns funktioner som fortfar
 
 | Funktion | Vad den gör |
 |---|---|
-| **Händelser på kartan** | Hämtar Trafikverkets trafikhändelser (Situation 1.5) inom radien och visar dem som lagret *Händelser* i kartkortet: 🔴 **olyckor**, 🟠 **hinder** och 🟤 **vägarbeten**. Klicka på en markör för rubrik, beskrivning, plats och tider. Sträckor ritas som streckade linjer. Sensorerna `sensor.tv_flow_accidents`, `_incidents` och `_road_works` skapas när funktionen är på. |
+| **Händelser på kartan** | Hämtar Trafikverkets trafikhändelser (Situation 1.6) inom radien och visar dem som lagret *Händelser* i kartkortet: 🔴 **olyckor**, 🟠 **hinder** och 🟤 **vägarbeten**. Klicka på en markör för rubrik, beskrivning, plats och tider. Sträckor ritas som streckade linjer. Sensorerna `sensor.tv_flow_accidents`, `_incidents` och `_road_works` skapas när funktionen är på. |
 
 Lagret kan döljas i kartans lagerväljare eller med `show_situations: false` på kortet. Om Trafikverket inte godtar frågan stängs bara händelserna av, och resten fortsätter fungera (se Felsökning).
 
@@ -228,7 +228,7 @@ action:
 - **"Ogiltig API-nyckel"** – kontrollera att hela nyckeln är inklistrad. Om nyckeln senare slutar fungera ber Home Assistant automatiskt om en ny.
 - **Inga mätpunkter** – det finns inga trafikflödesdetektorer inom radien. Öka radien eller välj en plats nära en större väg.
 - **Inget väder / tomma värden** – öppna `sensor.tv_flow_data_usage` → attribut. `errors` visar eventuella fel per datatyp från Trafikverket och `raw_counts` hur många poster som kom tillbaka. Ett fel i en datatyp stoppar inte de andra.
-- **"Invalid query attribute …"** – godtar Trafikverket inte ett fält hämtas den datamängden automatiskt utan fältlista. Fungerar inte heller det stängs datamängden av, och resten fortsätter fungera. Se attributen `rejected_fields`, `fetched_without_field_list` och `disabled_data_sets` på `sensor.tv_flow_data_usage`, och rapportera gärna som ett issue.
+- **"Invalid query attribute …"** – godtar Trafikverket inte ett fält hämtas den datamängden automatiskt utan fältlista. Fungerar inte heller det stängs datamängden av, och resten fortsätter fungera. Se attributen `rejected_fields`, `fetched_without_field_list`, `disabled_data_sets` och `schema_overrides` på `sensor.tv_flow_data_usage`, och rapportera gärna som ett issue.
 - **API-fel om fält** – stäng av "Hämta bara de fält som används".
 - Debuglogg:
 

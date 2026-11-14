@@ -74,6 +74,44 @@ async def main():
     except api.TrafikverketError as err:
         print("only situation ->", str(err)[:90])
 
+    # wrong schema version -> learn the valid one and retry (the 1.3.0 setup error)
+    class VersionSession(Session):
+        def post(self, url, data, headers):
+            body = data.decode(); self.bodies.append(body)
+            m = re.search(r'objecttype="Situation" namespace="road.trafficinfo" schemaversion="([\d.]+)"', body)
+            if m and m.group(1) != "1.7":
+                return Resp(400, {"RESPONSE": {"RESULT": [{"ERROR": {"SOURCE": "Request",
+                        "MESSAGE": f"Situation does not contain schemaversion {m.group(1)}. Valid versions for Situation are 1.7"}}]}})
+            return Resp(200, {"RESPONSE": {"RESULT": [{"RoadCondition": []}, {"Situation": []}]}})
+    vs = VersionSession(); vc = api.TrafikverketClient(vs, "KEY")
+    d3 = await vc.async_fetch(61.71, 16.17, 10, 30, **kw)
+    assert vc.schema_overrides == {"Situation": "1.7"} and 'schemaversion="1.7"' in vs.bodies[-1] and not d3.errors
+    assert 'objecttype="Situation" namespace="road.trafficinfo" schemaversion="1.6"' in vs.bodies[0]
+    print("version case: requests", len(vs.bodies), "| overrides:", vc.schema_overrides)
+
+    # unknown error naming Situation -> only Situation is switched off
+    class OddSession(Session):
+        def post(self, url, data, headers):
+            body = data.decode(); self.bodies.append(body)
+            if 'objecttype="Situation"' in body:
+                return Resp(400, {"RESPONSE": {"RESULT": [{"ERROR": {"SOURCE": "Request",
+                        "MESSAGE": "Situation is temporarily unavailable"}}]}})
+            return Resp(200, {"RESPONSE": {"RESULT": [{"RoadCondition": []}]}})
+    os_ = OddSession(); oc = api.TrafikverketClient(os_, "KEY")
+    d4 = await oc.async_fetch(61.71, 16.17, 10, 30, **kw)
+    assert "Situation" in oc.disabled_objects and "Situation" in d4.errors and len(os_.bodies) == 2
+    print("unknown error case: disabled", list(oc.disabled_objects))
+
+    # unknown error that names no data set -> raised as before
+    class Down(Session):
+        def post(self, url, data, headers):
+            return Resp(500, {"RESPONSE": {"RESULT": [{"ERROR": {"SOURCE": "Server", "MESSAGE": "Internal error"}}]}})
+    try:
+        await api.TrafikverketClient(Down(), "KEY").async_fetch(61.71, 16.17, 10, 30, **kw)
+        raise SystemExit("no error")
+    except api.TrafikverketError:
+        pass
+
     # auth errors are not swallowed
     class AuthSession(Session):
         def post(self, url, data, headers):

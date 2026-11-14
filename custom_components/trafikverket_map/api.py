@@ -35,6 +35,10 @@ class TrafikverketAuthError(TrafikverketError):
 _FLAG = {"TrafficFlow": "flow", "RoadCondition": "road", "WeatherObservation": "weather", "Situation": "situation"}
 
 _INVALID_FIELD = re.compile(r"Invalid query attribute\s+([\w.]+)", re.IGNORECASE)
+_BAD_VERSION = re.compile(
+    r"(\w+) does not contain schemaversion\s+([\d.]+).*?Valid versions for \w+ are\s+([\d.,\s]+)",
+    re.IGNORECASE | re.DOTALL,
+)
 
 
 class TrafikverketClient:
@@ -50,25 +54,45 @@ class TrafikverketClient:
         # Object types the API rejects even without INCLUDE – skipped so the
         # remaining data sets keep working. objtype -> error message.
         self.disabled_objects: dict[str, str] = {}
+        # Schema versions learnt from the API: objtype -> version
+        self.schema_overrides: dict[str, str] = {}
+
+    def _disable(self, objtype: str, message: str) -> bool:
+        if objtype in self.disabled_objects or objtype not in _FLAG:
+            return False
+        self.disabled_objects[objtype] = message
+        _LOGGER.error(
+            "Trafikverket avvisar %s (%s). Datamängden stängs av tills Home Assistant startas om; "
+            "övriga datamängder fortsätter. Rapportera gärna detta.",
+            objtype, message,
+        )
+        return True
 
     def _learn_rejected(self, message: str) -> bool:
-        """React to 'Invalid query attribute X'. True if the next attempt differs."""
-        match = _INVALID_FIELD.search(message or "")
+        """Learn from an API error. True if the next attempt will be different."""
+        message = message or ""
+        version = _BAD_VERSION.search(message)
+        if version:
+            objtype = version.group(1)
+            valid = [v.strip() for v in version.group(3).replace(",", " ").split() if v.strip()]
+            newest = max(valid, key=lambda v: tuple(int(x) for x in v.split(".") if x.isdigit())) if valid else None
+            if newest and self.schema_overrides.get(objtype) != newest:
+                self.schema_overrides[objtype] = newest
+                _LOGGER.warning("Trafikverket kräver schemaversion %s för %s – använder den.", newest, objtype)
+                return True
+            return self._disable(objtype, message)
+        match = _INVALID_FIELD.search(message)
         if not match:
+            # Unknown error that names one of our data sets: switch only that one off.
+            for objtype in _FLAG:
+                if re.search(rf"\b{objtype}\b", message):
+                    return self._disable(objtype, message)
             return False
         field = match.group(1)
         objtype = field.split(".", 1)[0]
         self.rejected_fields.add(field)
         if objtype in self.full_objects:
-            if objtype in self.disabled_objects or objtype not in _FLAG:
-                return False
-            self.disabled_objects[objtype] = message
-            _LOGGER.error(
-                "Trafikverket avvisar %s även utan fältlista (%s). Datamängden stängs av tills "
-                "Home Assistant startas om; övriga datamängder fortsätter. Rapportera gärna detta.",
-                objtype, message,
-            )
-            return True
+            return self._disable(objtype, message)
         self.full_objects.add(objtype)
         _LOGGER.warning(
             "Trafikverket godtar inte fältet %s – hämtar %s utan fältlista. "
@@ -170,6 +194,7 @@ class TrafikverketClient:
             max_age_min=int(max_age.total_seconds() // 60),
             situation=situation,
             exclude=frozenset(self.rejected_fields | self.full_objects),
+            versions=dict(self.schema_overrides),
         )
         _LOGGER.debug("Trafikverket request: %s", body.replace(self._api_key, "***"))
         try:
@@ -177,7 +202,7 @@ class TrafikverketClient:
         except TrafikverketAuthError:
             raise
         except TrafikverketError as err:
-            if minimal and self._learn_rejected(str(err)):
+            if self._learn_rejected(str(err)):
                 return None
             raise
         try:
@@ -187,10 +212,10 @@ class TrafikverketClient:
         except TrafikverketResponseError as err:
             if err.auth:
                 raise TrafikverketAuthError(str(err)) from err
-            if minimal and self._learn_rejected(str(err)):
+            if self._learn_rejected(str(err)):
                 return None
             raise TrafikverketError(str(err)) from err
-        if minimal and any(self._learn_rejected(msg) for msg in list(data.errors.values())):
+        if any(self._learn_rejected(msg) for msg in list(data.errors.values())):
             return None
         data.response_bytes = size
         for objtype, msg in data.errors.items():

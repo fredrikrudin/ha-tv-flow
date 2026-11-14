@@ -319,4 +319,5 @@ class TrafikverketDataUsageSensor(_Base):
             "rejected_fields": sorted(self.coordinator.client.rejected_fields),
             "fetched_without_field_list": sorted(self.coordinator.client.full_objects),
             "disabled_data_sets": sorted(self.coordinator.client.disabled_objects),
+            "schema_overrides": dict(self.coordinator.client.schema_overrides),
         }
