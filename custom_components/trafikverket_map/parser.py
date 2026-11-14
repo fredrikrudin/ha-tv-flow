@@ -79,7 +79,6 @@ WEATHER_FIELDS = [
 
 SITUATION_FIELDS = [
     "Id",
-    "Deviation.Id",
     "Deviation.MessageType",
     "Deviation.MessageTypeValue",
     "Deviation.MessageCode",
@@ -278,8 +277,11 @@ def _query(
     fields: list[str] | None,
     extra_filter: str = "",
     orderby: str | None = None,
+    exclude: set[str] | frozenset[str] = frozenset(),
 ) -> str:
     objecttype, namespace, schema = obj
+    if fields:
+        fields = [f for f in fields if f"{objecttype}.{f}" not in exclude and f not in exclude]
     include = "".join(f"<INCLUDE>{f}</INCLUDE>" for f in fields) if fields else ""
     order = f' orderby="{orderby}"' if orderby else ""
     return (
@@ -324,6 +326,7 @@ def build_request(
     minimal: bool,
     max_age_min: int = 60,
     situation: bool = False,
+    exclude: set[str] | frozenset[str] = frozenset(),
 ) -> tuple[str, list[str]]:
     """Build one XML request with one QUERY per enabled object type.
 
@@ -335,14 +338,14 @@ def build_request(
     if flow:
         queries.append(
             _query(FLOW_OBJECT, "Geometry.WGS84", lat, lon, radius_m, limit,
-                   FLOW_FIELDS if minimal else None)
+                   FLOW_FIELDS if minimal else None, exclude=exclude)
         )
         order.append("TrafficFlow")
     if road:
         queries.append(
             _query(ROAD_OBJECT, "Geometry.WGS84", lat, lon, radius_m, limit,
                    ROAD_FIELDS if minimal else None,
-                   '<EQ name="Deleted" value="false" />')
+                   '<EQ name="Deleted" value="false" />', exclude=exclude)
         )
         order.append("RoadCondition")
     if weather:
@@ -353,14 +356,14 @@ def build_request(
                    WEATHER_FIELDS if minimal else None,
                    '<EQ name="Deleted" value="false" />'
                    f'<GT name="Sample" value="$dateadd(-{timespan(window)})" />',
-                   orderby="Sample desc")
+                   orderby="Sample desc", exclude=exclude)
         )
         order.append("WeatherObservation")
     if situation:
         queries.append(
             _query(SITUATION_OBJECT, "Deviation.Geometry.Point.WGS84", lat, lon, radius_m, limit,
                    SITUATION_FIELDS if minimal else None,
-                   '<EQ name="Deleted" value="false" />')
+                   '<EQ name="Deleted" value="false" />', exclude=exclude)
         )
         order.append("Situation")
 
@@ -736,7 +739,7 @@ def parse_situations(
             if dist > radius_km * 1.05:
                 continue
             lat, lon = point[0][0] if point else lines[0][len(lines[0]) // 2]
-            dev_id = str(dev.get("Id") or f"{sit.get('Id', 'sit')}:{idx}")
+            dev_id = str(dev.get("Id") or f"{sit.get('Id', 'sit')}:{dev.get('MessageCode') or dev.get('MessageType') or ''}:{idx}")
             if dev_id in seen:
                 continue
             seen.add(dev_id)

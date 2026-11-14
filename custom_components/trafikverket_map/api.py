@@ -6,6 +6,7 @@ import asyncio
 from datetime import timedelta
 import json
 import logging
+import re
 from typing import Any
 
 import aiohttp
@@ -30,12 +31,29 @@ class TrafikverketAuthError(TrafikverketError):
     """Invalid API key."""
 
 
+_INVALID_FIELD = re.compile(r"Invalid query attribute\s+([\w.]+)", re.IGNORECASE)
+
+
 class TrafikverketClient:
     """Small client that fetches flow, road condition and weather in one call."""
 
     def __init__(self, session: aiohttp.ClientSession, api_key: str) -> None:
         self._session = session
         self._api_key = api_key
+        # INCLUDE fields Trafikverket has rejected; left out of later requests.
+        self.rejected_fields: set[str] = set()
+
+    def _learn_rejected(self, message: str) -> bool:
+        """Remember a field the API called invalid. True if it is new."""
+        match = _INVALID_FIELD.search(message or "")
+        if not match or match.group(1) in self.rejected_fields:
+            return False
+        self.rejected_fields.add(match.group(1))
+        _LOGGER.warning(
+            "Trafikverket godtar inte fältet %s – hämtar utan det. Rapportera gärna detta.",
+            match.group(1),
+        )
+        return True
 
     async def _post(self, body: str) -> tuple[dict[str, Any], int]:
         try:
@@ -87,6 +105,20 @@ class TrafikverketClient:
         """Fetch and parse all enabled data sets."""
         if not (flow or road or weather or situation):
             return TrafikverketData()
+        for _attempt in range(8):
+            data = await self._fetch_once(
+                lat, lon, radius_km, weather_radius_km, flow=flow, road=road, weather=weather,
+                limit=limit, minimal=minimal, max_age=max_age, situation=situation,
+            )
+            if data is not None:
+                return data
+        raise TrafikverketError("För många ogiltiga fält i frågan")
+
+    async def _fetch_once(
+        self, lat, lon, radius_km, weather_radius_km, *, flow, road, weather,
+        limit, minimal, max_age, situation,
+    ) -> TrafikverketData | None:
+        """One request. None means: a field was rejected, try again without it."""
         body, order = build_request(
             self._api_key,
             lat,
@@ -100,9 +132,17 @@ class TrafikverketClient:
             minimal=minimal,
             max_age_min=int(max_age.total_seconds() // 60),
             situation=situation,
+            exclude=frozenset(self.rejected_fields),
         )
         _LOGGER.debug("Trafikverket request: %s", body.replace(self._api_key, "***"))
-        payload, size = await self._post(body)
+        try:
+            payload, size = await self._post(body)
+        except TrafikverketAuthError:
+            raise
+        except TrafikverketError as err:
+            if minimal and self._learn_rejected(str(err)):
+                return None
+            raise
         try:
             data = parse_response(
                 payload, order, (lat, lon), radius_km, weather_radius_km, max_age
@@ -110,7 +150,11 @@ class TrafikverketClient:
         except TrafikverketResponseError as err:
             if err.auth:
                 raise TrafikverketAuthError(str(err)) from err
+            if minimal and self._learn_rejected(str(err)):
+                return None
             raise TrafikverketError(str(err)) from err
+        if minimal and any(self._learn_rejected(msg) for msg in list(data.errors.values())):
+            return None
         data.response_bytes = size
         for objtype, msg in data.errors.items():
             _LOGGER.warning("Trafikverket gav fel för %s: %s", objtype, msg)

@@ -81,6 +81,10 @@ bs, ords = p.build_request("k", 61.71, 16.17, 10000, 30000, flow=False, road=Fal
 assert ords == ["Situation"] and 'objecttype="Situation" namespace="road.trafficinfo" schemaversion="1.5"' in bs
 assert '<WITHIN name="Deviation.Geometry.Point.WGS84" shape="center" value="16.170000 61.710000" radius="10000m" />' in bs
 assert "<INCLUDE>Deviation.Geometry.Line.WGS84</INCLUDE>" in bs
+assert "<INCLUDE>Deviation.Id</INCLUDE>" not in bs   # rejected by the API (v1.2.5 bug)
+bx, _ = p.build_request("k", 61.71, 16.17, 10000, 30000, flow=False, road=False, weather=False, situation=True,
+                        limit=100, minimal=True, exclude={"Situation.Deviation.RoadName"})
+assert "<INCLUDE>Deviation.RoadName</INCLUDE>" not in bx and "<INCLUDE>Deviation.Header</INCLUDE>" in bx
 sit_payload = {"RESPONSE": {"RESULT": [{"Situation": [
   {"Id": "S1", "Deviation": [
     {"Id": "D1", "MessageType": "Olycka", "Header": "Trafikolycka", "Message": "Två bilar inblandade.",

@@ -329,4 +329,6 @@ class TrafikverketDataUsageSensor(_Base):
             "raw_counts": d.raw_counts if d else {},
             "errors": d.errors if d else {},
             "weather_stations": len(d.weather_stations) if d else 0,
+            "situations": len(d.situations) if d else 0,
+            "rejected_fields": sorted(self.coordinator.client.rejected_fields),
         }
