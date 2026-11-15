@@ -23,6 +23,7 @@ CONF_MAX_AGE = "max_age_min"
 CONF_MAP_STYLE = "map_style"
 CONF_DASHBOARD_SECTIONS = "dashboard_sections"
 CONF_MAP_HEIGHT = "map_height"
+CONF_MAP_ZOOM_MARGIN = "map_zoom_margin_km"
 
 DEFAULT_RADIUS_KM = 10.0
 DEFAULT_WEATHER_RADIUS_KM = 30.0
@@ -36,6 +37,7 @@ MAP_STYLES = ["light", "dark", "auto"]
 DASHBOARD_SECTIONS = ["summary", "weather", "road", "map", "now", "history", "data"]
 DASHBOARD_NONE = "none"
 DEFAULT_MAP_HEIGHT = 560
+DEFAULT_MAP_ZOOM_MARGIN = 0.0
 
 MIN_SCAN_INTERVAL_MIN = 1
 MAX_SCAN_INTERVAL_MIN = 1440
@@ -52,4 +54,4 @@ SIGNAL_UPDATE = f"{DOMAIN}_update_{{}}"
 
 CARD_URL = f"/{DOMAIN}/trafikverket-map-card.js"
 ROAD_CARD_URL = f"/{DOMAIN}/trafikverket-road-card.js"
-CARD_VERSION = "1.4.0"
+CARD_VERSION = "1.4.1"

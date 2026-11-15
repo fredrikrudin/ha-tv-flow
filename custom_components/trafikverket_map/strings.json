@@ -142,6 +142,7 @@
         "description": "Map style and what is shown in each position of the generated dashboard (`strategy: type: custom:tv-flow`). Pick **Hidden** to hide a section. Reload the dashboard in the browser after saving.",
         "data": {
           "map_style": "Map style",
+          "map_zoom_margin_km": "Margin around the area at start",
           "position_1": "Position 1",
           "position_2": "Position 2",
           "position_3": "Position 3",
@@ -153,7 +154,8 @@
         },
         "data_description": {
           "map_style": "Look of the map in the map card. A dark_mode set on the card takes precedence.",
-          "map_height": "Height of the map in pixels."
+          "map_height": "Height of the map in pixels.",
+          "map_zoom_margin_km": "The map opens on the chosen radius plus this margin. 0 = exactly the chosen radius."
         }
       },
       "experimental": {

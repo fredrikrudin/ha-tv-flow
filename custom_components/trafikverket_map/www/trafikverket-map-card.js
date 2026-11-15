@@ -13,7 +13,8 @@
  *   show_situations: true          # experimental: olyckor, hinder, vägarbeten (needs the setting)
  *   dark_mode: false               # optional: true | false | auto – overrides the
  *                                  # "Map style" setting of the integration
- *   zoom_margin_km: 10             # start view = radius + this margin (km)
+ *   zoom_margin_km: 0              # optional: start view = radius + margin (km); default from the
+ *                                  # setting "Marginal runt området vid start"
  *   legend: true                   # show the legend (click rows to show/hide)
  *   hidden: [speed:fast, road:1]   # optional default for hidden legend rows
  *   tile_url: https://tile.openstreetmap.org/{z}/{x}/{y}.png   # optional
@@ -81,7 +82,7 @@ function fmtTime(iso) {
 class TrafikverketMapCard extends HTMLElement {
   setConfig(config) {
     this._config = {
-      height: 450, show_flow: true, show_road: true, show_weather: true, show_situations: true, zoom_margin_km: 10, legend: true,
+      height: 450, show_flow: true, show_road: true, show_weather: true, show_situations: true, legend: true,
       tile_url: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
       ...config,
     };
@@ -183,7 +184,15 @@ class TrafikverketMapCard extends HTMLElement {
     if (this._config.legend !== false) this._addLegend(L);
     this._addAreaButton(L);
     this._map.setView([59.33, 18.06], 10);
-    new ResizeObserver(() => this._map && this._map.invalidateSize()).observe(el);
+    // The card is often created before it has a size (sections view, hidden tab).
+    // Re-fit when it gets one, until the user pans or zooms.
+    this._userMoved = false;
+    this._map.on("dragstart zoomstart", () => { if (!this._fitting) this._userMoved = true; });
+    new ResizeObserver(() => {
+      if (!this._map) return;
+      this._map.invalidateSize();
+      if (!this._userMoved && el.clientWidth > 0 && el.clientHeight > 0) this._fitArea(false);
+    }).observe(el);
     this._area = null;
     this._areaKey = "";
     this._lastSig = "";
@@ -287,18 +296,25 @@ class TrafikverketMapCard extends HTMLElement {
         "C17.17,3.5 20.5,6.83 20.95,11H23V13H20.95C20.5,17.17 17.17,20.5 13,20.95V23H11V20.95C6.83,20.5 3.5,17.17 3.05,13" +
         "M12,5A7,7 0 0,0 5,12A7,7 0 0,0 12,19A7,7 0 0,0 19,12A7,7 0 0,0 12,5Z" + '"/></svg>';
       L.DomEvent.disableClickPropagation(bar);
-      L.DomEvent.on(a, "click", (e) => { L.DomEvent.preventDefault(e); this._fitArea(true); });
+      L.DomEvent.on(a, "click", (e) => { L.DomEvent.preventDefault(e); this._fitArea(true, true); });
       return bar;
     };
     ctrl.addTo(this._map);
   }
 
-  _fitArea(animate = false) {
+  _fitArea(animate = false, byUser = false) {
     if (!this._map || !this._area) return;
-    const { center, radiusKm } = this._area;
-    const margin = Math.max(0, Number(this._config.zoom_margin_km) || 0);
-    const viewKm = radiusKm + margin; // e.g. 10 km radius -> show 20 km around home
-    this._map.fitBounds(this._L.latLng(center).toBounds(viewKm * 2000), { padding: [0, 0], animate });
+    const { center, radiusKm, marginKm } = this._area;
+    const cfg = this._config.zoom_margin_km;
+    const margin = Math.max(0, Number(cfg !== undefined && cfg !== null && cfg !== "" ? cfg : marginKm) || 0);
+    const viewKm = radiusKm + margin; // margin 0 -> exactly the chosen radius
+    if (byUser) this._userMoved = false; // "zoom to area" makes the map follow resizes again
+    this._fitting = true;
+    try {
+      this._map.fitBounds(this._L.latLng(center).toBounds(viewKm * 2000), { padding: [12, 12], animate });
+    } finally {
+      this._fitting = false;
+    }
   }
 
   _scheduleUpdate() {
@@ -334,13 +350,14 @@ class TrafikverketMapCard extends HTMLElement {
         .addTo(this._layers.home);
       L.circleMarker(center, { radius: 6, color: "#fff", weight: 2, fillColor: "#1976d2", fillOpacity: 1 })
         .bindTooltip("Hem – klicka för att zooma till området")
-        .on("click", () => this._fitArea(true))
+        .on("click", () => this._fitArea(true, true))
         .addTo(this._layers.home);
-      this._area = { center, radiusKm: a.radius_km };
+      this._area = { center, radiusKm: a.radius_km, marginKm: Number(a.map_zoom_margin_km) || 0 };
       // Zoom to the area the first time and whenever position or radius changes.
-      const key = `${a.home_latitude},${a.home_longitude},${a.radius_km}`;
+      const key = `${a.home_latitude},${a.home_longitude},${a.radius_km},${a.map_zoom_margin_km}`;
       if (key !== this._areaKey) {
         this._areaKey = key;
+        this._userMoved = false;
         this._fitArea(false);
       }
     }

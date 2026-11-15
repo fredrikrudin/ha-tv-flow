@@ -98,10 +98,10 @@ height: 450
 | `legend` | `true` | Visa teckenförklaringen |
 | `hidden` | – | Kategorier som är dolda från början, t.ex. `[speed:fast, road:1]` (se nedan) |
 | `dark_mode` | – | `true`, `false` eller `auto`. Utelämna för att följa inställningen **Kartstil** under Konfigurera → Dashboard och karta. |
-| `zoom_margin_km` | `10` | Startvyn visar inställd radie plus så här många km runt hemmet |
+| `zoom_margin_km` | inställning | Marginal i km utanför radien i startvyn. Utelämna för att följa inställningen *Marginal runt området vid start*. |
 | `tile_url` | OpenStreetMap | Egen kartserver |
 
-Kartan startar utzoomad till inställd radie + 10 km (t.ex. 20 km runt hemmet vid 10 km radie), så att hela området och lite omgivning syns. Knappen ⌖ under +/– (eller ett klick på hemmarkören) går tillbaka till samma vy, och kartan zoomar om automatiskt när du ändrar plats eller radie.
+Kartan startar inzoomad på **vald radie**. Vill du se lite mer av omgivningen anger du en marginal under **Konfigurera → Dashboard och karta → Marginal runt området vid start** (t.ex. 10 km). Knappen ⌖ under +/– (eller ett klick på hemmarkören) går tillbaka till samma vy, och kartan zoomar om automatiskt när du ändrar plats eller radie.
 
 Kortet laddar kartbiblioteket Leaflet från `unpkg.com` och kartbilder från OpenStreetMap, så webbläsaren behöver internetåtkomst.
 
@@ -193,7 +193,7 @@ Integrationen kan bygga hela dashboarden åt dig. Du väljer ordning och innehå
 
 4. Klicka **Spara**.
 
-**Ändra ordning och innehåll:** **Inställningar → Enheter och tjänster → Trafikverket Trafikkarta → Konfigurera → Dashboard och karta**. Välj vad som ska visas på *Plats 1–7*, eller *Visa inte* för att dölja en sektion. Där ställer du också in **kartstil** (standard OpenStreetMap, mörk eller följ temat) och kartans höjd. Ladda sedan om dashboarden i webbläsaren.
+**Ändra ordning och innehåll:** **Inställningar → Enheter och tjänster → Trafikverket Trafikkarta → Konfigurera → Dashboard och karta**. Välj vad som ska visas på *Plats 1–7*, eller *Visa inte* för att dölja en sektion. Där ställer du också in **kartstil** (standard OpenStreetMap, mörk eller följ temat), **marginal runt området vid start** och kartans höjd. Ladda sedan om dashboarden i webbläsaren.
 
 Tillgängliga sektioner:
 

@@ -43,6 +43,7 @@ from .const import (
     CONF_ENABLE_WEATHER,
     CONF_DASHBOARD_SECTIONS,
     CONF_MAP_HEIGHT,
+    CONF_MAP_ZOOM_MARGIN,
     CONF_MAP_STYLE,
     CONF_MAX_AGE,
     CONF_MAX_OBJECTS,
@@ -53,6 +54,7 @@ from .const import (
     DASHBOARD_NONE,
     DASHBOARD_SECTIONS,
     DEFAULT_MAP_HEIGHT,
+    DEFAULT_MAP_ZOOM_MARGIN,
     DEFAULT_MAP_STYLE,
     DEFAULT_MAX_AGE_MIN,
     DEFAULT_MAX_OBJECTS,
@@ -355,6 +357,7 @@ class TrafikverketMapOptionsFlow(_LocationSteps, OptionsFlow):
                 data[CONF_DASHBOARD_SECTIONS] = sections
                 data[CONF_MAP_HEIGHT] = int(user_input[CONF_MAP_HEIGHT])
                 data[CONF_MAP_STYLE] = user_input[CONF_MAP_STYLE]
+                data[CONF_MAP_ZOOM_MARGIN] = float(user_input[CONF_MAP_ZOOM_MARGIN])
                 return self.async_create_entry(data=data)
 
         current = list(cur.get(CONF_DASHBOARD_SECTIONS, DASHBOARD_SECTIONS))
@@ -369,6 +372,9 @@ class TrafikverketMapOptionsFlow(_LocationSteps, OptionsFlow):
                 SelectSelectorConfig(options=MAP_STYLES, translation_key=CONF_MAP_STYLE,
                                      mode=SelectSelectorMode.DROPDOWN)),
         }
+        schema[vol.Required(
+            CONF_MAP_ZOOM_MARGIN, default=float(cur.get(CONF_MAP_ZOOM_MARGIN, DEFAULT_MAP_ZOOM_MARGIN))
+        )] = _km(0, 50, 1)
         for i in range(len(DASHBOARD_SECTIONS)):
             schema[vol.Required(f"position_{i + 1}", default=current[i])] = choices
         schema[vol.Required(CONF_MAP_HEIGHT, default=int(cur.get(CONF_MAP_HEIGHT, DEFAULT_MAP_HEIGHT)))] = (

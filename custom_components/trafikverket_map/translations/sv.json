@@ -142,6 +142,7 @@
         "description": "Kartans utseende och vad som visas på varje plats i den genererade dashboarden (`strategy: type: custom:tv-flow`). Välj **Visa inte** för att dölja en sektion. Ladda om dashboarden i webbläsaren efter att du sparat.",
         "data": {
           "map_style": "Kartstil",
+          "map_zoom_margin_km": "Marginal runt området vid start",
           "position_1": "Plats 1",
           "position_2": "Plats 2",
           "position_3": "Plats 3",
@@ -153,7 +154,8 @@
         },
         "data_description": {
           "map_style": "Utseende på kartan i kartkortet. Ett eget dark_mode i kortet går före.",
-          "map_height": "Höjd på kartan i pixlar."
+          "map_height": "Höjd på kartan i pixlar.",
+          "map_zoom_margin_km": "Kartan startar inzoomad på vald radie plus den här marginalen. 0 = exakt vald radie."
         }
       },
       "experimental": {

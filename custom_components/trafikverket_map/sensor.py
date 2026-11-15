@@ -223,7 +223,7 @@ class TrafikverketSensor(_Base):
     _unrecorded_attributes = frozenset({
         "trafikverket_home", "config_entry_id", "home_latitude", "home_longitude",
         "radius_km", "weather_radius_km", "scan_interval_min", "map_style",
-        "dashboard_sections", "map_height", "entity_ids",
+        "dashboard_sections", "map_height", "map_zoom_margin_km", "entity_ids",
     })
 
     def __init__(self, coordinator, entry, description: TvSensorDescription) -> None:
@@ -271,6 +271,7 @@ class TrafikverketSensor(_Base):
                 "map_style": s.map_style,
                 "dashboard_sections": list(s.dashboard_sections),
                 "map_height": s.map_height,
+                "map_zoom_margin_km": s.map_zoom_margin_km,
                 "entity_ids": self._sibling_entity_ids(),
             }
         if self.entity_description.group == "weather" and d and d.nearest_weather:

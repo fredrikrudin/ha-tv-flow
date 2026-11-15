@@ -22,6 +22,7 @@ from .const import (
     CONF_ENABLE_WEATHER,
     CONF_DASHBOARD_SECTIONS,
     CONF_MAP_HEIGHT,
+    CONF_MAP_ZOOM_MARGIN,
     CONF_MAP_STYLE,
     CONF_MAX_AGE,
     CONF_MAX_OBJECTS,
@@ -31,6 +32,7 @@ from .const import (
     CONF_WEATHER_RADIUS,
     DASHBOARD_SECTIONS,
     DEFAULT_MAP_HEIGHT,
+    DEFAULT_MAP_ZOOM_MARGIN,
     DEFAULT_MAP_STYLE,
     DEFAULT_MAX_AGE_MIN,
     DEFAULT_MAX_OBJECTS,
@@ -63,6 +65,7 @@ class Settings:
     map_style: str
     dashboard_sections: tuple[str, ...]
     map_height: int
+    map_zoom_margin_km: float
 
     @classmethod
     def from_entry(cls, hass: HomeAssistant, entry: ConfigEntry) -> Settings:
@@ -87,6 +90,7 @@ class Settings:
                 s for s in get(CONF_DASHBOARD_SECTIONS, DASHBOARD_SECTIONS) if s in DASHBOARD_SECTIONS
             ) or tuple(DASHBOARD_SECTIONS),
             map_height=int(get(CONF_MAP_HEIGHT, DEFAULT_MAP_HEIGHT)),
+            map_zoom_margin_km=float(get(CONF_MAP_ZOOM_MARGIN, DEFAULT_MAP_ZOOM_MARGIN)),
         )
 
 

@@ -7,6 +7,15 @@ Nyaste versionen står överst. Varje release på GitHub har taggen `vX.Y.Z`.
 
 ## [Ej släppt]
 
+## [1.4.1] – 2026-11-15
+
+### Rättat
+- **Kartan startade ofta långt utzoomad.** I sektionsvyer skapas kortet ibland innan det har fått en storlek, och då räknade Leaflet fram zoomen mot en yta på 0×0. Nu anpassas kartan igen när kortet får sin storlek, så länge du inte själv har panorerat eller zoomat. Knappen ⌖ gör att kartan följer storleksändringar igen.
+
+### Ändrat
+- Kartan startar nu på **exakt vald radie**, med lite luft runt cirkeln. Tidigare var det radien + 10 km.
+- Ny inställning **Marginal runt området vid start** (0–50 km, standard 0) under *Konfigurera → Dashboard och karta*. `zoom_margin_km` på kortet går fortfarande före.
+
 ### Dokumentation
 - Ny notis i README och LICENSE om att projektet inte är knutet till, godkänt av eller sponsrat av Trafikverket. Vi uppskattar bara deras öppna API.
 
@@ -132,7 +141,8 @@ Första publika versionen.
 - README med installation via Marketplace (Home Assistant 2026.11+), HACS och manuellt.
 - Licens CC BY-NC 4.0.
 
-[Ej släppt]: https://github.com/fredrikrudin/ha-tv-flow/compare/v1.4.0...HEAD
+[Ej släppt]: https://github.com/fredrikrudin/ha-tv-flow/compare/v1.4.1...HEAD
+[1.4.1]: https://github.com/fredrikrudin/ha-tv-flow/releases/tag/v1.4.1
 [1.4.0]: https://github.com/fredrikrudin/ha-tv-flow/releases/tag/v1.4.0
 [1.3.1]: https://github.com/fredrikrudin/ha-tv-flow/releases/tag/v1.3.1
 [1.3.0]: https://github.com/fredrikrudin/ha-tv-flow/releases/tag/v1.3.0
