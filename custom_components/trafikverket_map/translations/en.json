@@ -191,7 +191,14 @@
         "name": "Lowest speed"
       },
       "road_condition": {
-        "name": "Road condition"
+        "name": "Road condition",
+        "state": {
+          "normal": "Normal",
+          "difficult": "Difficult (risk of)",
+          "very_difficult": "Very difficult",
+          "ice_snow": "Ice and snow",
+          "no_data": "No data"
+        }
       },
       "road_condition_count": {
         "name": "Difficult road conditions"
@@ -212,7 +219,15 @@
         "name": "Wind direction"
       },
       "precipitation": {
-        "name": "Precipitation"
+        "name": "Precipitation",
+        "state": {
+          "no": "No precipitation",
+          "rain": "Rain",
+          "freezing_rain": "Freezing rain",
+          "snow": "Snow",
+          "sleet": "Sleet",
+          "yes": "Precipitation"
+        }
       },
       "precipitation_30min": {
         "name": "Precipitation 30 min"

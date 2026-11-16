@@ -62,8 +62,8 @@ class TrafikverketClient:
             return False
         self.disabled_objects[objtype] = message
         _LOGGER.error(
-            "Trafikverket avvisar %s (%s). Datamängden stängs av tills Home Assistant startas om; "
-            "övriga datamängder fortsätter. Rapportera gärna detta.",
+            "Trafikverket rejects %s (%s). This data set is disabled until Home Assistant restarts; "
+            "the other data sets keep working. Please report this on GitHub.",
             objtype, message,
         )
         return True
@@ -78,7 +78,7 @@ class TrafikverketClient:
             newest = max(valid, key=lambda v: tuple(int(x) for x in v.split(".") if x.isdigit())) if valid else None
             if newest and self.schema_overrides.get(objtype) != newest:
                 self.schema_overrides[objtype] = newest
-                _LOGGER.warning("Trafikverket kräver schemaversion %s för %s – använder den.", newest, objtype)
+                _LOGGER.warning("Trafikverket requires schema version %s for %s – using it.", newest, objtype)
                 return True
             return self._disable(objtype, message)
         match = _INVALID_FIELD.search(message)
@@ -95,8 +95,8 @@ class TrafikverketClient:
             return self._disable(objtype, message)
         self.full_objects.add(objtype)
         _LOGGER.warning(
-            "Trafikverket godtar inte fältet %s – hämtar %s utan fältlista. "
-            "Rapportera gärna detta som ett issue på GitHub.",
+            "Trafikverket does not accept the field %s – fetching %s without a field list. "
+            "Please report this on GitHub.",
             field, objtype,
         )
         return True
@@ -112,17 +112,17 @@ class TrafikverketClient:
                     status = resp.status
                     raw = await resp.read()
         except (aiohttp.ClientError, TimeoutError) as err:
-            raise TrafikverketError(f"Kunde inte nå Trafikverket: {err}") from err
+            raise TrafikverketError(f"Could not reach Trafikverket: {err}") from err
 
         try:
             payload = json.loads(raw.decode("utf-8"))
         except (ValueError, UnicodeDecodeError) as err:
             if status in (401, 403):
-                raise TrafikverketAuthError("Ogiltig API-nyckel") from err
-            raise TrafikverketError(f"Ogiltigt svar (HTTP {status})") from err
+                raise TrafikverketAuthError("Invalid API key") from err
+            raise TrafikverketError(f"Invalid response (HTTP {status})") from err
 
         if status in (401, 403):
-            raise TrafikverketAuthError("Ogiltig API-nyckel")
+            raise TrafikverketAuthError("Invalid API key")
         if status >= 400:
             try:
                 check_errors(payload)
@@ -164,15 +164,15 @@ class TrafikverketClient:
             if data is not None:
                 for objtype, msg in self.disabled_objects.items():
                     if wanted[_FLAG[objtype]]:
-                        data.errors[objtype] = f"Avstängd: {msg}"
+                        data.errors[objtype] = f"Disabled: {msg}"
                 if not any(enabled.values()) and self.disabled_objects:
                     raise TrafikverketError(
-                        "Trafikverket avvisar alla valda datamängder: "
+                        "Trafikverket rejects all selected data sets: "
                         + "; ".join(f"{k}: {v}" for k, v in self.disabled_objects.items())
                     )
                 return data
         raise TrafikverketError(
-            f"Trafikverket avvisar frågan även utan fältlista (avvisade fält: {sorted(self.rejected_fields)})"
+            f"Trafikverket rejects the query even without field lists (rejected fields: {sorted(self.rejected_fields)})"
         )
 
     async def _fetch_once(
@@ -219,7 +219,7 @@ class TrafikverketClient:
             return None
         data.response_bytes = size
         for objtype, msg in data.errors.items():
-            _LOGGER.warning("Trafikverket gav fel för %s: %s", objtype, msg)
+            _LOGGER.warning("Trafikverket returned an error for %s: %s", objtype, msg)
         _LOGGER.debug(
             "Trafikverket: %s bytes, raw=%s, flow=%d road=%d weather=%d situations=%d",
             size,

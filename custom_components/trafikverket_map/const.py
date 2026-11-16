@@ -4,7 +4,7 @@ from __future__ import annotations
 
 DOMAIN = "trafikverket_map"
 NAME = "Trafikverket Trafikkarta"
-ATTRIBUTION = "Data från Trafikverket (Trafikverkets öppna API)"
+ATTRIBUTION = "Data: Trafikverket open API (not affiliated)"
 
 API_URL = "https://api.trafikinfo.trafikverket.se/v2/data.json"
 
@@ -54,4 +54,4 @@ SIGNAL_UPDATE = f"{DOMAIN}_update_{{}}"
 
 CARD_URL = f"/{DOMAIN}/trafikverket-map-card.js"
 ROAD_CARD_URL = f"/{DOMAIN}/trafikverket-road-card.js"
-CARD_VERSION = "1.4.1"
+CARD_VERSION = "1.5.0"

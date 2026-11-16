@@ -1,325 +1,291 @@
-# Trafikverket Trafikkarta – färdig dashboard
+# Trafikverket Trafikkarta – static dashboard (English)
 #
-# Installation:
-#   Inställningar → Instrumentpaneler → Lägg till instrumentpanel → "Ny instrumentpanel från grunden"
-#   Öppna den → ✏️ Redigera → ⋮ → "Rå konfigurationsredigerare" → klistra in hela filen → Spara.
+# Generated from the dashboard strategy "custom:tv-flow" (same layout and content).
+# Prefer the strategy if you want to choose order and content in the integration settings:
+#   strategy:
+#     type: custom:tv-flow
 #
-# Kräver bara integrationen (kartkortet registreras automatiskt). Inga HACS-kort behövs.
-# Har du flera platser heter entiteterna för plats 2 t.ex. sensor.tv_flow_average_speed_2 –
-# kopiera vyn och lägg till _2 på entiteterna, och sätt "entry:" på kartkortet.
+# Install:
+#   Settings → Dashboards → Add dashboard → "New dashboard from scratch"
+#   Open it → ✏️ Edit → ⋮ → "Raw configuration editor" → paste this file → Save.
+#
+# Requires only the integration (the cards are registered automatically).
+# With several locations, entities of location 2 end with _2 (e.g. sensor.tv_flow_average_speed_2):
+# copy the view, add _2 to the entities and set "entry:" on the map and road cards.
+#
+# Swedish version: tv-flow-dashboard.sv.yaml
 
-title: Trafik
+title: Traffic
 views:
-  - title: Trafik
-    path: trafik
-    icon: mdi:car-traffic
-    type: sections
-    max_columns: 4
-    dense_section_placement: true
-    badges:
+- title: Traffic
+  path: trafik
+  icon: mdi:car-traffic
+  type: sections
+  max_columns: 4
+  dense_section_placement: true
+  badges:
+  - type: entity
+    entity: weather.tv_flow
+    show_name: false
+    show_state: true
+    show_icon: true
+  - type: entity
+    entity: sensor.tv_flow_air_temperature
+    name: Air
+    show_name: true
+    color: orange
+  - type: entity
+    entity: sensor.tv_flow_surface_temperature
+    name: Road surface
+    show_name: true
+    color: blue-grey
+  - type: entity
+    entity: sensor.tv_flow_average_speed
+    name: Average
+    show_name: true
+    color: green
+  - type: entity
+    entity: sensor.tv_flow_road_condition
+    name: Road conditions
+    show_name: true
+    color: amber
+  sections:
+  - type: grid
+    cards:
+    - type: heading
+      heading: Road status
+      icon: mdi:road-variant
+    - type: custom:trafikverket-road-card
+      max_roads: 3
+      grid_options:
+        columns: full
+  - type: grid
+    cards:
+    - type: heading
+      heading: Roadside weather
+      icon: mdi:weather-partly-snowy-rainy
+    - type: weather-forecast
+      entity: weather.tv_flow
+      name: Local weather
+      show_current: true
+      show_forecast: false
+      secondary_info_attribute: wind_speed
+      grid_options:
+        columns: full
+    - type: tile
+      entity: sensor.tv_flow_air_temperature
+      name: Air
+      color: orange
+    - type: tile
+      entity: sensor.tv_flow_surface_temperature
+      name: Road surface
+      color: blue-grey
+    - type: tile
+      entity: sensor.tv_flow_wind_speed
+      name: Wind
+      color: cyan
+      icon: mdi:weather-windy
+    - type: tile
+      entity: sensor.tv_flow_humidity
+      name: Humidity
+      color: light-blue
+    - type: tile
+      entity: sensor.tv_flow_precipitation
+      name: Precipitation
+      color: blue
+    - type: tile
+      entity: sensor.tv_flow_precipitation_30min
+      name: Last 30 min
+      color: blue
+      icon: mdi:cup-water
+    - type: tile
+      entity: sensor.tv_flow_visibility
+      name: Visibility
+      color: grey
+    - type: tile
+      entity: sensor.tv_flow_grip
+      name: Grip
+      color: amber
+    - type: markdown
+      text_only: true
+      grid_options:
+        columns: full
+      content: '<small>Station: **{{ state_attr(''weather.tv_flow'', ''station'') or ''–'' }}**, {{ state_attr(''weather.tv_flow'', ''distance_km'') or ''–'' }} km away · measured {{ (as_datetime(state_attr(''weather.tv_flow'', ''sample'')) | as_local).strftime(''%H:%M'') if state_attr(''weather.tv_flow'', ''sample'') else ''–'' }}</small>'
+  - type: grid
+    cards:
+    - type: heading
+      heading: Road conditions
+      icon: mdi:road-variant
+    - type: tile
+      entity: sensor.tv_flow_road_condition
+      name: Worst road condition
+      color: amber
+      grid_options:
+        columns: full
+    - type: tile
+      entity: sensor.tv_flow_road_condition_count
+      name: Difficult sections
+      color: deep-orange
+      icon: mdi:alert-outline
+    - type: tile
+      entity: sensor.tv_flow_surface_temperature
+      name: Road surface
+      color: blue-grey
+    - type: markdown
+      grid_options:
+        columns: full
+      content: |-
+        {%- set roads = states.geo_location
+            | selectattr('attributes.tv_type', 'defined')
+            | selectattr('attributes.tv_type', 'eq', 'road')
+            | selectattr('attributes.condition_code', 'number')
+            | selectattr('attributes.condition_code', 'gt', 1)
+            | sort(attribute='attributes.condition_code', reverse=true) | list %}
+        {%- if roads %}
+        {% for r in roads[:6] -%}
+        {%- set icon = {2: '🟡', 3: '🔴', 4: '🔵'}[r.attributes.condition_code] | default('⚪') -%}
+        {{ icon }} **{{ r.attributes.road_number or 'Road' }}** – {{ r.attributes.condition_text }}
+        {%- if r.attributes.warning %} · {{ r.attributes.warning }}{% endif %}
+        {%- if r.attributes.measure %} · {{ r.attributes.measure | lower }}{% endif %}
+        <br><small>{{ r.attributes.location_text or '' }} ({{ r.state }} km)</small>
+
+        {% endfor %}
+        {%- else %}
+        🟢 Normal road conditions within the radius.
+        {%- endif %}
+  - type: grid
+    column_span: 2
+    cards:
+    - type: heading
+      heading: Traffic map
+      heading_style: title
+      icon: mdi:map-marker-radius
+      badges:
       - type: entity
-        entity: weather.tv_flow
+        entity: sensor.tv_flow_flow_sites
+        name: null
         show_name: false
+        color: blue
         show_state: true
         show_icon: true
-      - type: entity
-        entity: sensor.tv_flow_air_temperature
-        name: Luft
-        show_name: true
-        color: orange
-      - type: entity
-        entity: sensor.tv_flow_surface_temperature
-        name: Vägbana
-        show_name: true
-        color: blue-grey
-      - type: entity
-        entity: sensor.tv_flow_average_speed
-        name: Snitt
-        show_name: true
-        color: green
-      - type: entity
+    - type: custom:trafikverket-map-card
+      height: 560
+      grid_options:
+        columns: full
+        rows: auto
+  - type: grid
+    cards:
+    - type: heading
+      heading: Current situation
+      icon: mdi:car-clock
+    - type: conditional
+      conditions:
+      - condition: state
         entity: sensor.tv_flow_road_condition
-        name: Väglag
-        show_name: true
-        color: amber
-
-    sections:
-      # ----------------------------------------------------------- Vägöversikt
-      - type: grid
-        cards:
-          - type: heading
-            heading: Vägöversikt
-            icon: mdi:road-variant
-          - type: custom:trafikverket-road-card
-            max_roads: 3
-            grid_options:
-              columns: full
-
-      # ----------------------------------------------------------------- Väder
-      - type: grid
-        cards:
-          - type: heading
-            heading: Väder vid vägen
-            icon: mdi:weather-partly-snowy-rainy
-            badges:
-              - type: entity
-                entity: weather.tv_flow
-                show_state: false
-                show_icon: false
-                show_name: false
-          - type: weather-forecast
-            entity: weather.tv_flow
-            name: Lokalt väder
-            show_current: true
-            show_forecast: false
-            secondary_info_attribute: wind_speed
-            grid_options:
-              columns: full
-          - type: tile
-            entity: sensor.tv_flow_air_temperature
-            name: Luft
-            color: orange
-          - type: tile
-            entity: sensor.tv_flow_surface_temperature
-            name: Vägbana
-            color: blue-grey
-          - type: tile
-            entity: sensor.tv_flow_wind_speed
-            name: Vind
-            icon: mdi:weather-windy
-            color: cyan
-          - type: tile
-            entity: sensor.tv_flow_humidity
-            name: Luftfuktighet
-            color: light-blue
-          - type: tile
-            entity: sensor.tv_flow_precipitation
-            name: Nederbörd
-            color: blue
-          - type: tile
-            entity: sensor.tv_flow_precipitation_30min
-            name: Senaste 30 min
-            icon: mdi:cup-water
-            color: blue
-          - type: tile
-            entity: sensor.tv_flow_visibility
-            name: Sikt
-            color: grey
-          - type: tile
-            entity: sensor.tv_flow_grip
-            name: Friktion
-            color: amber
-          - type: markdown
-            content: >-
-              <small>Station: **{{ state_attr('weather.tv_flow', 'station') or '–' }}**,
-              {{ state_attr('weather.tv_flow', 'distance_km') or '–' }} km bort ·
-              mätt {{ (as_datetime(state_attr('weather.tv_flow', 'sample')) | as_local).strftime('%H:%M')
-                      if state_attr('weather.tv_flow', 'sample') else '–' }}</small>
-            text_only: true
-            grid_options:
-              columns: full
-
-      # ------------------------------------------------------------- Väglag
-      - type: grid
-        cards:
-          - type: heading
-            heading: Väglag
-            icon: mdi:road-variant
-          - type: tile
-            entity: sensor.tv_flow_road_condition
-            name: Sämsta väglag
-            color: amber
-            grid_options:
-              columns: full
-          - type: tile
-            entity: sensor.tv_flow_road_condition_count
-            name: Besvärliga sträckor
-            icon: mdi:alert-outline
-            color: deep-orange
-          - type: tile
-            entity: sensor.tv_flow_surface_temperature
-            name: Vägbana
-            color: blue-grey
-          - type: markdown
-            content: |-
-              {%- set roads = states.geo_location
-                  | selectattr('attributes.tv_type', 'defined')
-                  | selectattr('attributes.tv_type', 'eq', 'road')
-                  | selectattr('attributes.condition_code', 'number')
-                  | selectattr('attributes.condition_code', 'gt', 1)
-                  | sort(attribute='attributes.condition_code', reverse=true) | list %}
-              {%- if roads %}
-              {% for r in roads[:6] -%}
-              {%- set icon = {2: '🟡', 3: '🔴', 4: '🔵'}[r.attributes.condition_code] | default('⚪') -%}
-              {{ icon }} **{{ r.attributes.road_number or 'Väg' }}** – {{ r.attributes.condition_text }}
-              {%- if r.attributes.warning %} · {{ r.attributes.warning }}{% endif %}
-              {%- if r.attributes.measure %} · {{ r.attributes.measure | lower }}{% endif %}
-              <br><small>{{ r.attributes.location_text or '' }} ({{ r.state }} km)</small>
-
-              {% endfor %}
-              {%- else %}
-              🟢 Normalt väglag inom radien.
-              {%- endif %}
-            grid_options:
-              columns: full
-
-      # ------------------------------------------------------------------ Karta
-      - type: grid
-        column_span: 2
-        cards:
-          - type: heading
-            heading: Trafikkarta
-            heading_style: title
-            icon: mdi:map-marker-radius
-            badges:
-              - type: entity
-                entity: sensor.tv_flow_flow_sites
-                show_state: true
-                show_icon: true
-                color: blue
-          - type: custom:trafikverket-map-card
-            height: 560
-            show_flow: true
-            show_road: true
-            show_weather: true
-            grid_options:
-              columns: full
-              rows: auto
-
-      # ------------------------------------------------------------- Läget nu
-      - type: grid
-        cards:
-          - type: heading
-            heading: Läget nu
-            icon: mdi:car-clock
-
-          # Varning som bara syns när väglaget inte är normalt
-          - type: conditional
-            conditions:
-              - condition: state
-                entity: sensor.tv_flow_road_condition
-                state_not: Normalt
-              - condition: state
-                entity: sensor.tv_flow_road_condition
-                state_not: Inga uppgifter
-            card:
-              type: markdown
-              content: >-
-                <ha-alert alert-type="warning" title="{{ states('sensor.tv_flow_road_condition') }}">
-                {%- set w = state_attr('sensor.tv_flow_road_condition', 'warnings') or [] %}
-                {%- set c = state_attr('sensor.tv_flow_road_condition', 'causes') or [] %}
-                {{ states('sensor.tv_flow_road_condition_count') }} sträckor med besvärligt väglag.
-                {%- if w %} Varning: {{ w | join(', ') }}.{% endif %}
-                {%- if c %} Orsak: {{ c | join(', ') | lower }}.{% endif %}
-                </ha-alert>
-            grid_options:
-              columns: full
-
-          - type: tile
-            entity: sensor.tv_flow_average_speed
-            name: Medelhastighet
-            icon: mdi:speedometer
-            color: green
-          - type: tile
-            entity: sensor.tv_flow_lowest_speed
-            name: Lägsta hastighet
-            icon: mdi:speedometer-slow
-            color: red
-          - type: tile
-            entity: sensor.tv_flow_total_flow
-            name: Trafikflöde
-            icon: mdi:car-multiple
-            color: indigo
-          - type: tile
-            entity: sensor.tv_flow_flow_sites
-            name: Mätpunkter
-            icon: mdi:map-marker-multiple
-            color: blue
-
-          - type: markdown
-            title: Långsammast just nu
-            content: |-
-              {%- set sites = states.geo_location
-                  | selectattr('attributes.tv_type', 'defined')
-                  | selectattr('attributes.tv_type', 'eq', 'flow')
-                  | selectattr('attributes.average_speed', 'number')
-                  | sort(attribute='attributes.average_speed') | list %}
-              {%- if sites %}
-              | | Mätpunkt | km/h | fordon/h | Avstånd |
-              |:-:|:--|--:|--:|--:|
-              {% for s in sites[:6] -%}
-              {%- set v = s.attributes.average_speed -%}
-              | {{ '🔴' if v < 30 else '🟠' if v < 50 else '🟡' if v < 70 else '🟢' }} | {{ s.attributes.site_id }} | {{ v | round(0) | int }} | {{ s.attributes.flow }} | {{ s.state }} km |
-              {% endfor %}
-              {%- else %}
-              Inga mätpunkter med hastighet inom radien just nu.
-              {%- endif %}
-            grid_options:
-              columns: full
-
-      # ------------------------------------------------------------- Historik
-      - type: grid
-        column_span: 2
-        cards:
-          - type: heading
-            heading: Historik
-            icon: mdi:chart-line
-          - type: history-graph
-            title: Hastighet senaste dygnet
-            hours_to_show: 24
-            entities:
-              - entity: sensor.tv_flow_average_speed
-                name: Medel
-              - entity: sensor.tv_flow_lowest_speed
-                name: Lägsta
-            grid_options:
-              columns: 12
-          - type: history-graph
-            title: Temperatur luft och vägbana
-            hours_to_show: 24
-            entities:
-              - entity: sensor.tv_flow_air_temperature
-                name: Luft
-              - entity: sensor.tv_flow_surface_temperature
-                name: Vägbana
-            grid_options:
-              columns: 12
-          - type: statistics-graph
-            title: Trafikflöde senaste veckan
-            entities:
-              - entity: sensor.tv_flow_total_flow
-                name: Fordon/h
-            period: hour
-            days_to_show: 7
-            stat_types:
-              - mean
-              - max
-            chart_type: line
-            grid_options:
-              columns: full
-
-      # --------------------------------------------------------------- System
-      - type: grid
-        cards:
-          - type: heading
-            heading: Datamängd
-            icon: mdi:download-network
-            heading_style: subtitle
-          - type: tile
-            entity: sensor.tv_flow_data_usage
-            name: Hämtat sedan start
-            color: purple
-          - type: tile
-            entity: sensor.tv_flow_response_size
-            name: Per hämtning
-            color: purple
-          - type: markdown
-            text_only: true
-            content: >-
-              {%- set a = states.sensor.tv_flow_flow_sites.attributes if states.sensor.tv_flow_flow_sites is defined else {} %}
-              <small>Radie **{{ a.radius_km | default('–') }} km** · väder **{{ a.weather_radius_km | default('–') }} km** ·
-              uppdateras var **{{ a.scan_interval_min | default('–') }} min** ·
-              {{ state_attr('sensor.tv_flow_data_usage', 'requests') or 0 }} anrop sedan start.
-              Ändra under Inställningar → Enheter och tjänster → Trafikverket Trafikkarta → Konfigurera.</small>
-            grid_options:
-              columns: full
+        state_not: normal
+      - condition: state
+        entity: sensor.tv_flow_road_condition
+        state_not: no_data
+      card:
+        type: markdown
+        content: '<ha-alert alert-type="warning" title="{{ state_translated(''sensor.tv_flow_road_condition'') }}">{%- set w = state_attr(''sensor.tv_flow_road_condition'', ''warnings'') or [] %}{%- set c = state_attr(''sensor.tv_flow_road_condition'', ''causes'') or [] %} {{ states(''sensor.tv_flow_road_condition_count'') }} sections with difficult road conditions.{%- if w %} Warning: {{ w | join('', '') }}.{% endif %}{%- if c %} Cause: {{ c | join('', '') | lower }}.{% endif %}</ha-alert>'
+      grid_options:
+        columns: full
+    - type: tile
+      entity: sensor.tv_flow_average_speed
+      name: Average speed
+      color: green
+      icon: mdi:speedometer
+    - type: tile
+      entity: sensor.tv_flow_lowest_speed
+      name: Lowest speed
+      color: red
+      icon: mdi:speedometer-slow
+    - type: tile
+      entity: sensor.tv_flow_total_flow
+      name: Traffic flow
+      color: indigo
+      icon: mdi:car-multiple
+    - type: tile
+      entity: sensor.tv_flow_flow_sites
+      name: Measurement sites
+      color: blue
+      icon: mdi:map-marker-multiple
+    - type: markdown
+      title: Slowest right now
+      grid_options:
+        columns: full
+      content: |-
+        {%- set sites = states.geo_location
+            | selectattr('attributes.tv_type', 'defined')
+            | selectattr('attributes.tv_type', 'eq', 'flow')
+            | selectattr('attributes.average_speed', 'number')
+            | sort(attribute='attributes.average_speed') | list %}
+        {%- if sites %}
+        | | Site | km/h | vehicles/h | Distance |
+        |:-:|:--|--:|--:|--:|
+        {% for s in sites[:6] -%}
+        {%- set v = s.attributes.average_speed -%}
+        | {{ '🔴' if v < 30 else '🟠' if v < 50 else '🟡' if v < 70 else '🟢' }} | {{ s.attributes.site_id }} | {{ v | round(0) | int }} | {{ s.attributes.flow }} | {{ s.state }} km |
+        {% endfor %}
+        {%- else %}
+        No measurement sites with speed within the radius right now.
+        {%- endif %}
+  - type: grid
+    column_span: 2
+    cards:
+    - type: heading
+      heading: History
+      icon: mdi:chart-line
+    - type: history-graph
+      title: Speed last 24 hours
+      hours_to_show: 24
+      entities:
+      - entity: sensor.tv_flow_average_speed
+        name: Mean
+      - entity: sensor.tv_flow_lowest_speed
+        name: Lowest
+      grid_options:
+        columns: 12
+    - type: history-graph
+      title: Air and road surface temperature
+      hours_to_show: 24
+      entities:
+      - entity: sensor.tv_flow_air_temperature
+        name: Air
+      - entity: sensor.tv_flow_surface_temperature
+        name: Road surface
+      grid_options:
+        columns: 12
+    - type: statistics-graph
+      title: Traffic flow last week
+      entities:
+      - entity: sensor.tv_flow_total_flow
+        name: Vehicles/h
+      period: hour
+      days_to_show: 7
+      stat_types:
+      - mean
+      - max
+      chart_type: line
+      grid_options:
+        columns: full
+  - type: grid
+    cards:
+    - type: heading
+      heading: Data usage
+      icon: mdi:download-network
+      heading_style: subtitle
+    - type: tile
+      entity: sensor.tv_flow_data_usage
+      name: Downloaded since start
+      color: purple
+    - type: tile
+      entity: sensor.tv_flow_response_size
+      name: Per fetch
+      color: purple
+    - type: markdown
+      text_only: true
+      grid_options:
+        columns: full
+      content: <small>Radius **{{ state_attr('sensor.tv_flow_flow_sites', 'radius_km') }} km** · weather **{{ state_attr('sensor.tv_flow_flow_sites', 'weather_radius_km') }} km** · updated every **{{ state_attr('sensor.tv_flow_flow_sites', 'scan_interval_min') }} min** · {{ state_attr('sensor.tv_flow_data_usage', 'requests') or 0 }} requests since start. Change order and content under Settings → Devices & services → Trafikverket Trafikkarta → Configure → Dashboard and map.</small>

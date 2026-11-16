@@ -61,7 +61,7 @@ async def main():
     fc = api.TrafikverketClient(fs, "KEY")
     d2 = await fc.async_fetch(61.71, 16.17, 10, 30, **kw)
     print("filter case: requests", len(fs.bodies), "| disabled:", list(fc.disabled_objects), "| errors:", list(d2.errors))
-    assert len(fs.bodies) == 3 and "Situation" in fc.disabled_objects and d2.errors["Situation"].startswith("Avstängd")
+    assert len(fs.bodies) == 3 and "Situation" in fc.disabled_objects and d2.errors["Situation"].startswith("Disabled")
     assert 'objecttype="Situation"' not in fs.bodies[-1] and 'objecttype="RoadCondition"' in fs.bodies[-1]
     await fc.async_fetch(61.71, 16.17, 10, 30, **kw)
     assert len(fs.bodies) == 4  # no more Situation attempts

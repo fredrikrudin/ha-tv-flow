@@ -12,7 +12,8 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from . import TrafikverketConfigEntry
 from .const import ATTRIBUTION, DOMAIN, NAME
 from .coordinator import TrafikverketCoordinator
-from .parser import PRECIPITATION_TEXT, WeatherStation
+from .parser import WeatherStation
+from .texts import language, precipitation_text
 
 # Trafikverket reports precipitation type but not cloud cover.
 _CONDITION = {
@@ -115,7 +116,8 @@ class TrafikverketWeather(CoordinatorEntity[TrafikverketCoordinator], WeatherEnt
             "station": w.name,
             "distance_km": w.distance_km,
             "surface_temperature": w.surface_temperature,
-            "precipitation": PRECIPITATION_TEXT.get(w.precipitation or "", w.precipitation),
+            "precipitation": w.precipitation,
+            "precipitation_text": precipitation_text(language(self.hass), w.precipitation),
             "precipitation_30min_mm": w.precipitation_30min,
             "grip": w.grip,
             "sample": w.sample.isoformat() if w.sample else None,

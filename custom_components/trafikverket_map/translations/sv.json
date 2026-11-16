@@ -191,7 +191,14 @@
         "name": "Lägsta hastighet"
       },
       "road_condition": {
-        "name": "Väglag"
+        "name": "Väglag",
+        "state": {
+          "normal": "Normalt",
+          "difficult": "Besvärligt (risk för)",
+          "very_difficult": "Mycket besvärligt",
+          "ice_snow": "Is- och snövägbana",
+          "no_data": "Inga uppgifter"
+        }
       },
       "road_condition_count": {
         "name": "Besvärliga väglag"
@@ -212,7 +219,15 @@
         "name": "Vindriktning"
       },
       "precipitation": {
-        "name": "Nederbörd"
+        "name": "Nederbörd",
+        "state": {
+          "no": "Ingen nederbörd",
+          "rain": "Regn",
+          "freezing_rain": "Underkylt regn",
+          "snow": "Snö",
+          "sleet": "Snöblandat regn",
+          "yes": "Nederbörd"
+        }
       },
       "precipitation_30min": {
         "name": "Nederbörd 30 min"

@@ -32,7 +32,8 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from . import TrafikverketConfigEntry
 from .const import ATTRIBUTION, DOMAIN, NAME
 from .coordinator import TrafikverketCoordinator
-from .parser import PRECIPITATION_TEXT, ROAD_CONDITION_TEXT, TrafikverketData
+from .parser import TrafikverketData
+from .texts import PRECIPITATION_KEYS, ROAD_CONDITION_KEYS, ROAD_CONDITION_NO_DATA
 
 
 def _avg_speed(d: TrafikverketData) -> float | None:
@@ -88,8 +89,12 @@ SENSORS: tuple[TvSensorDescription, ...] = (
     ),
     TvSensorDescription(
         key="road_condition", translation_key="road_condition", icon="mdi:road-variant",
+        # Enum: the state is a key, Home Assistant shows it translated (see translations/*.json)
+        device_class=SensorDeviceClass.ENUM,
+        options=[*ROAD_CONDITION_KEYS.values(), ROAD_CONDITION_NO_DATA],
         group="road",
-        value_fn=lambda d: ROAD_CONDITION_TEXT.get(_worst_code(d) or 0) if d.road_conditions else "Inga uppgifter",
+        value_fn=lambda d: (ROAD_CONDITION_KEYS.get(_worst_code(d) or 1, "normal")
+                            if d.road_conditions else ROAD_CONDITION_NO_DATA),
     ),
     TvSensorDescription(
         key="road_condition_count", translation_key="road_condition_count", icon="mdi:alert-outline",
@@ -139,8 +144,9 @@ SENSORS: tuple[TvSensorDescription, ...] = (
     ),
     TvSensorDescription(
         key="precipitation", translation_key="precipitation", group="weather",
+        device_class=SensorDeviceClass.ENUM, options=PRECIPITATION_KEYS,
         icon="mdi:weather-pouring",
-        value_fn=lambda d: PRECIPITATION_TEXT.get(_w("precipitation")(d) or "", _w("precipitation")(d)),
+        value_fn=lambda d: _w("precipitation")(d) if _w("precipitation")(d) in PRECIPITATION_KEYS else None,
     ),
     TvSensorDescription(
         key="precipitation_30min", translation_key="precipitation_30min", group="weather",

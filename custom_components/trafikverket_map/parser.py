@@ -106,6 +106,7 @@ WARNING_TYPES = ("Olycka", "Hinder", "Viktig trafikinformation", "Restriktion", 
 TYPE_RANK = {"Olycka": 5, "Hinder": 4, "Viktig trafikinformation": 3, "Restriktion": 2,
              "Trafikmeddelande": 1, "Vägarbete": 0, "Färjor": 0}
 
+# Trafikverket's own Swedish wording, used only when ConditionText is missing.
 ROAD_CONDITION_TEXT = {
     1: "Normalt",
     2: "Besvärligt (risk för)",
@@ -113,6 +114,7 @@ ROAD_CONDITION_TEXT = {
     4: "Is- och snövägbana",
 }
 
+# Swedish precipitation texts (kept for backwards compatibility; see texts.py).
 PRECIPITATION_TEXT = {
     "no": "Ingen nederbörd",
     "rain": "Regn",
@@ -147,7 +149,7 @@ class FlowSite:
 
 @dataclass
 class RoadConditionItem:
-    """A road condition (väglag) segment."""
+    """A road condition segment."""
 
     id: str
     latitude: float
@@ -195,7 +197,7 @@ class WeatherStation:
 
 @dataclass
 class SituationItem:
-    """One deviation (händelse) from a Situation."""
+    """One deviation (event) from a Situation."""
 
     id: str
     situation_id: str | None
@@ -500,7 +502,7 @@ def _error_of(res: Any) -> TrafikverketResponseError | None:
     msg = f"{err.get('SOURCE', '')}: {err.get('MESSAGE', '')}".strip(": ")
     low = msg.lower()
     auth = "authenticat" in low or "login" in low or "invalid key" in low
-    return TrafikverketResponseError(msg or "Okänt fel", auth=auth)
+    return TrafikverketResponseError(msg or "Unknown error", auth=auth)
 
 
 def check_errors(payload: dict[str, Any]) -> None:
@@ -511,7 +513,7 @@ def check_errors(payload: dict[str, Any]) -> None:
         if err:
             raise err
     if not results and payload.get("RESPONSE", {}).get("ERROR"):
-        raise _error_of(payload["RESPONSE"]) or TrafikverketResponseError("Okänt fel")
+        raise _error_of(payload["RESPONSE"]) or TrafikverketResponseError("Unknown error")
 
 
 def parse_flow(
@@ -688,7 +690,7 @@ def parse_weather(
         station = WeatherStation(
             id=key,
             station_id=_int(mp.get("Id")),
-            name=str(mp.get("Name") or f"Väderstation {key}"),
+            name=str(mp.get("Name") or f"Station {key}"),
             latitude=lat,
             longitude=lon,
             distance_km=round(dist, 2),

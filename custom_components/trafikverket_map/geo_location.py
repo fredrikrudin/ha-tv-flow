@@ -18,7 +18,8 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from . import TrafikverketConfigEntry
 from .const import ATTRIBUTION, SOURCE_FLOW, SOURCE_ROAD, SOURCE_SITUATION, SOURCE_WEATHER
 from .coordinator import TrafikverketCoordinator
-from .parser import PRECIPITATION_TEXT, FlowSite, RoadConditionItem, SituationItem, WeatherStation
+from .parser import FlowSite, RoadConditionItem, SituationItem, WeatherStation
+from .texts import ROAD_CONDITION_KEYS, event_type_text, language, precipitation_text, text
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -36,9 +37,10 @@ class TrafikverketGeoEntity(GeolocationEvent):
     # Big/fast-changing attributes are not written to the recorder database.
     _unrecorded_attributes = frozenset({"lanes", "lines", "measurement_time", "sample"})
 
-    def __init__(self, entry_id: str, key: str, item: Any) -> None:
+    def __init__(self, entry_id: str, key: str, item: Any, lang: str = "en") -> None:
         self._entry_id = entry_id
         self._key = key
+        self._lang = lang  # "sv" or "en", from Home Assistant's language
         self._attrs: dict[str, Any] = {}
         self.update_item(item, write=False)
 
@@ -65,7 +67,7 @@ class FlowEntity(TrafikverketGeoEntity):
     _attr_source = SOURCE_FLOW
 
     def update_item(self, item: FlowSite, write: bool = True) -> None:
-        self._attr_name = f"Trafikflöde {item.site_id}"
+        self._attr_name = text(self._lang, "flow_site", id=item.site_id)
         speed = item.average_speed
         if speed is None:
             self._attr_icon = "mdi:car-off"
@@ -96,8 +98,8 @@ class RoadEntity(TrafikverketGeoEntity):
     _attr_source = SOURCE_ROAD
 
     def update_item(self, item: RoadConditionItem, write: bool = True) -> None:
-        road = item.road_number or "Väg"
-        self._attr_name = f"Väglag {road} {item.id[-6:]}"
+        road = item.road_number or text(self._lang, "road_default")
+        self._attr_name = text(self._lang, "road", road=road, id=item.id[-6:])
         self._attr_icon = {
             1: "mdi:road-variant",
             2: "mdi:alert-outline",
@@ -108,6 +110,7 @@ class RoadEntity(TrafikverketGeoEntity):
         self._attrs = {
             "tv_type": "road",
             "condition_code": item.code,
+            "condition_key": ROAD_CONDITION_KEYS.get(item.code or 0),
             "condition_text": item.text,
             "condition_info": item.info,
             "cause": item.cause,
@@ -129,7 +132,7 @@ class WeatherStationEntity(TrafikverketGeoEntity):
     _attr_icon = "mdi:weather-partly-cloudy"
 
     def update_item(self, item: WeatherStation, write: bool = True) -> None:
-        self._attr_name = f"Väderstation {item.name}"
+        self._attr_name = text(self._lang, "weather_station", name=item.name)
         self._set_pos(item.latitude, item.longitude, item.distance_km)
         self._attrs = {
             "tv_type": "weather",
@@ -142,7 +145,7 @@ class WeatherStationEntity(TrafikverketGeoEntity):
             "wind_gust": item.wind_gust,
             "wind_direction": item.wind_direction,
             "precipitation": item.precipitation,
-            "precipitation_text": PRECIPITATION_TEXT.get(item.precipitation or "", item.precipitation),
+            "precipitation_text": precipitation_text(self._lang, item.precipitation),
             "precipitation_30min": item.precipitation_30min,
             "visibility": item.visibility,
             "grip": item.grip,
@@ -165,19 +168,20 @@ SITUATION_ICONS = {
 
 
 class SituationEntity(TrafikverketGeoEntity):
-    """Traffic event (olycka, hinder, vägarbete …)."""
+    """Traffic event (accident, obstacle, road works …)."""
 
     _attr_source = SOURCE_SITUATION
     _unrecorded_attributes = frozenset({"lines", "message", "start_time", "end_time", "web_link"})
 
     def update_item(self, item: SituationItem, write: bool = True) -> None:
-        mtype = item.message_type or "Händelse"
-        self._attr_name = f"{mtype} {item.road_number or ''} {item.id[-6:]}".replace("  ", " ")
-        self._attr_icon = SITUATION_ICONS.get(mtype, "mdi:information")
+        self._attr_name = text(self._lang, "event", type=event_type_text(self._lang, item.message_type),
+                               road=item.road_number or "", id=item.id[-6:])
+        self._attr_icon = SITUATION_ICONS.get(item.message_type or "", "mdi:information")
         self._set_pos(item.latitude, item.longitude, item.distance_km)
         self._attrs = {
             "tv_type": "situation",
             "message_type": item.message_type,
+            "message_type_text": event_type_text(self._lang, item.message_type),
             "message_type_value": item.message_type_value,
             "message_code": item.message_code,
             "is_warning": item.is_warning,
@@ -215,6 +219,7 @@ class GeoManager:
         self.coordinator = coordinator
         self.add_entities = add_entities
         self.entities: dict[str, TrafikverketGeoEntity] = {}
+        self.lang = language(hass)
 
     @callback
     def update(self) -> None:
@@ -235,7 +240,7 @@ class GeoManager:
         for key, (cls, item) in wanted.items():
             ent = self.entities.get(key)
             if ent is None:
-                ent = cls(self.entry_id, key, item)
+                ent = cls(self.entry_id, key, item, self.lang)
                 self.entities[key] = ent
                 new.append(ent)
             else:

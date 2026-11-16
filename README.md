@@ -1,169 +1,170 @@
-# ha-tv-flow – Trafikverket Trafikkarta för Home Assistant
+# ha-tv-flow – Trafikverket Trafikkarta for Home Assistant
 
-Custom integration för Home Assistant som hämtar **trafikflöden**, **väglag** och **vägväder** från Trafikverkets öppna API och visar dem på en karta runt ditt hem (eller valfri plats).
+🇬🇧 **English** · 🇸🇪 [Svenska](README.sv.md)
 
-> **Obs!** Det här är ett fristående hobbyprojekt. Det är **inte** knutet till, godkänt av eller sponsrat av Trafikverket på något sätt. Vi uppskattar helt enkelt deras öppna API! 💚
->
-> *This is an independent project, not affiliated with, endorsed by or sponsored by Trafikverket in any way. We just appreciate their open API!*
+Custom integration for Home Assistant that fetches **traffic flow**, **road conditions** and **road weather** from the Swedish Transport Administration's (Trafikverket) open API and shows them on a map around your home (or any place in Sweden).
 
-- 🚗 **Trafikflöden** (TrafficFlow 1.5) – mätpunkter färgade efter medelhastighet och storleksatta efter flöde (fordon/h), med detaljer per körfält och riktning.
-- 🛣️ **Väglag** (RoadCondition 1.3) – vägsträckor ritade som linjer, färgade efter väglagskod, med varningar, orsak och åtgärd.
-- 🧪 **Experimentellt:** olyckor, hinder och vägarbeten som ett eget lager på kartan.
-- 🌡️ **Lokalt väder** (WeatherObservation 2.1) – närmaste vägväderstation som `weather`-entitet och sensorer (luft- och vägbanetemperatur, vind, nederbörd, sikt, friktion).
-- 📍 **Valfri radie** runt hemmet eller en sökt ort.
-- 📉 **Begränsad datamängd** – du väljer uppdateringsintervall, max antal objekt, vilka datatyper som hämtas och att bara nödvändiga fält skickas. Allt hämtas i **ett** anrop per intervall.
-- 🛒 **Installeras via Marketplace** (Home Assistant 2026.11+) eller HACS.
-- 🗂️ **Automatisk dashboard** – välj ordning och innehåll i inställningarna.
-- 🧭 **Installationsguide** i flera steg: API-nyckel → sök ort eller välj på karta → radie → datamängd.
+> **Note:** This is an independent hobby project. It is **not** affiliated with, endorsed by or sponsored by Trafikverket in any way. We just appreciate their open API! 💚
+
+- 🚗 **Traffic flow** (TrafficFlow 1.5) – measurement sites coloured by average speed and sized by flow (vehicles/h), with details per lane and direction.
+- 🛣️ **Road conditions** (RoadCondition 1.3) – road sections drawn as lines, coloured by condition, with warnings, cause and action.
+- 🧪 **Experimental:** accidents, obstacles and road works as their own layer on the map.
+- 🌡️ **Local weather** (WeatherObservation 2.1) – nearest road weather station as a `weather` entity and sensors (air and road surface temperature, wind, precipitation, visibility, grip).
+- 📍 **Any radius** around your home or a searched place.
+- 📉 **Limited data usage** – you choose the update interval, max number of objects, which data sets are fetched and that only the needed fields are requested. Everything is fetched in **one** request per interval.
+- 🛒 **Install via Marketplace** (Home Assistant 2026.11+) or HACS.
+- 🗂️ **Automatic dashboard** – choose order and content in the settings.
+- 🧭 **Setup guide** in several steps: API key → search for a place or pick on a map → radius → data usage.
+- 🌍 **English and Swedish** – the UI follows Home Assistant's language.
 
 ---
 
-## 1. Skaffa en API-nyckel (gratis)
+## 1. Get an API key (free)
 
-1. Gå till <https://api.trafikinfo.trafikverket.se/> och klicka **Logga in / Registrera**.
-2. Skapa ett konto och bekräfta e-postadressen.
-3. Logga in, gå till **Mina nycklar** och skapa en ny nyckel.
-4. Kopiera nyckeln – den klistras in i steg 1 i installationsguiden.
+1. Go to <https://api.trafikinfo.trafikverket.se/> and click **Logga in / Registrera** (log in / register).
+2. Create an account and confirm your e-mail address.
+3. Log in, go to **Mina nycklar** (my keys) and create a new key.
+4. Copy the key – you paste it in step 1 of the setup guide.
 
-## 2. Installera integrationen
+## 2. Install the integration
 
-### Alternativ A – Marketplace (Home Assistant 2026.11 och senare, rekommenderas)
+### Option A – Marketplace (Home Assistant 2026.11 and later, recommended)
 
-1. Gå till **Inställningar → Marketplace**.
-2. Välj **Lägg till från länk** (*Add from link*) uppe till höger.
-3. Ange `fredrikrudin/ha-tv-flow` (eller hela GitHub-adressen) och välj **Lägg till**. Frågar den efter typ väljer du **Integration**.
-4. Installera **Trafikverket Trafikkarta** och starta om Home Assistant (via reparationen under **Inställningar → System → Reparationer**).
-5. Fortsätt med installationsguiden nedan.
+1. Go to **Settings → Marketplace**.
+2. Select **Add from link** in the upper right corner.
+3. Enter `fredrikrudin/ha-tv-flow` (or the full GitHub address) and select **Add**. If asked for a type, choose **Integration**.
+4. Install **Trafikverket Trafikkarta** and restart Home Assistant (via the repair under **Settings → System → Repairs**).
+5. Continue with the setup guide below.
 
-Första gången kräver Marketplace att du godkänner en riskinformation och kopplar ett GitHub-konto.
+The first time, Marketplace asks you to accept a risk notice and connect a GitHub account.
 
-### Alternativ A2 – HACS (äldre Home Assistant än 2026.11)
+### Option A2 – HACS (Home Assistant older than 2026.11)
 
-1. Öppna **HACS** → menyn (⋮) → **Custom repositories**.
-2. Lägg till `https://github.com/fredrikrudin/ha-tv-flow` med typen **Integration**.
-3. Sök efter **Trafikverket Trafikkarta**, klicka **Download** och starta om Home Assistant.
+1. Open **HACS** → menu (⋮) → **Custom repositories**.
+2. Add `https://github.com/fredrikrudin/ha-tv-flow` with type **Integration**.
+3. Search for **Trafikverket Trafikkarta**, click **Download** and restart Home Assistant.
 
-Uppgraderar du senare till 2026.11 flyttas installationen automatiskt över till Marketplace.
+If you later upgrade to 2026.11, the installation moves to Marketplace automatically.
 
-### Alternativ B – manuellt
+### Option B – manual
 
-1. Ladda ner senaste versionen (eller klona repot).
-2. Kopiera mappen `custom_components/trafikverket_map` till `<config>/custom_components/` så att du får
+1. Download the latest release (or clone the repository).
+2. Copy the folder `custom_components/trafikverket_map` to `<config>/custom_components/` so that you get
    `<config>/custom_components/trafikverket_map/manifest.json`.
-3. **Starta om Home Assistant.**
+3. **Restart Home Assistant.**
 
-## 3. Installationsguiden
+## 3. Setup guide
 
-**Inställningar → Enheter och tjänster → Lägg till integration → "Trafikverket Trafikkarta"**
+**Settings → Devices & services → Add integration → "Trafikverket Trafikkarta"**
 
-| Steg | Vad du gör |
+| Step | What you do |
 |---|---|
-| 1. API-konto | Klistra in API-nyckeln (den kontrolleras direkt) och ge ev. ett namn. |
-| 2. Plats | Välj **Sök efter ort eller adress** eller **Välj på karta**. |
-| 2b. Sök | Skriv t.ex. *Järvsö* eller *Storgatan 1, Sundsvall*. Vid flera träffar väljer du rätt i en lista. Ortsökningen använder OpenStreetMap (Nominatim) och görs bara i guiden. |
-| 3. Plats och radie | Finjustera markören, dra i cirkeln eller skriv radien i km. |
-| 4. Datamängd | Uppdateringsintervall, vilka datatyper som hämtas, väderradie, max antal objekt, max ålder på mätningar och "hämta bara nödvändiga fält". |
+| 1. API account | Paste the API key (checked right away) and optionally give a name. |
+| 2. Location | Choose **Search for a town or address** or **Pick on a map**. |
+| 2b. Search | Type e.g. *Järvsö* or *Storgatan 1, Sundsvall*. With several matches you pick the right one from a list. The search uses OpenStreetMap (Nominatim) and only runs in the guide. |
+| 3. Position and radius | Fine-tune the marker, drag the circle or type the radius in km. |
+| 4. Data usage | Update interval, which data sets to fetch, weather radius, max objects, max age of measurements and "only fetch the fields that are used". |
 
-Allt kan ändras i efterhand via **Konfigurera** på integrationen (byt ort, flytta på kartan eller ändra datamängd). Du kan lägga till flera platser, t.ex. hemmet och fritidshuset.
+Everything can be changed later via **Configure** on the integration (change place, move on the map or change data usage). You can add several locations, e.g. home and a holiday house.
 
-### Rekommenderade inställningar
+### Recommended settings
 
-| Inställning | Standard | Kommentar |
+| Setting | Default | Comment |
 |---|---|---|
-| Radie | 10 km | Trafikflödesmätpunkter finns främst på större vägar och i storstadsområden. |
-| Uppdateringsintervall | 5 min | Trafikverket uppdaterar flöden ungefär varje minut, väder var 10:e. |
-| Väderradie | 30 km | Närmaste station används som lokalt väder. |
-| Max objekt per fråga | 300 | Övre gräns per datatyp och hämtning. |
-| Max ålder | 60 min | Döljer mätpunkter som slutat rapportera. |
-| Bara nödvändiga fält | på | Minskar svarsstorleken kraftigt. |
+| Radius | 10 km | Traffic flow sites are mainly on major roads and in larger cities. |
+| Update interval | 5 min | Trafikverket updates traffic flow about every minute and weather every 10 minutes. |
+| Weather radius | 30 km | The nearest station is used as local weather. |
+| Max objects per query | 300 | Upper limit per data set and fetch. |
+| Max age | 60 min | Hides sites that have stopped reporting. |
+| Only needed fields | on | Greatly reduces the response size. |
 
-Den diagnostiska sensorn **Hämtad datamängd** visar hur mycket som laddats ner sedan start, och **Senaste svarsstorlek** hur stort varje anrop är – bra för att finjustera.
+The diagnostic sensor **Downloaded data** shows how much has been downloaded since start, and **Last response size** how large each request is – useful for fine-tuning.
 
-## 4. Lägg till kartan i en dashboard
+## 4. Add the map to a dashboard
 
-Integrationen levererar ett eget kartkort som registreras automatiskt (ingen resurs behöver läggas till).
+The integration ships its own map card, registered automatically (no resource needs to be added).
 
 ```yaml
 type: custom:trafikverket-map-card
-title: Trafik runt hemmet
+title: Traffic around home
 height: 450
 ```
 
-| Alternativ | Standard | Beskrivning |
+| Option | Default | Description |
 |---|---|---|
-| `title` | – | Rubrik |
-| `height` | `450` | Höjd i pixlar |
-| `entry` | – | `config_entry_id` om du har flera platser och vill visa en specifik |
-| `show_flow` / `show_road` / `show_weather` / `show_situations` | `true` | Ta med lagret alls |
-| `legend` | `true` | Visa teckenförklaringen |
-| `hidden` | – | Kategorier som är dolda från början, t.ex. `[speed:fast, road:1]` (se nedan) |
-| `dark_mode` | – | `true`, `false` eller `auto`. Utelämna för att följa inställningen **Kartstil** under Konfigurera → Dashboard och karta. |
-| `zoom_margin_km` | inställning | Marginal i km utanför radien i startvyn. Utelämna för att följa inställningen *Marginal runt området vid start*. |
-| `tile_url` | OpenStreetMap | Egen kartserver |
+| `title` | – | Heading |
+| `height` | `450` | Height in pixels |
+| `entry` | – | `config_entry_id` if you have several locations and want to show a specific one |
+| `show_flow` / `show_road` / `show_weather` / `show_situations` | `true` | Include the layer at all |
+| `legend` | `true` | Show the legend |
+| `hidden` | – | Categories hidden from the start, e.g. `[speed:fast, road:1]` (see below) |
+| `dark_mode` | – | `true`, `false` or `auto`. Leave out to follow the **Map style** setting under Configure → Dashboard and map. |
+| `zoom_margin_km` | setting | Margin in km outside the radius in the start view. Leave out to follow the *Margin around the area at start* setting. |
+| `tile_url` | OpenStreetMap | Your own tile server |
 
-Kartan startar inzoomad på **vald radie**. Vill du se lite mer av omgivningen anger du en marginal under **Konfigurera → Dashboard och karta → Marginal runt området vid start** (t.ex. 10 km). Knappen ⌖ under +/– (eller ett klick på hemmarkören) går tillbaka till samma vy, och kartan zoomar om automatiskt när du ändrar plats eller radie.
+The map opens on the **chosen radius**. To see more of the surroundings, set a margin under **Configure → Dashboard and map → Margin around the area at start** (e.g. 10 km). The ⌖ button below +/– (or a click on the home marker) returns to the same view, and the map zooms again automatically when you change place or radius.
 
-Kortet laddar kartbiblioteket Leaflet från `unpkg.com` och kartbilder från OpenStreetMap, så webbläsaren behöver internetåtkomst.
+The card loads the map library Leaflet from `unpkg.com` and map tiles from OpenStreetMap, so the browser needs internet access.
 
-### Vägöversikt – kort sammanfattning
+### Road status – short summary
 
-`custom:trafikverket-road-card` visar det viktigaste om väglaget på ett ställe:
+`custom:trafikverket-road-card` shows the most important facts about the road conditions in one place:
 
-- **Status** i färg: normalt, risk för halka, mycket besvärligt eller is/snö. Statusen bygger på det sämsta av Trafikverkets väglag inom radien och en egen uppskattning från närmaste väderstation.
-- **Varför:** till exempel *Vägbanan under 0 °C*, *Daggpunkt över vägbanans temperatur – risk för rimfrost*, *Snöfall* eller *Friktion dålig*.
-- **Mätvärden:** vägbanetemperatur, lufttemperatur med daggpunkt, friktion (bra/måttlig/dålig), nederbörd och vind med byar.
-- **Varningar och orsaker** från Trafikverket, och de besvärligaste sträckorna närmast dig.
+- **Status** in colour: normal, risk of slippery roads, very difficult or ice/snow. The status is the worst of Trafikverket's road condition within the radius and an estimate from the nearest weather station.
+- **Why:** for example *Road surface below 0 °C*, *Dew point above road surface temperature – risk of frost*, *Snowfall* or *Poor grip*.
+- **Readings:** road surface temperature, air temperature with dew point, grip (good/moderate/poor), precipitation and wind with gusts.
+- **Warnings and causes** from Trafikverket, and the most difficult sections closest to you.
 
 ```yaml
 type: custom:trafikverket-road-card
-title: Väglag nu
-max_roads: 3        # antal besvärliga sträckor i listan (0 = ingen lista)
-# entry: <config_entry_id>   # vid flera platser
+title: Road conditions now
+max_roads: 3        # number of difficult sections in the list (0 = no list)
+# entry: <config_entry_id>   # with several locations
 ```
 
-Klicka på statusraden eller en sträcka för att öppna detaljerna. Uppskattningen är en hjälp och ersätter inte Trafikverkets bedömning eller egen uppmärksamhet. Friktionsklasserna är ungefärliga: bra ≥ 0,5, måttlig 0,35–0,5, dålig 0,25–0,35, mycket halt < 0,25.
+Click the status row or a section to open the details. The estimate is a help and does not replace Trafikverket's assessment or your own attention. The grip classes are approximate: good ≥ 0.5, moderate 0.35–0.5, poor 0.25–0.35, very slippery < 0.25.
 
-Kortet finns också som sektionen **Vägöversikt** i den automatiska dashboarden, och ligger först i standardordningen.
+The card is also available as the **Road status** section of the automatic dashboard, first in the default order.
 
-### Experimentella funktioner
+### Experimental features
 
-Under **Konfigurera → Experimentella funktioner** finns funktioner som fortfarande testas. De är avstängda som standard och kan ändras eller tas bort i kommande versioner.
+**Configure → Experimental features** holds features that are still being tested. They are off by default and may change or be removed in later versions.
 
-| Funktion | Vad den gör |
+| Feature | What it does |
 |---|---|
-| **Händelser på kartan** | Hämtar Trafikverkets trafikhändelser (Situation 1.6) inom radien och visar dem som lagret *Händelser* i kartkortet: 🔴 **olyckor**, 🟠 **hinder** och 🟤 **vägarbeten**. Klicka på en markör för rubrik, beskrivning, plats och tider. Sträckor ritas som streckade linjer. Sensorerna `sensor.tv_flow_accidents`, `_incidents` och `_road_works` skapas när funktionen är på. |
+| **Events on the map** | Fetches Trafikverket's traffic events (Situation 1.6) within the radius and shows them as the *Events* layer of the map card: 🔴 **accidents**, 🟠 **obstacles** and 🟤 **road works**. Click a marker for heading, description, place and times. Sections are drawn as dashed lines. The sensors `sensor.tv_flow_accidents`, `_incidents` and `_road_works` are created when the feature is on. |
 
-Lagret kan döljas i kartans lagerväljare eller med `show_situations: false` på kortet. Om Trafikverket inte godtar frågan stängs bara händelserna av, och resten fortsätter fungera (se Felsökning).
+The layer can be hidden in the legend or with `show_situations: false` on the card. If Trafikverket rejects the query, only the events are disabled and everything else keeps working (see Troubleshooting).
 
-### Välj vad som visas i teckenförklaringen
+### Choose what the legend shows
 
-Klicka på en rad i **teckenförklaringen** för att dölja eller visa den kategorin på kartan. Dolda rader blir grå, och **Visa alla** återställer. Siffran till höger visar hur många objekt varje rad har. Rubriken *Teckenförklaring* fäller ihop eller ut rutan.
+Click a row in the **legend** to hide or show that category on the map. Hidden rows turn grey, and **Show all** resets. The number on the right is how many objects each row has. The *Legend* heading collapses or expands the box.
 
-Valet sparas i webbläsaren per kort och plats, så kartan ser likadan ut nästa gång. Vill du ha ett annat utgångsläge för alla användare anger du `hidden:` på kortet med någon av dessa nycklar:
+The choice is saved in the browser per card and location, so the map looks the same next time. For a different starting point for all users, set `hidden:` on the card with any of these keys:
 
-| Nyckel | Kategori |
+| Key | Category |
 |---|---|
-| `speed:fast`, `speed:medium`, `speed:slow`, `speed:crawl`, `speed:unknown` | Mätpunkter ≥ 70, 50–70, 30–50, < 30 km/h, okänd |
-| `road:1`, `road:2`, `road:3`, `road:4` | Väglag normalt, besvärligt, mycket besvärligt, is/snö |
-| `event:Olycka`, `event:Hinder`, `event:Vägarbete` | Händelser (experimentellt) |
-| `weather` | Väderstationer |
+| `speed:fast`, `speed:medium`, `speed:slow`, `speed:crawl`, `speed:unknown` | Sites ≥ 70, 50–70, 30–50, < 30 km/h, unknown |
+| `road:1`, `road:2`, `road:3`, `road:4` | Road condition normal, difficult, very difficult, ice/snow |
+| `event:Olycka`, `event:Hinder`, `event:Vägarbete` | Events: accident, obstacle, road works (experimental; Trafikverket's own type names) |
+| `weather` | Weather stations |
 
-Exempel – visa bara köer och besvärligt väglag från början:
+Example – only show queues and difficult road conditions from the start:
 
 ```yaml
 type: custom:trafikverket-map-card
 hidden: [speed:fast, speed:medium, road:1]
 ```
 
-### Färger
+### Colours
 
-- **Mätpunkter:** grön ≥ 70 km/h, gulgrön 50–70, orange 30–50, röd < 30, grå = okänd. Större cirkel = mer trafik.
-- **Väglag:** grön normalt, gul besvärligt (risk för), röd mycket besvärligt, blå is- och snövägbana.
-- **Händelser** (experimentellt): röd olycka, orange hinder, brun vägarbete.
+- **Sites:** green ≥ 70 km/h, yellow-green 50–70, orange 30–50, red < 30, grey = unknown. Larger circle = more traffic.
+- **Road conditions:** green normal, yellow difficult (risk of), red very difficult, blue ice and snow.
+- **Events** (experimental): red accident, orange obstacle, brown road works.
 
-### Inbyggda kartkortet
+### Built-in map card
 
-Alla punkter är även `geo_location`-entiteter och kan visas på Home Assistants vanliga kartkort:
+All points are also `geo_location` entities and can be shown on Home Assistant's built-in map card:
 
 ```yaml
 type: map
@@ -175,88 +176,96 @@ entities:
   - zone.home
 ```
 
-## 5. Färdig dashboard
+## 5. Ready-made dashboard
 
-### Automatisk dashboard (rekommenderas)
+### Automatic dashboard (recommended)
 
-Integrationen kan bygga hela dashboarden åt dig. Du väljer ordning och innehåll i inställningarna, så behöver du aldrig redigera YAML.
+The integration can build the whole dashboard for you. You choose order and content in the settings, so you never have to edit YAML.
 
-1. **Inställningar → Instrumentpaneler → Lägg till instrumentpanel → Ny instrumentpanel från grunden**, ge den t.ex. namnet *Trafik*.
-2. Öppna den och välj **✏️ Redigera → ⋮ → Rå konfigurationsredigerare**.
-3. Ersätt allt med:
+1. **Settings → Dashboards → Add dashboard → New dashboard from scratch**, name it e.g. *Traffic*.
+2. Open it and select **✏️ Edit → ⋮ → Raw configuration editor**.
+3. Replace everything with:
 
    ```yaml
    strategy:
      type: custom:tv-flow
-     title: Trafik
+     title: Traffic
    ```
 
-4. Klicka **Spara**.
+4. Click **Save**.
 
-**Ändra ordning och innehåll:** **Inställningar → Enheter och tjänster → Trafikverket Trafikkarta → Konfigurera → Dashboard och karta**. Välj vad som ska visas på *Plats 1–7*, eller *Visa inte* för att dölja en sektion. Där ställer du också in **kartstil** (standard OpenStreetMap, mörk eller följ temat), **marginal runt området vid start** och kartans höjd. Ladda sedan om dashboarden i webbläsaren.
+**Change order and content:** **Settings → Devices & services → Trafikverket Trafikkarta → Configure → Dashboard and map**. Choose what to show in *Position 1–7*, or *Hidden* to hide a section. There you also set the **map style** (standard OpenStreetMap, dark or follow the theme), the **margin around the area at start** and the map height. Then reload the dashboard in the browser.
 
-Tillgängliga sektioner:
+Available sections:
 
-| Sektion | Innehåll |
+| Section | Content |
 |---|---|
-| Vägöversikt | Kort sammanfattning: status, varför, vägbana, friktion, nederbörd, vind, varningar |
-| Väder vid vägen | Väderkort och rutor för luft, vägbana, vind, fukt, nederbörd, sikt och friktion |
-| Väglag | Sämsta väglag, antal besvärliga sträckor och en lista med varningar och åtgärder |
-| Trafikkarta | Kartan med mätpunkter, väglag och väderstationer (två kolumner bred) |
-| Läget nu | Varning vid besvärligt väglag, hastighet, flöde och de långsammaste mätpunkterna |
-| Historik | Hastighet och temperaturer senaste dygnet, trafikflöde senaste veckan |
-| Datamängd | Hämtad datamängd och aktuella inställningar |
+| Road status | Short summary: status, why, road surface, grip, precipitation, wind, warnings |
+| Roadside weather | Weather card and tiles for air, road surface, wind, humidity, precipitation, visibility and grip |
+| Road conditions | Worst road condition, number of difficult sections and a list with warnings and actions |
+| Traffic map | The map with sites, road conditions and weather stations (two columns wide) |
+| Current situation | Warning for difficult road conditions, speed, flow and the slowest sites |
+| History | Speed and temperatures over the last 24 hours, traffic flow over the last week |
+| Data usage | Downloaded data and current settings |
 
-Standardordningen är Vägöversikt → Väder vid vägen → Väglag → Trafikkarta → Läget nu → Historik → Datamängd. Sektioner vars data är avstängd, till exempel väder, hoppas över automatiskt.
+The default order is Road status → Roadside weather → Road conditions → Traffic map → Current situation → History → Data usage. Sections whose data is turned off, e.g. weather, are skipped automatically.
 
-Har du flera platser lägger du till `entry: <config_entry_id>` under `strategy:`. Värdet finns som attributet `config_entry_id` på `sensor.tv_flow_flow_sites` (eller `_2` osv.).
+With several locations, add `entry: <config_entry_id>` under `strategy:`. The value is the `config_entry_id` attribute of `sensor.tv_flow_flow_sites` (or `_2` etc.).
 
-Vill du ändra enskilda kort kan du välja **⋮ → Ta kontroll** i redigeringsläget. Då görs dashboarden om till vanlig YAML som du redigerar själv, men den följer inte längre inställningarna.
+To change individual cards, choose **⋮ → Take control** in edit mode. The dashboard is then turned into normal YAML that you edit yourself, but it no longer follows the settings.
 
-### Statisk dashboard
+### Static dashboard
 
-[`dashboards/tv-flow-dashboard.yaml`](dashboards/tv-flow-dashboard.yaml) innehåller samma dashboard som vanlig YAML, för den som vill redigera allt själv.
+[`dashboards/tv-flow-dashboard.yaml`](dashboards/tv-flow-dashboard.yaml) contains the same dashboard as plain YAML in English, for those who want to edit everything themselves. A Swedish version is [`dashboards/tv-flow-dashboard.sv.yaml`](dashboards/tv-flow-dashboard.sv.yaml).
 
-## 6. Entiteter
+## 6. Entities
 
-Entiteterna får fasta id:n oavsett språk. Lägger du till fler platser får de `_2`, `_3` osv.
+Sensors and the weather entity get fixed ids regardless of language. Further locations get `_2`, `_3` etc. The names of the `geo_location` entities follow Home Assistant's language.
 
-| Entitet | Beskrivning |
+| Entity | Description |
 |---|---|
-| `sensor.tv_flow_flow_sites` | Antal mätpunkter i radien (har även hemposition och radie som attribut) |
-| `sensor.tv_flow_total_flow` | Summa fordon/h |
-| `sensor.tv_flow_average_speed` | Flödesviktad medelhastighet |
-| `sensor.tv_flow_lowest_speed` | Lägsta medelhastighet bland mätpunkterna (köindikator) |
-| `sensor.tv_flow_road_condition` | Sämsta väglaget i radien |
-| `sensor.tv_flow_road_condition_count` | Antal sträckor med besvärligt väglag |
-| `weather.tv_flow` | Lokalt väder från närmaste vägväderstation. Trafikverket mäter nederbördstyp men inte molnighet, så väderläget utan nederbörd är en uppskattning (dimma vid sikt < 1 km, annars växlande/mulet). |
-| `sensor.tv_flow_air_temperature`, `_surface_temperature`, `_humidity`, `_wind_speed`, `_wind_direction`, `_precipitation`, `_precipitation_30min`, `_visibility`, `_grip` | Väder från närmaste station |
-| `sensor.tv_flow_data_usage`, `sensor.tv_flow_response_size` | Diagnostik: hämtad datamängd |
-| `geo_location.trafikflode_<id>` | En per mätpunkt (tillstånd = avstånd i km) |
-| `geo_location.vaglag_*` | En per väglagssträcka |
-| `geo_location.vaderstation_*` | En per väderstation |
+| `sensor.tv_flow_flow_sites` | Number of sites within the radius (also has home position and radius as attributes) |
+| `sensor.tv_flow_total_flow` | Total vehicles/h |
+| `sensor.tv_flow_average_speed` | Flow-weighted average speed |
+| `sensor.tv_flow_lowest_speed` | Lowest average speed of the sites (queue indicator) |
+| `sensor.tv_flow_road_condition` | Worst road condition within the radius. Enum sensor: the state is `normal`, `difficult`, `very_difficult`, `ice_snow` or `no_data` and is shown translated. |
+| `sensor.tv_flow_road_condition_count` | Number of sections with difficult road conditions |
+| `weather.tv_flow` | Local weather from the nearest road weather station. Trafikverket measures the type of precipitation but not cloud cover, so the condition without precipitation is an estimate (fog when visibility < 1 km, otherwise partly cloudy/cloudy). |
+| `sensor.tv_flow_air_temperature`, `_surface_temperature`, `_humidity`, `_wind_speed`, `_wind_direction`, `_precipitation`, `_precipitation_30min`, `_visibility`, `_grip` | Weather from the nearest station. `_precipitation` is an enum sensor: `no`, `rain`, `freezing_rain`, `snow`, `sleet` or `yes`. |
+| `sensor.tv_flow_data_usage`, `sensor.tv_flow_response_size` | Diagnostics: downloaded data |
+| `geo_location.traffic_flow_<id>` | One per site (state = distance in km). In Swedish: `geo_location.trafikflode_<id>`. |
+| `geo_location.road_condition_*` | One per road condition section (Swedish: `vaglag_*`) |
+| `geo_location.weather_station_*` | One per weather station (Swedish: `vaderstation_*`) |
 
-Exempel på automation – varna för halka:
+Example automation – warn for ice:
 
 ```yaml
 trigger:
   - platform: state
     entity_id: sensor.tv_flow_road_condition
-    to: "Is- och snövägbana"
+    to: ice_snow
 action:
-  - service: notify.mobile_app_telefon
+  - service: notify.mobile_app_phone
     data:
-      message: "Is- och snövägbana i närheten av hemmet."
+      message: "Ice and snow on the roads near home."
 ```
 
-## Felsökning
+## Language
 
-- **"Ogiltig API-nyckel"** – kontrollera att hela nyckeln är inklistrad. Om nyckeln senare slutar fungera ber Home Assistant automatiskt om en ny.
-- **Inga mätpunkter** – det finns inga trafikflödesdetektorer inom radien. Öka radien eller välj en plats nära en större väg.
-- **Inget väder / tomma värden** – öppna `sensor.tv_flow_data_usage` → attribut. `errors` visar eventuella fel per datatyp från Trafikverket och `raw_counts` hur många poster som kom tillbaka. Ett fel i en datatyp stoppar inte de andra.
-- **"Invalid query attribute …"** – godtar Trafikverket inte ett fält hämtas den datamängden automatiskt utan fältlista. Fungerar inte heller det stängs datamängden av, och resten fortsätter fungera. Se attributen `rejected_fields`, `fetched_without_field_list`, `disabled_data_sets` och `schema_overrides` på `sensor.tv_flow_data_usage`, och rapportera gärna som ett issue.
-- **API-fel om fält** – stäng av "Hämta bara de fält som används".
-- Debuglogg:
+The UI is available in **English and Swedish** and follows Home Assistant's language: Swedish if Home Assistant is set to Swedish, otherwise English. This covers the setup guide, the settings, sensor names and states, the card texts and the automatic dashboard. After changing language, reload the page in the browser.
+
+Text that comes straight from Trafikverket – road names, warnings, causes and event descriptions – is always Swedish, as that is how it is delivered.
+
+> **Since v1.5.0** `sensor.tv_flow_road_condition` and `sensor.tv_flow_precipitation` are enum sensors. If you have automations or conditions comparing with the old Swedish text, e.g. `to: "Is- och snövägbana"`, change them to the key, here `to: ice_snow` (see the table above).
+
+## Troubleshooting
+
+- **"Invalid API key"** – check that the whole key is pasted. If the key stops working later, Home Assistant asks for a new one automatically.
+- **No sites** – there are no traffic flow detectors within the radius. Increase the radius or pick a place near a major road.
+- **No weather / empty values** – open `sensor.tv_flow_data_usage` → attributes. `errors` shows any errors per data set from Trafikverket and `raw_counts` how many records came back. An error in one data set does not stop the others.
+- **"Invalid query attribute …"** – if Trafikverket does not accept a field, that data set is fetched without a field list automatically. If that fails too, the data set is disabled and everything else keeps working. See the attributes `rejected_fields`, `fetched_without_field_list`, `disabled_data_sets` and `schema_overrides` on `sensor.tv_flow_data_usage`, and please report it as an issue.
+- **API errors about fields** – turn off "Only fetch the fields that are used".
+- Debug log:
 
   ```yaml
   logger:
@@ -264,23 +273,24 @@ action:
       custom_components.trafikverket_map: debug
   ```
 
-## Utveckling
+## Development
 
-`custom_components/trafikverket_map/parser.py` saknar beroenden till Home Assistant och testas med
+`custom_components/trafikverket_map/parser.py` has no Home Assistant dependencies and is tested with
 
 ```bash
 python3 tests/test_parser.py
+python3 tests/test_api_retry.py
 ```
 
-API-schemana (XSD) som integrationen bygger på finns i `docs/schemas/`.
+The API schemas (XSD) the integration is built on are in `docs/schemas/`.
 
-## Ändringslogg
+## Changelog
 
-Alla ändringar per version finns i [CHANGELOG.md](CHANGELOG.md).
+All changes per version are in [CHANGELOG.md](CHANGELOG.md) (Swedish: [CHANGELOG.sv.md](CHANGELOG.sv.md)).
 
-## Licens
+## License
 
-[CC BY-NC 4.0](LICENSE) – fri att använda, dela och ändra för icke-kommersiellt bruk med angivande av upphovsperson.
-Data kommer från Trafikverkets öppna API och används enligt Trafikverkets villkor. Kartdata © OpenStreetMap-bidragsgivare.
+[CC BY-NC 4.0](LICENSE) – free to use, share and adapt for non-commercial purposes with attribution.
+Data comes from Trafikverket's open API and is used under Trafikverket's terms. Map data © OpenStreetMap contributors.
 
-Projektet är inte knutet till, godkänt av eller sponsrat av Trafikverket. Namnet Trafikverket används bara för att beskriva var datan kommer ifrån.
+This project is not affiliated with, endorsed by or sponsored by Trafikverket. The name Trafikverket is used only to describe the source of the data.

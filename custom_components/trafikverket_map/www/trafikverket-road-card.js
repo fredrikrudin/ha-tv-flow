@@ -1,66 +1,138 @@
 /*
- * Trafikverket Trafikkarta – Vägöversikt (road status card)
+ * Trafikverket Trafikkarta – road status card
  *
  *   type: custom:trafikverket-road-card
- *   title: Väglag nu          # optional
- *   entry: <config_entry_id>  # optional, if you have several locations
- *   max_roads: 3              # difficult road sections listed (0 = none)
+ *   title: Road conditions now   # optional
+ *   entry: <config_entry_id>     # optional, if you have several locations
+ *   max_roads: 3                 # difficult road sections listed (0 = none)
  *
  * Combines Trafikverket's road condition with the nearest road weather
- * station (surface/air temperature, dew point, friction, precipitation,
- * wind) and adds an *estimated* slipperiness risk.
+ * station (surface/air temperature, dew point, grip, precipitation, wind)
+ * and adds an *estimated* slipperiness risk.
+ *
+ * The UI follows Home Assistant's language: Swedish for "sv", English otherwise.
+ * Road names, warnings and causes come from Trafikverket and stay Swedish.
  */
 
 (() => {
+  const I18N = {
+    sv: {
+      locale: "sv-SE",
+      stub_title: "Väglag nu",
+      card_name: "Trafikverket Vägöversikt",
+      card_desc: "Kort sammanfattning av väglag, vägbanetemperatur, friktion, nederbörd och varningar.",
+      not_found: "Hittar ingen Trafikverket Trafikkarta-integration.",
+      levels: { 1: "Normalt väglag", 2: "Risk för halka", 3: "Mycket besvärligt", 4: "Is- och snöväglag" },
+      road_states: { normal: "Normalt", difficult: "Besvärligt (risk för)", very_difficult: "Mycket besvärligt",
+                     ice_snow: "Is- och snövägbana", no_data: "Inga uppgifter" },
+      grip: { good: "Bra", moderate: "Måttlig", poor: "Dålig", very_slippery: "Mycket halt" },
+      reasons: {
+        ice: "Is på vägbanan",
+        snow_on_road: "Snö på vägbanan",
+        grip: (cls, v) => `Friktion ${cls.toLowerCase()} (${v})`,
+        freezing_rain: "Underkylt regn",
+        snowfall: "Snöfall",
+        sleet: "Snöblandat regn",
+        rain_cold: "Nederbörd mot kall vägbana",
+        water_frozen: "Vatten på vägbana under 0 °C",
+        frost: "Daggpunkt över vägbanans temperatur – risk för rimfrost",
+        below_zero: "Vägbanan under 0 °C",
+      },
+      sections: (n) => `${n} besvärliga sträckor`,
+      estimate: "Uppskattning från närmaste väderstation",
+      surface: "Vägbana", air: "Luft", dew: "dagg", grip_label: "Friktion",
+      precipitation: "Nederbörd", wind: "Vind", gusts: "byar",
+      road: "Väg", more: (n) => `+ ${n} till`,
+      foot: (st, km, t) => `${st} · ${km} km bort · mätt ${t}`,
+      no_station: "Ingen väderstation inom radien",
+    },
+    en: {
+      locale: "en-GB",
+      stub_title: "Road conditions now",
+      card_name: "Trafikverket Road Status",
+      card_desc: "Short summary of road conditions, road surface temperature, grip, precipitation and warnings.",
+      not_found: "No Trafikverket Trafikkarta integration found.",
+      levels: { 1: "Normal road conditions", 2: "Risk of slippery roads", 3: "Very difficult", 4: "Ice and snow" },
+      road_states: { normal: "Normal", difficult: "Difficult (risk of)", very_difficult: "Very difficult",
+                     ice_snow: "Ice and snow", no_data: "No data" },
+      grip: { good: "Good", moderate: "Moderate", poor: "Poor", very_slippery: "Very slippery" },
+      reasons: {
+        ice: "Ice on the road",
+        snow_on_road: "Snow on the road",
+        grip: (cls, v) => `${cls} grip (${v})`,
+        freezing_rain: "Freezing rain",
+        snowfall: "Snowfall",
+        sleet: "Sleet",
+        rain_cold: "Precipitation on a cold road surface",
+        water_frozen: "Water on the road below 0 °C",
+        frost: "Dew point above road surface temperature – risk of frost",
+        below_zero: "Road surface below 0 °C",
+      },
+      sections: (n) => `${n} difficult sections`,
+      estimate: "Estimate from the nearest weather station",
+      surface: "Road surface", air: "Air", dew: "dew", grip_label: "Grip",
+      precipitation: "Precipitation", wind: "Wind", gusts: "gusts",
+      road: "Road", more: (n) => `+ ${n} more`,
+      foot: (st, km, t) => `${st} · ${km} km away · measured ${t}`,
+      no_station: "No weather station within the radius",
+    },
+  };
+  const langOf = (hass) => {
+    const l = String((hass && ((hass.locale && hass.locale.language) || hass.language)) || "en").toLowerCase();
+    return l.startsWith("sv") ? "sv" : "en";
+  };
+
   const esc = (v) =>
     String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   const num = (v) => (v === null || v === undefined || v === "" || isNaN(Number(v)) ? null : Number(v));
-  const fmt = (v, d = 1) => (v === null ? "–" : (Math.round(v * 10 ** d) / 10 ** d).toLocaleString("sv-SE"));
-  const time = (iso) => {
+  const fmt = (v, d = 1, locale = "en-GB") =>
+    (v === null ? "–" : (Math.round(v * 10 ** d) / 10 ** d).toLocaleString(locale));
+  const time = (iso, locale) => {
     if (!iso) return "–";
-    try { return new Date(iso).toLocaleTimeString("sv-SE", { hour: "2-digit", minute: "2-digit" }); }
+    try { return new Date(iso).toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" }); }
     catch (e) { return "–"; }
   };
 
-  const LEVELS = {
-    1: { text: "Normalt väglag", icon: "mdi:check-circle", color: "var(--success-color, #43a047)" },
-    2: { text: "Risk för halka", icon: "mdi:alert", color: "var(--warning-color, #ffa000)" },
-    3: { text: "Mycket besvärligt", icon: "mdi:alert-octagon", color: "var(--error-color, #e53935)" },
-    4: { text: "Is- och snöväglag", icon: "mdi:snowflake-alert", color: "#1e88e5" },
+  const LEVEL_STYLE = {
+    1: { icon: "mdi:check-circle", color: "var(--success-color, #43a047)" },
+    2: { icon: "mdi:alert", color: "var(--warning-color, #ffa000)" },
+    3: { icon: "mdi:alert-octagon", color: "var(--error-color, #e53935)" },
+    4: { icon: "mdi:snowflake-alert", color: "#1e88e5" },
   };
   const ROAD_ICON = { 2: "🟡", 3: "🔴", 4: "🔵" };
 
-  // Rough friction classes for Trafikverket's 0–1 grip value.
+  // Rough grip classes for Trafikverket's 0–1 grip value.
   function gripClass(g) {
     if (g === null) return null;
-    if (g >= 0.5) return { text: "Bra", level: 1 };
-    if (g >= 0.35) return { text: "Måttlig", level: 2 };
-    if (g >= 0.25) return { text: "Dålig", level: 3 };
-    return { text: "Mycket halt", level: 3 };
+    if (g >= 0.5) return { key: "good", level: 1 };
+    if (g >= 0.35) return { key: "moderate", level: 2 };
+    if (g >= 0.25) return { key: "poor", level: 3 };
+    return { key: "very_slippery", level: 3 };
   }
 
   /** Estimate slipperiness from the station data. Returns { level, reasons[] }. */
-  function estimate(w) {
+  function estimate(w, t) {
     const reasons = [];
     let level = 1;
     if (!w) return { level, reasons };
+    const R = t.reasons;
     const surf = num(w.surface_temperature);
     const dew = num(w.dewpoint);
     const grip = num(w.grip);
     const p = w.precipitation;
     const cold = surf !== null && surf <= 1;
 
-    if (w.ice === true) { level = Math.max(level, 4); reasons.push("Is på vägbanan"); }
-    if (w.snow === true) { level = Math.max(level, 4); reasons.push("Snö på vägbanan"); }
+    if (w.ice === true) { level = Math.max(level, 4); reasons.push(R.ice); }
+    if (w.snow === true) { level = Math.max(level, 4); reasons.push(R.snow_on_road); }
     const gc = gripClass(grip);
-    if (gc && gc.level >= 2) { level = Math.max(level, gc.level); reasons.push(`Friktion ${gc.text.toLowerCase()} (${fmt(grip, 2)})`); }
-    if (p === "freezing_rain") { level = Math.max(level, 3); reasons.push("Underkylt regn"); }
+    if (gc && gc.level >= 2) { level = Math.max(level, gc.level); reasons.push(R.grip(t.grip[gc.key], fmt(grip, 2, t.locale))); }
+    if (p === "freezing_rain") { level = Math.max(level, 3); reasons.push(R.freezing_rain); }
     if (cold) {
-      if (p === "snow" || p === "sleet") { level = Math.max(level, 2); reasons.push(p === "snow" ? "Snöfall" : "Snöblandat regn"); }
-      if (p === "rain" || p === "yes") { level = Math.max(level, 2); reasons.push("Nederbörd mot kall vägbana"); }
-      if (w.water === true && surf <= 0) { level = Math.max(level, 2); reasons.push("Vatten på vägbana under 0 °C"); }
-      if (dew !== null && surf <= 0 && dew >= surf) { level = Math.max(level, 2); reasons.push("Daggpunkt över vägbanans temperatur – risk för rimfrost"); }
-      if (surf <= 0 && !reasons.length) reasons.push("Vägbanan under 0 °C");
+      if (p === "snow" || p === "sleet") { level = Math.max(level, 2); reasons.push(p === "snow" ? R.snowfall : R.sleet); }
+      if (p === "rain" || p === "yes") { level = Math.max(level, 2); reasons.push(R.rain_cold); }
+      if (w.water === true && surf <= 0) { level = Math.max(level, 2); reasons.push(R.water_frozen); }
+      if (dew !== null && surf <= 0 && dew >= surf) { level = Math.max(level, 2); reasons.push(R.frost); }
+      if (surf <= 0 && !reasons.length) reasons.push(R.below_zero);
     }
     return { level, reasons };
   }
@@ -71,17 +143,18 @@
       this._sig = "";
     }
 
-    static getStubConfig() { return { title: "Väglag nu" }; }
+    static getStubConfig(hass) { return { title: I18N[langOf(hass)].stub_title }; }
     getCardSize() { return 4; }
     getGridOptions() { return { columns: 6, min_columns: 4, rows: "auto" }; }
 
     set hass(hass) {
       this._hass = hass;
+      const lang = langOf(hass);
       const d = this._collect();
-      const sig = [d.home, d.station, d.road, ...d.roads].map((s) => (s ? s.entity_id + s.last_updated : "-")).join("|");
+      const sig = lang + [d.home, d.station, d.road, ...d.roads].map((s) => (s ? s.entity_id + s.last_updated : "-")).join("|");
       if (sig === this._sig && this.shadowRoot) return;
       this._sig = sig;
-      this._render(d);
+      this._render(d, I18N[lang]);
     }
 
     _collect() {
@@ -101,25 +174,35 @@
       return { home, station, road, roads };
     }
 
+    /** Localized state of the road condition sensor (an enum since v1.5.0). */
+    _roadStateText(road, t) {
+      if (!road) return "–";
+      if (typeof this._hass.formatEntityState === "function") {
+        try { return this._hass.formatEntityState(road); } catch (e) { /* fall back below */ }
+      }
+      return t.road_states[road.state] || road.state;
+    }
+
     _moreInfo(entityId) {
       if (!entityId) return;
       this.dispatchEvent(new CustomEvent("hass-more-info", { bubbles: true, composed: true, detail: { entityId } }));
     }
 
-    _render({ home, station, road, roads }) {
+    _render({ home, station, road, roads }, t) {
       const root = this.shadowRoot || this.attachShadow({ mode: "open" });
       if (!home) {
-        root.innerHTML = `<ha-card><div class="empty" style="padding:16px">Hittar ingen Trafikverket Trafikkarta-integration.</div></ha-card>`;
+        root.innerHTML = `<ha-card><div class="empty" style="padding:16px">${esc(t.not_found)}</div></ha-card>`;
         return;
       }
+      const loc = t.locale;
+      const f = (v, d = 1) => fmt(v, d, loc);
       const w = station ? station.attributes : null;
       const tvCode = roads.length ? Math.max(...roads.map((r) => r.attributes.condition_code)) : 1;
-      const est = estimate(w);
+      const est = estimate(w, t);
       const level = Math.max(tvCode, est.level);
-      const L = LEVELS[level];
+      const L = LEVEL_STYLE[level];
       const warnings = (road && road.attributes.warnings) || [];
       const causes = (road && road.attributes.causes) || [];
-      const tvText = road ? road.state : "–";
       const grip = num(w && w.grip);
       const gc = gripClass(grip);
       const surf = num(w && w.surface_temperature);
@@ -132,21 +215,21 @@
       const metric = (icon, label, value, sub, warn) => `
         <div class="m ${warn ? "warn" : ""}">
           <ha-icon icon="${icon}"></ha-icon>
-          <div><div class="v">${value}</div><div class="l">${label}${sub ? ` · ${sub}` : ""}</div></div>
+          <div><div class="v">${value}</div><div class="l">${esc(label)}${sub ? ` · ${esc(sub)}` : ""}</div></div>
         </div>`;
 
       const chips = [...new Set([...warnings, ...causes])]
-        .map((t) => `<span class="chip">${esc(t)}</span>`).join("");
+        .map((c) => `<span class="chip">${esc(c)}</span>`).join("");
       const maxRoads = Math.max(0, Number(this._config.max_roads) || 0);
       const roadRows = roads.slice(0, maxRoads).map((r) => {
         const a = r.attributes;
         return `<div class="road" data-entity="${esc(r.entity_id)}">
           <span>${ROAD_ICON[a.condition_code] || "⚪"}</span>
-          <span class="rn">${esc(a.road_number || "Väg")}</span>
+          <span class="rn">${esc(a.road_number || t.road)}</span>
           <span class="rt">${esc(a.condition_text || "")}${a.warning ? ` · ${esc(a.warning)}` : ""}</span>
-          <span class="rd">${fmt(num(r.state))} km</span></div>`;
+          <span class="rd">${f(num(r.state))} km</span></div>`;
       }).join("");
-      const more = roads.length > maxRoads && maxRoads > 0 ? `<div class="more">+ ${roads.length - maxRoads} till</div>` : "";
+      const more = roads.length > maxRoads && maxRoads > 0 ? `<div class="more">${esc(t.more(roads.length - maxRoads))}</div>` : "";
 
       root.innerHTML = `
         <style>
@@ -184,23 +267,23 @@
           <div class="status" id="status">
             <ha-icon icon="${L.icon}"></ha-icon>
             <div>
-              <div class="st">${L.text}</div>
-              <div class="ss">Trafikverket: ${esc(tvText)}${roads.length ? ` · ${roads.length} besvärliga sträckor` : ""}</div>
+              <div class="st">${esc(t.levels[level])}</div>
+              <div class="ss">Trafikverket: ${esc(this._roadStateText(road, t))}${roads.length ? ` · ${esc(t.sections(roads.length))}` : ""}</div>
             </div>
           </div>
           ${est.reasons.length ? `<ul class="reasons">${est.reasons.map((r) => `<li>${esc(r)}</li>`).join("")}
-             <small>Uppskattning från närmaste väderstation</small></ul>` : ""}
+             <small>${esc(t.estimate)}</small></ul>` : ""}
           ${w ? `<div class="grid">
-            ${metric("mdi:road", "Vägbana", surf === null ? "–" : `${fmt(surf)} °C`, null, surf !== null && surf <= 0)}
-            ${metric("mdi:thermometer", "Luft", air === null ? "–" : `${fmt(air)} °C`, dew === null ? null : `dagg ${fmt(dew)}°`)}
-            ${metric("mdi:car-traction-control", "Friktion", grip === null ? "–" : fmt(grip, 2), gc ? gc.text : null, gc && gc.level >= 2)}
-            ${metric("mdi:weather-snowy-rainy", "Nederbörd", esc((w && w.precipitation_text) || "–"), p30 ? `${fmt(p30)} mm/30 min` : null,
+            ${metric("mdi:road", t.surface, surf === null ? "–" : `${f(surf)} °C`, null, surf !== null && surf <= 0)}
+            ${metric("mdi:thermometer", t.air, air === null ? "–" : `${f(air)} °C`, dew === null ? null : `${t.dew} ${f(dew)}°`)}
+            ${metric("mdi:car-traction-control", t.grip_label, grip === null ? "–" : f(grip, 2), gc ? t.grip[gc.key] : null, gc && gc.level >= 2)}
+            ${metric("mdi:weather-snowy-rainy", t.precipitation, esc((w && w.precipitation_text) || "–"), p30 ? `${f(p30)} mm/30 min` : null,
                      w && w.precipitation && w.precipitation !== "no")}
-            ${metric("mdi:weather-windy", "Vind", wind === null ? "–" : `${fmt(wind)} m/s`, gust ? `byar ${fmt(gust)}` : null, gust !== null && gust >= 15)}
+            ${metric("mdi:weather-windy", t.wind, wind === null ? "–" : `${f(wind)} m/s`, gust ? `${t.gusts} ${f(gust)}` : null, gust !== null && gust >= 15)}
           </div>` : ""}
           ${chips ? `<div class="chips">${chips}</div>` : ""}
           ${roadRows ? `<div class="roads">${roadRows}${more}</div>` : ""}
-          <div class="foot">${w ? `${esc(w.station)} · ${fmt(num(station.state))} km bort · mätt ${time(w.sample)}` : "Ingen väderstation inom radien"}</div>
+          <div class="foot">${w ? esc(t.foot(w.station, f(num(station.state)), time(w.sample, loc))) : esc(t.no_station)}</div>
         </ha-card>`;
 
       root.getElementById("status").addEventListener("click", () => this._moreInfo(road && road.entity_id));
@@ -213,8 +296,8 @@
     window.customCards = window.customCards || [];
     window.customCards.push({
       type: "trafikverket-road-card",
-      name: "Trafikverket Vägöversikt",
-      description: "Kort sammanfattning av väglag, vägbanetemperatur, friktion, nederbörd och varningar.",
+      name: I18N.en.card_name,
+      description: I18N.en.card_desc,
       preview: false,
     });
   }

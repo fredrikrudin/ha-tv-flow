@@ -1,4 +1,4 @@
-"""Place name search (ort → koordinater) via OpenStreetMap Nominatim.
+"""Place name search (place name → coordinates) via OpenStreetMap Nominatim.
 
 Only used in the setup guide / options, never during normal polling.
 """
@@ -35,11 +35,11 @@ async def async_search_place(
                 NOMINATIM_URL, params=params, headers={"User-Agent": USER_AGENT}
             ) as resp:
                 if resp.status != 200:
-                    _LOGGER.warning("Ortsökning gav HTTP %s", resp.status)
+                    _LOGGER.warning("Place search returned HTTP %s", resp.status)
                     return []
                 items = await resp.json(content_type=None)
     except (aiohttp.ClientError, TimeoutError, ValueError) as err:
-        _LOGGER.warning("Ortsökning misslyckades: %s", err)
+        _LOGGER.warning("Place search failed: %s", err)
         return []
 
     results: list[dict[str, Any]] = []
