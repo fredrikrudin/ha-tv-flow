@@ -98,6 +98,8 @@ height: 450
 | `height` | `450` | Höjd i pixlar |
 | `entry` | – | `config_entry_id` om du har flera platser och vill visa en specifik |
 | `show_flow` / `show_road` / `show_weather` / `show_situations` | `true` | Ta med lagret alls |
+| `show_road_works` | inställning | Visa vägarbeten (experimentella händelser). Utelämna för att följa inställningen *Visa vägarbeten på kartan*. |
+| `event_markers` | inställning | `symbols` eller `text` för händelsemarkörer. Utelämna för att följa inställningen *Markörer för händelser*. |
 | `legend` | `true` | Visa teckenförklaringen |
 | `hidden` | – | Kategorier som är dolda från början, t.ex. `[speed:fast, road:1]` (se nedan) |
 | `dark_mode` | – | `true`, `false` eller `auto`. Utelämna för att följa inställningen **Kartstil** under Konfigurera → Dashboard och karta. |
@@ -135,6 +137,8 @@ Under **Konfigurera → Experimentella funktioner** finns funktioner som fortfar
 | Funktion | Vad den gör |
 |---|---|
 | **Händelser på kartan** | Hämtar Trafikverkets trafikhändelser (Situation 1.6) inom radien och visar dem som lagret *Händelser* i kartkortet: 🔴 **olyckor**, 🟠 **hinder** och 🟤 **vägarbeten**. Klicka på en markör för rubrik, beskrivning, plats och tider. Sträckor ritas som streckade linjer. Sensorerna `sensor.tv_flow_accidents`, `_incidents` och `_road_works` skapas när funktionen är på. |
+| **Visa vägarbeten på kartan** | På som standard. Stäng av för att bara visa olyckor och hinder (vägarbeten försvinner då även ur teckenförklaringen). |
+| **Markörer för händelser** | *Symboler* (standard): färgad cirkel med en ikon – 🚗 olycka, 🛑 hinder, 👷 vägarbete. *Text*: färgad etikett med typen utskriven, t.ex. "Olycka", på gränssnittets språk. |
 
 Lagret kan döljas i teckenförklaringen eller med `show_situations: false` på kortet. Om Trafikverket inte godtar frågan stängs bara händelserna av, och resten fortsätter fungera (se Felsökning).
 

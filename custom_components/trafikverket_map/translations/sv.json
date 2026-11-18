@@ -162,10 +162,14 @@
         "title": "Experimentella funktioner",
         "description": "Funktioner som fortfarande testas. De kan ändras eller tas bort i kommande versioner.\n\n**Händelser på kartan** hämtar Trafikverkets trafikhändelser inom radien och visar dem som lagret *Händelser* i kartkortet: 🔴 olyckor, 🟠 hinder och 🟤 vägarbeten. Det ger något mer data per hämtning.",
         "data": {
-          "experimental_events": "Händelser på kartan (olyckor, hinder, vägarbeten)"
+          "experimental_events": "Händelser på kartan (olyckor, hinder, vägarbeten)",
+          "show_road_works": "Visa vägarbeten på kartan",
+          "event_marker_style": "Markörer för händelser"
         },
         "data_description": {
-          "experimental_events": "Av som standard. Kartkortet visar lagret när funktionen är på."
+          "experimental_events": "Av som standard. Kartkortet visar lagret när funktionen är på.",
+          "show_road_works": "Stäng av för att bara visa olyckor och hinder.",
+          "event_marker_style": "Symboler (ikoner) eller text (t.ex. \"Olycka\")."
         }
       }
     },
@@ -278,6 +282,12 @@
         "history": "Historik",
         "data": "Datamängd",
         "none": "Visa inte"
+      }
+    },
+    "event_marker_style": {
+      "options": {
+        "symbols": "Symboler",
+        "text": "Text"
       }
     }
   }

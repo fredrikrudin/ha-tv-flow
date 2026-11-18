@@ -18,7 +18,10 @@ from .api import TrafikverketAuthError, TrafikverketClient, TrafikverketError
 from .const import (
     CONF_ENABLE_FLOW,
     CONF_ENABLE_ROAD,
+    CONF_EVENT_MARKER_STYLE,
     CONF_EXPERIMENTAL_EVENTS,
+    CONF_SHOW_ROAD_WORKS,
+    DEFAULT_EVENT_MARKER_STYLE,
     CONF_ENABLE_WEATHER,
     CONF_DASHBOARD_SECTIONS,
     CONF_MAP_HEIGHT,
@@ -66,6 +69,8 @@ class Settings:
     dashboard_sections: tuple[str, ...]
     map_height: int
     map_zoom_margin_km: float
+    show_road_works: bool
+    event_marker_style: str
 
     @classmethod
     def from_entry(cls, hass: HomeAssistant, entry: ConfigEntry) -> Settings:
@@ -91,6 +96,8 @@ class Settings:
             ) or tuple(DASHBOARD_SECTIONS),
             map_height=int(get(CONF_MAP_HEIGHT, DEFAULT_MAP_HEIGHT)),
             map_zoom_margin_km=float(get(CONF_MAP_ZOOM_MARGIN, DEFAULT_MAP_ZOOM_MARGIN)),
+            show_road_works=bool(get(CONF_SHOW_ROAD_WORKS, True)),
+            event_marker_style=str(get(CONF_EVENT_MARKER_STYLE, DEFAULT_EVENT_MARKER_STYLE)),
         )
 
 

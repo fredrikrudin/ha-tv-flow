@@ -162,10 +162,14 @@
         "title": "Experimental features",
         "description": "Features that are still being tested. They may change or be removed in later versions.\n\n**Events on the map** fetches Trafikverket traffic events within the radius and shows them as the *Händelser* layer in the map card: 🔴 accidents, 🟠 obstacles and 🟤 road works. It adds some data per fetch.",
         "data": {
-          "experimental_events": "Events on the map (accidents, obstacles, road works)"
+          "experimental_events": "Events on the map (accidents, obstacles, road works)",
+          "show_road_works": "Show road works on the map",
+          "event_marker_style": "Event markers"
         },
         "data_description": {
-          "experimental_events": "Off by default. The map card shows the layer when this is on."
+          "experimental_events": "Off by default. The map card shows the layer when this is on.",
+          "show_road_works": "Turn off to only show accidents and obstacles.",
+          "event_marker_style": "Symbols (icons) or text (e.g. \"Accident\")."
         }
       }
     },
@@ -278,6 +282,12 @@
         "history": "History",
         "data": "Data usage",
         "none": "Hidden"
+      }
+    },
+    "event_marker_style": {
+      "options": {
+        "symbols": "Symbols",
+        "text": "Text"
       }
     }
   }

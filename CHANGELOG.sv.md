@@ -9,6 +9,16 @@ Nyaste versionen står överst. Varje release på GitHub har taggen `vX.Y.Z`.
 
 ## [Ej släppt]
 
+## [1.6.0] – 2026-11-18
+
+### Tillagt
+- **Visa vägarbeten på kartan** (på som standard) under *Konfigurera → Experimentella funktioner*. Stäng av för att bara visa olyckor och hinder; vägarbeten försvinner då även ur teckenförklaringen.
+- **Markörer för händelser: symboler eller text** under *Konfigurera → Experimentella funktioner*. *Symboler* (standard) visar en färgad cirkel med en ikon för olycka, hinder och vägarbete. *Text* visar en färgad etikett med typen utskriven på gränssnittets språk, t.ex. "Olycka" / "Accident".
+- Kortalternativen `show_road_works` och `event_markers` som går före inställningarna för ett visst kort.
+
+### Ändrat
+- Händelsemarkörerna använder ikoner i stället för bokstäverna "!" och "V".
+
 ## [1.5.1] – 2026-11-18
 
 ### Rättat
@@ -167,7 +177,8 @@ Första publika versionen.
 - README med installation via Marketplace (Home Assistant 2026.11+), HACS och manuellt.
 - Licens CC BY-NC 4.0.
 
-[Ej släppt]: https://github.com/fredrikrudin/ha-tv-flow/compare/v1.5.1...HEAD
+[Ej släppt]: https://github.com/fredrikrudin/ha-tv-flow/compare/v1.6.0...HEAD
+[1.6.0]: https://github.com/fredrikrudin/ha-tv-flow/releases/tag/v1.6.0
 [1.5.1]: https://github.com/fredrikrudin/ha-tv-flow/releases/tag/v1.5.1
 [1.5.0]: https://github.com/fredrikrudin/ha-tv-flow/releases/tag/v1.5.0
 [1.4.1]: https://github.com/fredrikrudin/ha-tv-flow/releases/tag/v1.4.1

@@ -17,6 +17,10 @@ CONF_ENABLE_ROAD = "enable_road_condition"
 CONF_ENABLE_WEATHER = "enable_weather"
 # Experimental: traffic events (Situation) as a layer on the map. Off by default.
 CONF_EXPERIMENTAL_EVENTS = "experimental_events"
+CONF_SHOW_ROAD_WORKS = "show_road_works"
+CONF_EVENT_MARKER_STYLE = "event_marker_style"
+EVENT_MARKER_STYLES = ["symbols", "text"]
+DEFAULT_EVENT_MARKER_STYLE = "symbols"
 CONF_MAX_OBJECTS = "max_objects"
 CONF_MINIMAL_FIELDS = "minimal_fields"
 CONF_MAX_AGE = "max_age_min"
@@ -54,4 +58,4 @@ SIGNAL_UPDATE = f"{DOMAIN}_update_{{}}"
 
 CARD_URL = f"/{DOMAIN}/trafikverket-map-card.js"
 ROAD_CARD_URL = f"/{DOMAIN}/trafikverket-road-card.js"
-CARD_VERSION = "1.5.1"
+CARD_VERSION = "1.6.0"

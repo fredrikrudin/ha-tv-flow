@@ -9,6 +9,16 @@ The newest version is at the top. Every release on GitHub is tagged `vX.Y.Z`.
 
 ## [Unreleased]
 
+## [1.6.0] – 2026-11-18
+
+### Added
+- **Show road works on the map** (on by default) under *Configure → Experimental features*. Turn it off to only show accidents and obstacles; road works also disappear from the legend.
+- **Event markers: symbols or text** under *Configure → Experimental features*. *Symbols* (default) shows a coloured circle with an icon for accident, obstacle and road works. *Text* shows a coloured label with the type written out in the UI language, e.g. "Accident" / "Olycka".
+- Card options `show_road_works` and `event_markers` that override the settings per card.
+
+### Changed
+- Event markers use icons instead of the letters "!" and "V".
+
 ## [1.5.1] – 2026-11-18
 
 ### Fixed
@@ -167,7 +177,8 @@ First public version.
 - README with installation via Marketplace (Home Assistant 2026.11+), HACS and manually.
 - License CC BY-NC 4.0.
 
-[Unreleased]: https://github.com/fredrikrudin/ha-tv-flow/compare/v1.5.1...HEAD
+[Unreleased]: https://github.com/fredrikrudin/ha-tv-flow/compare/v1.6.0...HEAD
+[1.6.0]: https://github.com/fredrikrudin/ha-tv-flow/releases/tag/v1.6.0
 [1.5.1]: https://github.com/fredrikrudin/ha-tv-flow/releases/tag/v1.5.1
 [1.5.0]: https://github.com/fredrikrudin/ha-tv-flow/releases/tag/v1.5.0
 [1.4.1]: https://github.com/fredrikrudin/ha-tv-flow/releases/tag/v1.4.1

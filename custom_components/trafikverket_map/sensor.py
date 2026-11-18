@@ -230,6 +230,7 @@ class TrafikverketSensor(_Base):
         "trafikverket_home", "config_entry_id", "home_latitude", "home_longitude",
         "radius_km", "weather_radius_km", "scan_interval_min", "map_style",
         "dashboard_sections", "map_height", "map_zoom_margin_km", "entity_ids",
+        "show_road_works", "event_marker_style",
     })
 
     def __init__(self, coordinator, entry, description: TvSensorDescription) -> None:
@@ -278,6 +279,8 @@ class TrafikverketSensor(_Base):
                 "dashboard_sections": list(s.dashboard_sections),
                 "map_height": s.map_height,
                 "map_zoom_margin_km": s.map_zoom_margin_km,
+                "show_road_works": s.show_road_works,
+                "event_marker_style": s.event_marker_style,
                 "entity_ids": self._sibling_entity_ids(),
             }
         if self.entity_description.group == "weather" and d and d.nearest_weather:

@@ -12,6 +12,8 @@
  *   show_road: true
  *   show_weather: true
  *   show_situations: true          # experimental: accidents, obstacles, road works (needs the setting)
+ *   show_road_works: true          # optional, overrides the "Show road works on the map" setting
+ *   event_markers: symbols         # optional: symbols | text, overrides the "Event markers" setting
  *   dark_mode: false               # optional: true | false | auto – overrides the integration's
  *                                  # "Map style" setting
  *   zoom_margin_km: 0              # optional: start view = radius + margin (km); defaults to the
@@ -179,9 +181,9 @@ const speedColor = (v) => (SPEED_CLASSES.find((c) => c.test(v)) || SPEED_CLASSES
 
 // Experimental events layer: only these Trafikverket message types are drawn.
 const SIT_STYLE = {
-  Olycka: { color: "#d50000", label: "!" },
-  Hinder: { color: "#ef6c00", label: "!" },
-  Vägarbete: { color: "#795548", label: "V" },
+  Olycka: { color: "#d50000", icon: "mdi:car-emergency" },
+  Hinder: { color: "#ef6c00", icon: "mdi:alert-octagon" },
+  Vägarbete: { color: "#795548", icon: "mdi:account-hard-hat" },
 };
 const ROAD_COLORS = { 1: "#43a047", 2: "#ffb300", 3: "#e53935", 4: "#1e88e5" };
 
@@ -249,8 +251,13 @@ class TrafikverketMapCard extends HTMLElement {
         .temp { background: var(--card-background-color, #fff); color: var(--primary-text-color, #000);
                 border: 1px solid #1976d2; border-radius: 10px; padding: 1px 5px; font: 600 11px sans-serif;
                 white-space: nowrap; box-shadow: 0 1px 3px rgba(0,0,0,.3); }
-        .sit { width: 22px; height: 22px; border-radius: 50%; color: #fff; font: 700 13px/22px sans-serif;
-               text-align: center; border: 2px solid #fff; box-shadow: 0 1px 4px rgba(0,0,0,.5); }
+        .sit { width: 24px; height: 24px; border-radius: 50%; color: #fff; border: 2px solid #fff;
+               box-shadow: 0 1px 4px rgba(0,0,0,.5); display: flex; align-items: center; justify-content: center;
+               transform: translate(-50%, -50%); }
+        .sit ha-icon { --mdc-icon-size: 15px; color: #fff; display: flex; }
+        .sit-text { display: inline-block; white-space: nowrap; color: #fff; font: 700 11px/1 sans-serif;
+                    padding: 4px 7px; border-radius: 10px; border: 2px solid #fff;
+                    box-shadow: 0 1px 4px rgba(0,0,0,.5); transform: translate(-50%, -50%); }
         .err { padding: 16px; color: var(--error-color, red); }
         .leaflet-popup-content { font: 13px/1.4 sans-serif; }
         .leaflet-popup-content table { border-collapse: collapse; }
@@ -389,7 +396,9 @@ class TrafikverketMapCard extends HTMLElement {
     const events = Object.keys(SIT_STYLE).some((type) => counts[`event:${type}`]);
     if (c.show_situations && events) {
       body += `<b>${esc(t.events)}</b>` +
-        Object.entries(SIT_STYLE).map(([type, st]) => row(`event:${type}`, st.color, t.event_text[type])).join("");
+        Object.entries(SIT_STYLE)
+          .filter(([type]) => type !== "Vägarbete" || this._showRoadWorks !== false)
+          .map(([type, st]) => row(`event:${type}`, st.color, t.event_text[type])).join("");
     }
     if (c.show_weather) {
       body += `<b>${esc(t.other)}</b>` + row("weather", "#1976d2", t.weather_stations, "border-radius:3px");
@@ -487,6 +496,13 @@ class TrafikverketMapCard extends HTMLElement {
       }
     }
 
+    // Event options: card config overrides the integration settings.
+    const ha = home ? home.attributes : {};
+    const cfgRW = this._config.show_road_works;
+    this._showRoadWorks = cfgRW !== undefined && cfgRW !== null ? cfgRW !== false && cfgRW !== "false"
+      : ha.show_road_works !== false;
+    const markerStyle = this._config.event_markers || ha.event_marker_style || "symbols";
+
     let nFlow = 0, nRoad = 0, nWeather = 0, nSit = 0, newest = null;
     const counts = {};
     const hidden = this._hidden || new Set();
@@ -536,6 +552,7 @@ class TrafikverketMapCard extends HTMLElement {
           }
         }
       } else if (a.tv_type === "situation" && this._config.show_situations && SIT_STYLE[a.message_type]) {
+        if (a.message_type === "Vägarbete" && !this._showRoadWorks) continue;
         if (!visible(`event:${a.message_type}`)) continue;
         nSit++;
         const st = SIT_STYLE[a.message_type];
@@ -553,7 +570,11 @@ class TrafikverketMapCard extends HTMLElement {
             L.polyline(line, { color: st.color, weight: 5, opacity: 0.8, dashArray: "6 6" }).bindPopup(popup).addTo(this._layers.situation);
           }
         }
-        const icon = L.divIcon({ className: "", html: `<div class="sit" style="background:${st.color}">${st.label}</div>`, iconSize: [22, 22], iconAnchor: [11, 11] });
+        // Zero-size icon; the inner element centres itself on the position (works for any label width).
+        const html = markerStyle === "text"
+          ? `<div class="sit-text" style="background:${st.color}">${esc(typeText)}</div>`
+          : `<div class="sit" style="background:${st.color}"><ha-icon icon="${st.icon}"></ha-icon></div>`;
+        const icon = L.divIcon({ className: "", html, iconSize: [0, 0], iconAnchor: [0, 0] });
         L.marker(ll, { icon, zIndexOffset: a.is_warning ? 1000 : 300, title: typeText })
           .bindPopup(popup, { maxWidth: 320 }).addTo(this._layers.situation);
       } else if (a.tv_type === "weather" && this._config.show_weather) {

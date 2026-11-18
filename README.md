@@ -96,6 +96,8 @@ height: 450
 | `height` | `450` | Height in pixels |
 | `entry` | – | `config_entry_id` if you have several locations and want to show a specific one |
 | `show_flow` / `show_road` / `show_weather` / `show_situations` | `true` | Include the layer at all |
+| `show_road_works` | setting | Show road works (experimental events). Leave out to follow the *Show road works on the map* setting. |
+| `event_markers` | setting | `symbols` or `text` for event markers. Leave out to follow the *Event markers* setting. |
 | `legend` | `true` | Show the legend |
 | `hidden` | – | Categories hidden from the start, e.g. `[speed:fast, road:1]` (see below) |
 | `dark_mode` | – | `true`, `false` or `auto`. Leave out to follow the **Map style** setting under Configure → Dashboard and map. |
@@ -133,6 +135,8 @@ The card is also available as the **Road status** section of the automatic dashb
 | Feature | What it does |
 |---|---|
 | **Events on the map** | Fetches Trafikverket's traffic events (Situation 1.6) within the radius and shows them as the *Events* layer of the map card: 🔴 **accidents**, 🟠 **obstacles** and 🟤 **road works**. Click a marker for heading, description, place and times. Sections are drawn as dashed lines. The sensors `sensor.tv_flow_accidents`, `_incidents` and `_road_works` are created when the feature is on. |
+| **Show road works on the map** | On by default. Turn off to only show accidents and obstacles (road works also disappear from the legend). |
+| **Event markers** | *Symbols* (default): coloured circle with an icon – 🚗 accident, 🛑 obstacle, 👷 road works. *Text*: coloured label with the type written out, e.g. "Accident", in the UI language. |
 
 The layer can be hidden in the legend or with `show_situations: false` on the card. If Trafikverket rejects the query, only the events are disabled and everything else keeps working (see Troubleshooting).
 

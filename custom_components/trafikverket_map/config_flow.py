@@ -39,7 +39,11 @@ from .api import TrafikverketAuthError, TrafikverketClient, TrafikverketError
 from .const import (
     CONF_ENABLE_FLOW,
     CONF_ENABLE_ROAD,
+    CONF_EVENT_MARKER_STYLE,
     CONF_EXPERIMENTAL_EVENTS,
+    CONF_SHOW_ROAD_WORKS,
+    DEFAULT_EVENT_MARKER_STYLE,
+    EVENT_MARKER_STYLES,
     CONF_ENABLE_WEATHER,
     CONF_DASHBOARD_SECTIONS,
     CONF_MAP_HEIGHT,
@@ -318,6 +322,8 @@ class TrafikverketMapOptionsFlow(_LocationSteps, OptionsFlow):
         if user_input is not None:
             data = dict(self.config_entry.options)
             data[CONF_EXPERIMENTAL_EVENTS] = bool(user_input[CONF_EXPERIMENTAL_EVENTS])
+            data[CONF_SHOW_ROAD_WORKS] = bool(user_input[CONF_SHOW_ROAD_WORKS])
+            data[CONF_EVENT_MARKER_STYLE] = user_input[CONF_EVENT_MARKER_STYLE]
             return self.async_create_entry(data=data)
         return self.async_show_form(
             step_id="experimental",
@@ -325,6 +331,15 @@ class TrafikverketMapOptionsFlow(_LocationSteps, OptionsFlow):
                 vol.Required(
                     CONF_EXPERIMENTAL_EVENTS, default=bool(cur.get(CONF_EXPERIMENTAL_EVENTS, False))
                 ): BooleanSelector(),
+                vol.Required(
+                    CONF_SHOW_ROAD_WORKS, default=bool(cur.get(CONF_SHOW_ROAD_WORKS, True))
+                ): BooleanSelector(),
+                vol.Required(
+                    CONF_EVENT_MARKER_STYLE,
+                    default=str(cur.get(CONF_EVENT_MARKER_STYLE, DEFAULT_EVENT_MARKER_STYLE)),
+                ): SelectSelector(SelectSelectorConfig(
+                    options=EVENT_MARKER_STYLES, translation_key=CONF_EVENT_MARKER_STYLE,
+                    mode=SelectSelectorMode.LIST)),
             }),
         )
 
