@@ -166,6 +166,10 @@ class RoadConditionItem:
     start_time: datetime | None
     end_time: datetime | None
     lines: list[list[list[float]]] = field(default_factory=list)  # [[ [lat,lon], ...], ...]
+    # The individual values of Warning / Cause / Measure (lists in the API)
+    warnings: list[str] = field(default_factory=list)
+    causes: list[str] = field(default_factory=list)
+    measures: list[str] = field(default_factory=list)
 
 
 @dataclass
@@ -458,6 +462,21 @@ def _value(obj: Any, *path: str) -> Any:
     return cur
 
 
+def _list(v: Any) -> list[str]:
+    """Trafikverket fields with maxOccurs="unbounded" arrive as lists; normalise to a list of strings."""
+    if v is None or v == "":
+        return []
+    if isinstance(v, (list, tuple)):
+        return [str(x) for x in v if x not in (None, "")]
+    return [str(v)]
+
+
+def _text(v: Any) -> str | None:
+    """Join a single value or a list of values into one readable string."""
+    items = _list(v)
+    return ", ".join(dict.fromkeys(items)) if items else None
+
+
 def _float(v: Any) -> float | None:
     try:
         return None if v is None else float(v)
@@ -634,16 +653,19 @@ def parse_road(
             longitude=mid[1],
             distance_km=round(dist, 2),
             code=code,
-            text=rec.get("ConditionText") or ROAD_CONDITION_TEXT.get(code or 0),
-            info=rec.get("ConditionInfo"),
-            cause=rec.get("Cause"),
-            warning=rec.get("Warning"),
-            measure=rec.get("Measure"),
-            location_text=rec.get("LocationText"),
-            road_number=rec.get("RoadNumber"),
+            text=_text(rec.get("ConditionText")) or ROAD_CONDITION_TEXT.get(code or 0),
+            info=_text(rec.get("ConditionInfo")),
+            cause=_text(rec.get("Cause")),
+            warning=_text(rec.get("Warning")),
+            measure=_text(rec.get("Measure")),
+            location_text=_text(rec.get("LocationText")),
+            road_number=_text(rec.get("RoadNumber")),
             start_time=parse_time(rec.get("StartTime")),
             end_time=end,
             lines=parts,
+            warnings=_list(rec.get("Warning")),
+            causes=_list(rec.get("Cause")),
+            measures=_list(rec.get("Measure")),
         ))
     items.sort(key=lambda i: i.distance_km)
     return items
@@ -757,23 +779,23 @@ def parse_situations(
             items.append(SituationItem(
                 id=dev_id,
                 situation_id=sit.get("Id"),
-                message_type=dev.get("MessageType"),
-                message_type_value=dev.get("MessageTypeValue"),
-                message_code=dev.get("MessageCode"),
-                header=dev.get("Header"),
-                message=dev.get("Message"),
+                message_type=_text(dev.get("MessageType")),
+                message_type_value=_text(dev.get("MessageTypeValue")),
+                message_code=_text(dev.get("MessageCode")),
+                header=_text(dev.get("Header")),
+                message=_text(dev.get("Message")),
                 severity_code=_int(dev.get("SeverityCode")),
-                severity_text=dev.get("SeverityText"),
-                road_number=dev.get("RoadNumber"),
-                road_name=dev.get("RoadName"),
-                location=dev.get("LocationDescriptor") or dev.get("PositionalDescription"),
-                direction=dev.get("AffectedDirection"),
-                temporary_limit=dev.get("TemporaryLimit"),
-                restriction=dev.get("TrafficRestrictionType"),
+                severity_text=_text(dev.get("SeverityText")),
+                road_number=_text(dev.get("RoadNumber")),
+                road_name=_text(dev.get("RoadName")),
+                location=_text(dev.get("LocationDescriptor")) or _text(dev.get("PositionalDescription")),
+                direction=_text(dev.get("AffectedDirection")),
+                temporary_limit=_text(dev.get("TemporaryLimit")),
+                restriction=_text(dev.get("TrafficRestrictionType")),
                 start_time=start,
                 end_time=end,
                 until_further_notice=_bool(dev.get("ValidUntilFurtherNotice")),
-                web_link=dev.get("WebLink"),
+                web_link=_text(dev.get("WebLink")),
                 latitude=lat,
                 longitude=lon,
                 distance_km=round(dist, 2),

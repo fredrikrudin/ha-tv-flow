@@ -289,8 +289,9 @@ class TrafikverketSensor(_Base):
             }
         if key == "road_condition" and d:
             return {
-                "warnings": sorted({r.warning for r in d.road_conditions if r.warning}),
-                "causes": sorted({r.cause for r in d.road_conditions if r.cause}),
+                # Individual values; Warning/Cause can hold several values per section.
+                "warnings": sorted({w for r in d.road_conditions for w in r.warnings}),
+                "causes": sorted({c for r in d.road_conditions for c in r.causes}),
             }
         return None
 

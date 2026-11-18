@@ -113,4 +113,22 @@ assert dsit.situations[2].lines and dsit.active_warning_count == 2
 dsit.road_conditions = d.road_conditions  # RC1 (code 2) + RC3 (code 4) from earlier
 assert dsit.active_warning_count == 4
 
+# --- RoadCondition: Warning / Cause / Measure / ConditionInfo are lists (maxOccurs="unbounded").
+# In v1.5.0 this made sensor.tv_flow_road_condition unavailable (unhashable list in a set).
+lst = {"RESPONSE": {"RESULT": [{"RoadCondition": [
+    {"Id": "RL1", "ConditionCode": 2, "Warning": ["Halka", "Snöfall"], "Cause": ["Snöfall"],
+     "Measure": ["Plogning", "Sandning"], "ConditionInfo": ["Snömodd"], "RoadNumber": "Väg 83",
+     "Geometry": {"WGS84": "LINESTRING (16.10 61.70, 16.12 61.71)"}},
+    {"Id": "RL2", "ConditionCode": 3, "Warning": "Halka", "Cause": "Frost",
+     "Geometry": {"WGS84": "LINESTRING (16.13 61.70, 16.14 61.71)"}}]}]}}
+dl = p.parse_response(lst, ["RoadCondition"], (61.71, 16.17), 10, 30, timedelta(minutes=60), now)
+r1 = next(r for r in dl.road_conditions if r.id == "RL1")
+r2 = next(r for r in dl.road_conditions if r.id == "RL2")
+assert r1.warning == "Halka, Snöfall" and r1.measure == "Plogning, Sandning" and r1.info == "Snömodd"
+assert r1.warnings == ["Halka", "Snöfall"] and r1.causes == ["Snöfall"] and r2.warnings == ["Halka"]
+# the attribute calculation the road condition sensor does
+warnings = sorted({w for r in dl.road_conditions for w in r.warnings})
+causes = sorted({c for r in dl.road_conditions for c in r.causes})
+assert warnings == ["Halka", "Snöfall"] and causes == ["Frost", "Snöfall"], (warnings, causes)
+
 print("ALL OK")

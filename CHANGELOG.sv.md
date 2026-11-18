@@ -9,6 +9,16 @@ Nyaste versionen står överst. Varje release på GitHub har taggen `vX.Y.Z`.
 
 ## [Ej släppt]
 
+## [1.5.1] – 2026-11-18
+
+### Rättat
+- **`sensor.tv_flow_road_condition` blev *unavailable*** så fort en vägsträcka hade varningar. I Trafikverkets schema för RoadCondition kan `Warning`, `Cause`, `Measure` och `ConditionInfo` innehålla flera värden och kommer då som listor, vilket kraschade sensorns attribut. Värdena normaliseras nu: entiteter och kort får läsbar text (t.ex. "Halka, Snöfall"), och sensorns attribut `warnings` och `causes` listar varje värde en gång.
+- Samma listor visas inte längre som `['Halka']` i kartans popup-rutor, vägöversiktskortet eller dashboardens listor.
+- Textfälten för trafikhändelser (experimentellt) hanteras på samma sätt.
+
+### Tillagt
+- Regressionstest med väglagsfält som innehåller listor.
+
 ## [1.5.0] – 2026-11-16
 
 ### Tillagt
@@ -157,7 +167,8 @@ Första publika versionen.
 - README med installation via Marketplace (Home Assistant 2026.11+), HACS och manuellt.
 - Licens CC BY-NC 4.0.
 
-[Ej släppt]: https://github.com/fredrikrudin/ha-tv-flow/compare/v1.5.0...HEAD
+[Ej släppt]: https://github.com/fredrikrudin/ha-tv-flow/compare/v1.5.1...HEAD
+[1.5.1]: https://github.com/fredrikrudin/ha-tv-flow/releases/tag/v1.5.1
 [1.5.0]: https://github.com/fredrikrudin/ha-tv-flow/releases/tag/v1.5.0
 [1.4.1]: https://github.com/fredrikrudin/ha-tv-flow/releases/tag/v1.4.1
 [1.4.0]: https://github.com/fredrikrudin/ha-tv-flow/releases/tag/v1.4.0
