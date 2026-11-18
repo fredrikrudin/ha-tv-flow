@@ -232,7 +232,7 @@ Sensors and the weather entity get fixed ids regardless of language. Further loc
 | `sensor.tv_flow_total_flow` | Total vehicles/h |
 | `sensor.tv_flow_average_speed` | Flow-weighted average speed |
 | `sensor.tv_flow_lowest_speed` | Lowest average speed of the sites (queue indicator) |
-| `sensor.tv_flow_road_condition` | Worst road condition within the radius. Enum sensor: the state is `normal`, `difficult`, `very_difficult`, `ice_snow` or `no_data` and is shown translated. |
+| `sensor.tv_flow_road_condition` | Worst road condition within the radius. Enum sensor: the state is `normal`, `difficult`, `very_difficult`, `ice_snow` or `no_data` and is shown translated. The attribute `state_text` holds the ready-made text in Home Assistant's language. |
 | `sensor.tv_flow_road_condition_count` | Number of sections with difficult road conditions |
 | `weather.tv_flow` | Local weather from the nearest road weather station. Trafikverket measures the type of precipitation but not cloud cover, so the condition without precipitation is an estimate (fog when visibility < 1 km, otherwise partly cloudy/cloudy). |
 | `sensor.tv_flow_air_temperature`, `_surface_temperature`, `_humidity`, `_wind_speed`, `_wind_direction`, `_precipitation`, `_precipitation_30min`, `_visibility`, `_grip` | Weather from the nearest station. `_precipitation` is an enum sensor: `no`, `rain`, `freezing_rain`, `snow`, `sleet` or `yes`. |

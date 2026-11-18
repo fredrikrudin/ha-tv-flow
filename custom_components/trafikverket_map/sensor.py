@@ -33,7 +33,14 @@ from . import TrafikverketConfigEntry
 from .const import ATTRIBUTION, DOMAIN, NAME
 from .coordinator import TrafikverketCoordinator
 from .parser import TrafikverketData
-from .texts import PRECIPITATION_KEYS, ROAD_CONDITION_KEYS, ROAD_CONDITION_NO_DATA
+from .texts import (
+    PRECIPITATION_KEYS,
+    ROAD_CONDITION_KEYS,
+    ROAD_CONDITION_NO_DATA,
+    TEXTS,
+    language,
+    precipitation_text,
+)
 
 
 def _avg_speed(d: TrafikverketData) -> float | None:
@@ -285,13 +292,21 @@ class TrafikverketSensor(_Base):
             }
         if self.entity_description.group == "weather" and d and d.nearest_weather:
             w = d.nearest_weather
-            return {
+            attrs: dict[str, Any] = {
                 "station": w.name,
                 "distance_km": w.distance_km,
                 "sample": w.sample.isoformat() if w.sample else None,
             }
+            if key == "precipitation":
+                attrs["state_text"] = precipitation_text(language(self.hass), self.native_value)
+            return attrs
         if key == "road_condition" and d:
+            lang = language(self.hass)
+            state = self.native_value or ROAD_CONDITION_NO_DATA
             return {
+                # Ready-made text in Home Assistant's language, so cards and templates
+                # do not depend on the frontend's translation of enum states.
+                "state_text": TEXTS[lang]["road_condition"].get(state, state),
                 # Individual values; Warning/Cause can hold several values per section.
                 "warnings": sorted({w for r in d.road_conditions for w in r.warnings}),
                 "causes": sorted({c for r in d.road_conditions for c in r.causes}),

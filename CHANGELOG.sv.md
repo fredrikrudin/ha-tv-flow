@@ -9,6 +9,14 @@ Nyaste versionen står överst. Varje release på GitHub har taggen `vX.Y.Z`.
 
 ## [Ej släppt]
 
+## [1.6.1] – 2026-11-18
+
+### Rättat
+- Den råa tillståndsnyckeln (t.ex. `very_difficult`) kunde synas som text i varningen under *Läget nu* och i vägöversiktskortet, när Home Assistants översättning av enum-tillståndet inte fanns tillgänglig.
+
+### Tillagt
+- Attributet `state_text` på `sensor.tv_flow_road_condition` och `sensor.tv_flow_precipitation`: tillståndet som färdig text på Home Assistants språk. Korten och dashboarderna använder det i första hand, så de är inte längre beroende av gränssnittets översättning av enum-tillstånd.
+
 ## [1.6.0] – 2026-11-18
 
 ### Tillagt
@@ -177,7 +185,8 @@ Första publika versionen.
 - README med installation via Marketplace (Home Assistant 2026.11+), HACS och manuellt.
 - Licens CC BY-NC 4.0.
 
-[Ej släppt]: https://github.com/fredrikrudin/ha-tv-flow/compare/v1.6.0...HEAD
+[Ej släppt]: https://github.com/fredrikrudin/ha-tv-flow/compare/v1.6.1...HEAD
+[1.6.1]: https://github.com/fredrikrudin/ha-tv-flow/releases/tag/v1.6.1
 [1.6.0]: https://github.com/fredrikrudin/ha-tv-flow/releases/tag/v1.6.0
 [1.5.1]: https://github.com/fredrikrudin/ha-tv-flow/releases/tag/v1.5.1
 [1.5.0]: https://github.com/fredrikrudin/ha-tv-flow/releases/tag/v1.5.0

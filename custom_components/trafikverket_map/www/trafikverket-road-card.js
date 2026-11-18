@@ -177,9 +177,16 @@
     /** Localized state of the road condition sensor (an enum since v1.5.0). */
     _roadStateText(road, t) {
       if (!road) return "–";
+      // 1. Text made by the integration in Home Assistant's language (v1.6.1+).
+      if (road.attributes.state_text) return road.attributes.state_text;
+      // 2. The frontend's translation – unless it only returns the raw key.
       if (typeof this._hass.formatEntityState === "function") {
-        try { return this._hass.formatEntityState(road); } catch (e) { /* fall back below */ }
+        try {
+          const txt = this._hass.formatEntityState(road);
+          if (txt && txt !== road.state) return txt;
+        } catch (e) { /* fall back below */ }
       }
+      // 3. Our own table.
       return t.road_states[road.state] || road.state;
     }
 

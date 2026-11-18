@@ -827,7 +827,7 @@ const TV_SECTIONS = {
           card: {
             type: "markdown",
             content:
-              `<ha-alert alert-type="warning" title="{{ state_translated('${rc}') }}">` +
+              `<ha-alert alert-type="warning" title="{{ state_attr('${rc}', 'state_text') or state_translated('${rc}') }}">` +
               `{%- set w = state_attr('${rc}', 'warnings') or [] %}` +
               `{%- set c = state_attr('${rc}', 'causes') or [] %} ` +
               (ids.road_condition_count ? d.alert_count(ids.road_condition_count) : "") +

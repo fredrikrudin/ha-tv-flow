@@ -234,7 +234,7 @@ Sensorerna och väderentiteten får fasta id:n oavsett språk. Lägger du till f
 | `sensor.tv_flow_total_flow` | Summa fordon/h |
 | `sensor.tv_flow_average_speed` | Flödesviktad medelhastighet |
 | `sensor.tv_flow_lowest_speed` | Lägsta medelhastighet bland mätpunkterna (köindikator) |
-| `sensor.tv_flow_road_condition` | Sämsta väglaget i radien. Enum-sensor: tillståndet är `normal`, `difficult`, `very_difficult`, `ice_snow` eller `no_data` och visas översatt. |
+| `sensor.tv_flow_road_condition` | Sämsta väglaget i radien. Enum-sensor: tillståndet är `normal`, `difficult`, `very_difficult`, `ice_snow` eller `no_data` och visas översatt. Attributet `state_text` innehåller den färdiga texten på Home Assistants språk. |
 | `sensor.tv_flow_road_condition_count` | Antal sträckor med besvärligt väglag |
 | `weather.tv_flow` | Lokalt väder från närmaste vägväderstation. Trafikverket mäter nederbördstyp men inte molnighet, så väderläget utan nederbörd är en uppskattning (dimma vid sikt < 1 km, annars växlande/mulet). |
 | `sensor.tv_flow_air_temperature`, `_surface_temperature`, `_humidity`, `_wind_speed`, `_wind_direction`, `_precipitation`, `_precipitation_30min`, `_visibility`, `_grip` | Väder från närmaste station. `_precipitation` är en enum-sensor: `no`, `rain`, `freezing_rain`, `snow`, `sleet` eller `yes`. |

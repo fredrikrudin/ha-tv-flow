@@ -188,7 +188,7 @@ views:
         state_not: no_data
       card:
         type: markdown
-        content: '<ha-alert alert-type="warning" title="{{ state_translated(''sensor.tv_flow_road_condition'') }}">{%- set w = state_attr(''sensor.tv_flow_road_condition'', ''warnings'') or [] %}{%- set c = state_attr(''sensor.tv_flow_road_condition'', ''causes'') or [] %} {{ states(''sensor.tv_flow_road_condition_count'') }} sträckor med besvärligt väglag.{%- if w %} Varning: {{ w | join('', '') }}.{% endif %}{%- if c %} Orsak: {{ c | join('', '') | lower }}.{% endif %}</ha-alert>'
+        content: '<ha-alert alert-type="warning" title="{{ state_attr(''sensor.tv_flow_road_condition'', ''state_text'') or state_translated(''sensor.tv_flow_road_condition'') }}">{%- set w = state_attr(''sensor.tv_flow_road_condition'', ''warnings'') or [] %}{%- set c = state_attr(''sensor.tv_flow_road_condition'', ''causes'') or [] %} {{ states(''sensor.tv_flow_road_condition_count'') }} sträckor med besvärligt väglag.{%- if w %} Varning: {{ w | join('', '') }}.{% endif %}{%- if c %} Orsak: {{ c | join('', '') | lower }}.{% endif %}</ha-alert>'
       grid_options:
         columns: full
     - type: tile

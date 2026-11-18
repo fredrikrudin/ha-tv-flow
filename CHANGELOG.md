@@ -9,6 +9,14 @@ The newest version is at the top. Every release on GitHub is tagged `vX.Y.Z`.
 
 ## [Unreleased]
 
+## [1.6.1] – 2026-11-18
+
+### Fixed
+- The raw state key (e.g. `very_difficult`) could show up as text in the *Current situation* warning and in the road status card, when Home Assistant's translation of the enum state was not available.
+
+### Added
+- Attribute `state_text` on `sensor.tv_flow_road_condition` and `sensor.tv_flow_precipitation`: the state as ready-made text in Home Assistant's language. The cards and dashboards use it first, so they no longer depend on the frontend's translation of enum states.
+
 ## [1.6.0] – 2026-11-18
 
 ### Added
@@ -177,7 +185,8 @@ First public version.
 - README with installation via Marketplace (Home Assistant 2026.11+), HACS and manually.
 - License CC BY-NC 4.0.
 
-[Unreleased]: https://github.com/fredrikrudin/ha-tv-flow/compare/v1.6.0...HEAD
+[Unreleased]: https://github.com/fredrikrudin/ha-tv-flow/compare/v1.6.1...HEAD
+[1.6.1]: https://github.com/fredrikrudin/ha-tv-flow/releases/tag/v1.6.1
 [1.6.0]: https://github.com/fredrikrudin/ha-tv-flow/releases/tag/v1.6.0
 [1.5.1]: https://github.com/fredrikrudin/ha-tv-flow/releases/tag/v1.5.1
 [1.5.0]: https://github.com/fredrikrudin/ha-tv-flow/releases/tag/v1.5.0
