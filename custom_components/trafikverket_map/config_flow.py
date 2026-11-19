@@ -375,7 +375,9 @@ class TrafikverketMapOptionsFlow(_LocationSteps, OptionsFlow):
                 data[CONF_MAP_ZOOM_MARGIN] = float(user_input[CONF_MAP_ZOOM_MARGIN])
                 return self.async_create_entry(data=data)
 
-        current = list(cur.get(CONF_DASHBOARD_SECTIONS, DASHBOARD_SECTIONS))
+        # Drop values from older versions (e.g. "warnings" from 1.2.5) and duplicates.
+        saved = cur.get(CONF_DASHBOARD_SECTIONS, DASHBOARD_SECTIONS) or DASHBOARD_SECTIONS
+        current = list(dict.fromkeys(x for x in saved if x in DASHBOARD_SECTIONS))[: len(DASHBOARD_SECTIONS)]
         current += [DASHBOARD_NONE] * (len(DASHBOARD_SECTIONS) - len(current))
         choices = SelectSelector(SelectSelectorConfig(
             options=[*DASHBOARD_SECTIONS, DASHBOARD_NONE],

@@ -200,7 +200,9 @@ Integrationen kan bygga hela dashboarden åt dig. Du väljer ordning och innehå
 
 4. Klicka **Spara**.
 
-**Ändra ordning och innehåll:** **Inställningar → Enheter och tjänster → Trafikverket Trafikkarta → Konfigurera → Dashboard och karta**. Välj vad som ska visas på *Plats 1–7*, eller *Visa inte* för att dölja en sektion. Där ställer du också in **kartstil** (standard OpenStreetMap, mörk eller följ temat), **marginal runt området vid start** och kartans höjd. Ladda sedan om dashboarden i webbläsaren.
+**Ändra ordning och innehåll:** **Inställningar → Enheter och tjänster → Trafikverket Trafikkarta → Konfigurera → Dashboard och karta**. Välj vad som ska visas på *Plats 1–7*, eller *Visa inte* för att dölja en sektion. Där ställer du också in **kartstil** (standard OpenStreetMap, mörk eller följ temat), **marginal runt området vid start** och kartans höjd.
+
+När du har sparat visar en öppen dashboard **"Instrumentpanelen har uppdaterats – Uppdatera"** efter några sekunder; klicka *Uppdatera* (eller ladda om sidan) för att bygga om den. Kartstil och marginal gäller direkt; ordning, sektioner och kartans höjd kräver uppdateringen. Sektionerna visas i exakt den valda ordningen, även om det ger en lucka bredvid den tvåspaltiga kartan eller historiken på breda skärmar.
 
 Tillgängliga sektioner:
 

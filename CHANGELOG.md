@@ -9,6 +9,16 @@ The newest version is at the top. Every release on GitHub is tagged `vX.Y.Z`.
 
 ## [Unreleased]
 
+## [1.6.2] – 2026-11-19
+
+### Fixed
+- **Reordering sections in *Configure → Dashboard and map* had no visible effect.** The generated dashboard used `dense_section_placement`, which lets Home Assistant move sections to fill gaps – so the screen did not follow *Position 1–7*. It is removed; the sections now appear in exactly the chosen order (also in the static dashboards).
+- **Changed settings did not show in an open dashboard.** Home Assistant builds a generated dashboard when the page loads. After you save the options, the integration now tells the dashboards that use `custom:tv-flow` that they changed (the `lovelace_updated` event), so an open dashboard offers *Refresh*.
+- Saved orders from older versions (e.g. the removed section "warnings" from 1.2.5) no longer show up as an empty choice in the settings.
+
+### Added
+- Test for the dashboard notification (`tests/test_dashboard_notify.py`).
+
 ## [1.6.1] – 2026-11-18
 
 ### Fixed
@@ -185,7 +195,8 @@ First public version.
 - README with installation via Marketplace (Home Assistant 2026.11+), HACS and manually.
 - License CC BY-NC 4.0.
 
-[Unreleased]: https://github.com/fredrikrudin/ha-tv-flow/compare/v1.6.1...HEAD
+[Unreleased]: https://github.com/fredrikrudin/ha-tv-flow/compare/v1.6.2...HEAD
+[1.6.2]: https://github.com/fredrikrudin/ha-tv-flow/releases/tag/v1.6.2
 [1.6.1]: https://github.com/fredrikrudin/ha-tv-flow/releases/tag/v1.6.1
 [1.6.0]: https://github.com/fredrikrudin/ha-tv-flow/releases/tag/v1.6.0
 [1.5.1]: https://github.com/fredrikrudin/ha-tv-flow/releases/tag/v1.5.1

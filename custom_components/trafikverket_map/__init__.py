@@ -15,6 +15,7 @@ from homeassistant.helpers.typing import ConfigType
 
 from .const import CARD_URL, CARD_VERSION, DOMAIN, ROAD_CARD_URL
 from .coordinator import TrafikverketCoordinator
+from .dashboard_notify import async_notify_dashboards_later
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -48,8 +49,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: TrafikverketConfigEntry)
 
 
 async def _async_reload(hass: HomeAssistant, entry: TrafikverketConfigEntry) -> None:
-    """Reload when options change (radius, interval, …)."""
+    """Reload when options change (radius, interval, dashboard …)."""
     await hass.config_entries.async_reload(entry.entry_id)
+    # Generated dashboards are built when the page loads: tell open ones to refresh.
+    hass.async_create_background_task(
+        async_notify_dashboards_later(hass), f"{DOMAIN}_notify_dashboards"
+    )
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: TrafikverketConfigEntry) -> bool:

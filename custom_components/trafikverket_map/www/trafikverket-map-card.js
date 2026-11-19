@@ -944,7 +944,8 @@ class TvFlowDashboardStrategy {
         icon: "mdi:car-traffic",
         type: "sections",
         max_columns: 4,
-        dense_section_placement: true,
+        // No dense_section_placement: it moves sections to fill gaps, which breaks
+        // the order chosen in the settings.
         badges,
         sections,
       }],

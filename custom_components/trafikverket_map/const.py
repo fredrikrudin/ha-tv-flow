@@ -58,4 +58,4 @@ SIGNAL_UPDATE = f"{DOMAIN}_update_{{}}"
 
 CARD_URL = f"/{DOMAIN}/trafikverket-map-card.js"
 ROAD_CARD_URL = f"/{DOMAIN}/trafikverket-road-card.js"
-CARD_VERSION = "1.6.1"
+CARD_VERSION = "1.6.2"

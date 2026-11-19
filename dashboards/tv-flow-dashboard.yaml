@@ -22,7 +22,6 @@ views:
   icon: mdi:car-traffic
   type: sections
   max_columns: 4
-  dense_section_placement: true
   badges:
   - type: entity
     entity: weather.tv_flow

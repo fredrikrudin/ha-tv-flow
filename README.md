@@ -198,7 +198,9 @@ The integration can build the whole dashboard for you. You choose order and cont
 
 4. Click **Save**.
 
-**Change order and content:** **Settings → Devices & services → Trafikverket Trafikkarta → Configure → Dashboard and map**. Choose what to show in *Position 1–7*, or *Hidden* to hide a section. There you also set the **map style** (standard OpenStreetMap, dark or follow the theme), the **margin around the area at start** and the map height. Then reload the dashboard in the browser.
+**Change order and content:** **Settings → Devices & services → Trafikverket Trafikkarta → Configure → Dashboard and map**. Choose what to show in *Position 1–7*, or *Hidden* to hide a section. There you also set the **map style** (standard OpenStreetMap, dark or follow the theme), the **margin around the area at start** and the map height.
+
+After saving, an open dashboard shows **"Dashboard updated – Refresh"** after a few seconds; click *Refresh* (or reload the page) to rebuild it. Map style and margin are applied right away; order, sections and map height need the refresh. The sections are shown in exactly the chosen order, even if that leaves a gap next to the two-column map or history on wide screens.
 
 Available sections:
 
