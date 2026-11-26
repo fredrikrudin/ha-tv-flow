@@ -16,7 +16,6 @@ from homeassistant.helpers.typing import ConfigType
 from .const import CARD_FILES, CARD_VERSION, DOMAIN, ICON_URL
 from .coordinator import TrafikverketCoordinator
 from .dashboard_notify import async_notify_dashboards_later
-from .websocket import async_register as async_register_websocket
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -36,7 +35,14 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     ])
     for name in CARD_FILES:
         add_extra_js_url(hass, f"/{DOMAIN}/{name}?v={CARD_VERSION}")
-    async_register_websocket(hass)
+    # The cards fall back to the geo_location entities without the websocket API,
+    # so a problem there must never stop the integration (and the cards) from loading.
+    try:
+        from .websocket import async_register as async_register_websocket
+
+        async_register_websocket(hass)
+    except Exception:  # noqa: BLE001
+        _LOGGER.exception("Could not set up the websocket API for the cards")
     return True
 
 

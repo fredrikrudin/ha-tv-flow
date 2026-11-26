@@ -61,4 +61,4 @@ CARD_FILES = [
     "trafikverket-traffic-card.js",
     "trafikverket-site-card.js",
 ]
-CARD_VERSION = "1.8.0"
+CARD_VERSION = "1.8.1"

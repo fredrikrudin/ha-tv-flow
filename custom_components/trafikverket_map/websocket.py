@@ -8,9 +8,13 @@ geo_location entities, so they keep working when those are turned off
 
 from __future__ import annotations
 
+import logging
 from typing import Any
 
-import voluptuous as vol
+try:  # Home Assistant replaced voluptuous with probatio (same marker API).
+    import probatio as schema_lib
+except ImportError:  # older Home Assistant versions
+    import voluptuous as schema_lib
 
 from homeassistant.components import websocket_api
 from homeassistant.core import HomeAssistant, callback
@@ -19,24 +23,33 @@ from .const import DOMAIN
 from .mapdata import map_points, point_payload
 from .texts import language
 
+_LOGGER = logging.getLogger(__name__)
+
 WS_MAP_DATA = f"{DOMAIN}/map_data"
 
 
 @callback
 def async_register(hass: HomeAssistant) -> None:
-    websocket_api.async_register_command(hass, ws_map_data)
+    """Register the command. A failure here must never stop the cards from loading."""
+    try:
+        websocket_api.async_register_command(hass, ws_map_data)
+    except Exception:  # noqa: BLE001
+        _LOGGER.exception("Could not register the websocket command %s", WS_MAP_DATA)
 
 
+# The schema must use the same library as the running Home Assistant version,
+# otherwise the integration fails to load (and with it all cards).
 @websocket_api.websocket_command({
-    vol.Required("type"): WS_MAP_DATA,
-    vol.Optional("entry_id"): str,
+    schema_lib.Required("type"): WS_MAP_DATA,
+    schema_lib.Optional("entry_id"): str,
 })
 @callback
 def ws_map_data(hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict[str, Any]) -> None:
     """Return the map points of a location (the first one if no entry_id is given)."""
     entries = [e for e in hass.config_entries.async_entries(DOMAIN) if getattr(e, "runtime_data", None) is not None]
-    if msg.get("entry_id"):
-        entries = [e for e in entries if e.entry_id == msg["entry_id"]]
+    entry_id = msg.get("entry_id")
+    if entry_id:
+        entries = [e for e in entries if e.entry_id == entry_id]
     if not entries:
         connection.send_error(msg["id"], "not_found", "No Trafikverket Trafikkarta location found")
         return

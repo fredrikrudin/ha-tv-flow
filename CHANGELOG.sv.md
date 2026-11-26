@@ -9,6 +9,13 @@ Nyaste versionen står överst. Varje release på GitHub har taggen `vX.Y.Z`.
 
 ## [Ej släppt]
 
+## [1.8.1] – 2026-11-26
+
+### Rättat
+- **Alla kort visade "Custom element doesn't exist" efter uppdatering till 1.8.0.** Aktuella versioner av Home Assistant använder schemabiblioteket *probatio* i stället för *voluptuous*, som inte längre installeras. Websocket-gränssnittet från 1.8.0 importerade voluptuous, så integrationen kunde inte laddas – och därmed inga kort. Integrationen använder nu probatio (eller voluptuous i äldre versioner av Home Assistant).
+- Installationsguiden och inställningarna hade samma beroende och använder nu samma reserv.
+- Ett problem i websocket-gränssnittet kan inte längre stoppa integrationen från att laddas; korten använder då `geo_location`-entiteterna som reserv.
+
 ## [1.8.0] – 2026-11-26
 
 ### Tillagt

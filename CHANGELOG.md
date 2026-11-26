@@ -9,6 +9,13 @@ The newest version is at the top. Every release on GitHub is tagged `vX.Y.Z`.
 
 ## [Unreleased]
 
+## [1.8.1] – 2026-11-26
+
+### Fixed
+- **All cards showed "Custom element doesn't exist" after updating to 1.8.0.** Current Home Assistant versions use the schema library *probatio* instead of *voluptuous*, which is no longer installed. The websocket API added in 1.8.0 imported voluptuous, so the integration failed to load – and with it all cards. The integration now uses probatio (or voluptuous on older Home Assistant versions).
+- The setup guide and the settings had the same dependency and now use the same fallback.
+- A problem with the websocket API can no longer stop the integration from loading; the cards then fall back to the `geo_location` entities.
+
 ## [1.8.0] – 2026-11-26
 
 ### Added

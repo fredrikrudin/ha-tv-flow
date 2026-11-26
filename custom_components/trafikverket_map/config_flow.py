@@ -13,7 +13,10 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
-import voluptuous as vol
+try:  # Home Assistant replaced voluptuous with probatio (same API for what we use).
+    import probatio as vol
+except ImportError:  # older Home Assistant versions
+    import voluptuous as vol
 
 from homeassistant.config_entries import ConfigEntry, ConfigFlow, ConfigFlowResult, OptionsFlow
 from homeassistant.const import CONF_API_KEY, CONF_LATITUDE, CONF_LOCATION, CONF_LONGITUDE, CONF_NAME
