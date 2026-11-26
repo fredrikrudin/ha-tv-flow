@@ -12,6 +12,7 @@ The newest version is at the top. Every release on GitHub is tagged `vX.Y.Z`.
 ## [1.8.3] – 2026-11-26
 
 ### Fixed
+- The cards are registered first when Home Assistant starts, before the map point icons and the websocket API. A problem with either of those can no longer stop the cards from loading ("Custom element doesn't exist").
 - The schema library (probatio or voluptuous) is now taken from Home Assistant's own config validation instead of whichever is installed, so the setup guide, the settings and the websocket API always match the running Home Assistant version.
 
 ## [1.8.2] – 2026-11-26

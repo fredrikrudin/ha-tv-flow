@@ -29,12 +29,18 @@ type TrafikverketConfigEntry = ConfigEntry[TrafikverketCoordinator]
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     """Register the bundled Lovelace map card."""
     www = Path(__file__).parent / "www"
+    # The cards first: nothing optional below may stop them from loading.
     await hass.http.async_register_static_paths([
-        *(StaticPathConfig(f"/{DOMAIN}/{name}", str(www / name), False) for name in CARD_FILES),
-        StaticPathConfig(ICON_URL, str(www / "icons"), True),
+        StaticPathConfig(f"/{DOMAIN}/{name}", str(www / name), False) for name in CARD_FILES
     ])
     for name in CARD_FILES:
         add_extra_js_url(hass, f"/{DOMAIN}/{name}?v={CARD_VERSION}")
+    _LOGGER.debug("Registered the Lovelace cards %s", ", ".join(CARD_FILES))
+    # Icons for "Map points in Home Assistant: Icons" (entity pictures).
+    try:
+        await hass.http.async_register_static_paths([StaticPathConfig(ICON_URL, str(www / "icons"), True)])
+    except Exception:  # noqa: BLE001
+        _LOGGER.exception("Could not register the map point icons")
     # The cards fall back to the geo_location entities without the websocket API,
     # so a problem there must never stop the integration (and the cards) from loading.
     try:
