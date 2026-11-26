@@ -11,16 +11,12 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-try:  # Home Assistant replaced voluptuous with probatio (same marker API).
-    import probatio as schema_lib
-except ImportError:  # older Home Assistant versions
-    import voluptuous as schema_lib
-
 from homeassistant.components import websocket_api
 from homeassistant.core import HomeAssistant, callback
 
 from .const import DOMAIN
 from .mapdata import map_points, point_payload
+from .schema_lib import vol as schema_lib
 from .texts import language
 
 _LOGGER = logging.getLogger(__name__)

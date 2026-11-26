@@ -9,6 +9,11 @@ The newest version is at the top. Every release on GitHub is tagged `vX.Y.Z`.
 
 ## [Unreleased]
 
+## [1.8.3] – 2026-11-26
+
+### Fixed
+- The schema library (probatio or voluptuous) is now taken from Home Assistant's own config validation instead of whichever is installed, so the setup guide, the settings and the websocket API always match the running Home Assistant version.
+
 ## [1.8.2] – 2026-11-26
 
 ### Changed

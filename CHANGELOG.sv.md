@@ -9,6 +9,11 @@ Nyaste versionen står överst. Varje release på GitHub har taggen `vX.Y.Z`.
 
 ## [Ej släppt]
 
+## [1.8.3] – 2026-11-26
+
+### Rättat
+- Schemabiblioteket (probatio eller voluptuous) hämtas nu från Home Assistants egen konfigurationsvalidering i stället för det som råkar vara installerat, så installationsguiden, inställningarna och websocket-gränssnittet alltid matchar den Home Assistant-version som körs.
+
 ## [1.8.2] – 2026-11-26
 
 ### Ändrat

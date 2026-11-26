@@ -13,10 +13,6 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
-try:  # Home Assistant replaced voluptuous with probatio (same API for what we use).
-    import probatio as vol
-except ImportError:  # older Home Assistant versions
-    import voluptuous as vol
 
 from homeassistant.config_entries import ConfigEntry, ConfigFlow, ConfigFlowResult, OptionsFlow
 from homeassistant.const import CONF_API_KEY, CONF_LATITUDE, CONF_LOCATION, CONF_LONGITUDE, CONF_NAME
@@ -78,6 +74,7 @@ from .const import (
     NAME,
 )
 from .geocode import async_search_place
+from .schema_lib import vol
 from .mapdata import MAP_ENTITIES_ICONS, MAP_ENTITIES_MODES
 
 CONF_PLACE = "place"
