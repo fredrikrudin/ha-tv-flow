@@ -234,7 +234,7 @@ views:
         |:-:|:--|--:|--:|--:|
         {% for s in sites[:6] -%}
         {%- set v = s.average_speed -%}
-        | {{ '🔴' if v < 30 else '🟠' if v < 50 else '🟡' if v < 70 else '🟢' }} | {{ s.site_id }} | {{ v | round(0) | int }} | {{ s.flow }} | {{ s.distance_km }} km |
+        | {{ '🔴' if v < 30 else '🟠' if v < 50 else '🟡' if v < 70 else '🟢' }} | {{ s.label or s.site_id }} | {{ v | round(0) | int }} | {{ s.flow }} | {{ s.distance_km }} km |
         {% endfor %}
         {%- else %}
         Inga mätpunkter med hastighet inom radien just nu.

@@ -70,6 +70,12 @@
     }
   }
 
+  /** "1001", or "1001 +3" for a location merged from four sites. */
+  const siteLabel = (a) => {
+    const n = (a.site_ids || []).length - 1;
+    return n > 0 ? `${a.site_id} +${n}` : String(a.site_id);
+  };
+
   const esc = (v) =>
     String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   const num = (v) => (v === null || v === undefined || v === "" || isNaN(Number(v)) ? null : Number(v));
@@ -93,8 +99,14 @@
       (dirs[side] = dirs[side] || []).push(l);
     }
     return Object.entries(dirs).map(([side, recs]) => {
-      const any = recs.filter((r) => r.vehicle_type === "anyVehicle");
-      const counted = any.length ? any : recs;
+      // A merged location holds several SiteIds: pick totals per site, not per direction.
+      const bySite = {};
+      for (const r of recs) (bySite[r.site_id ?? ""] = bySite[r.site_id ?? ""] || []).push(r);
+      const multi = Object.keys(bySite).length > 1;
+      const counted = Object.values(bySite).flatMap((rs) => {
+        const any = rs.filter((r) => r.vehicle_type === "anyVehicle");
+        return any.length ? any : rs;
+      });
       let flow = 0, wsum = 0, wspeed = 0;
       for (const r of counted) {
         const f = Number(r.flow) || 0;
@@ -105,15 +117,17 @@
       // One row per lane (totals preferred), sorted by lane number
       const laneRows = {};
       for (const r of counted) {
-        const key = r.lane || "–";
-        const row = (laneRows[key] = laneRows[key] || { lane: key, flow: 0, speed: null, types: [] });
+        const lane = r.lane || "–";
+        const key = multi ? `${lane}|${r.site_id}` : lane;
+        const row = (laneRows[key] = laneRows[key] || { lane, site: multi ? r.site_id : null, flow: 0, speed: null, types: [] });
         row.flow += Number(r.flow) || 0;
         if (num(r.speed) !== null) row.speed = num(r.speed);
         if (r.vehicle_type) row.types.push(r.vehicle_type);
       }
       return {
         side, flow, speed: wsum ? wspeed / wsum : null,
-        lanes: Object.values(laneRows).sort((a, b) => String(a.lane).localeCompare(String(b.lane), undefined, { numeric: true })),
+        lanes: Object.values(laneRows).sort((a, b) =>
+          String(a.lane).localeCompare(String(b.lane), undefined, { numeric: true }) || String(a.site).localeCompare(String(b.site))),
       };
     }).sort((a, b) => a.side.localeCompare(b.side));
   }
@@ -175,7 +189,8 @@
       for (const s of points) {
         const a = s.attributes;
         if (a.tv_type !== "flow" || (eid && a.config_entry_id !== eid)) continue;
-        if (c.site_id) { if (String(a.site_id) === String(c.site_id)) return s; }
+        // A merged location matches any of its SiteIds.
+        if (c.site_id) { if ((a.site_ids || [a.site_id]).some((id) => String(id) === String(c.site_id))) return s; }
         else if (!best || Number(s.state) < Number(best.state)) best = s;
       }
       return best;
@@ -214,7 +229,7 @@
             <small>${fmt(d.flow, 0, loc)} ${esc(t.vehicles_h)}</small></div>
           ${d.lanes.map((l) => `
             <div class="lane">
-              <span class="ln">${esc(t.lane)} ${esc(String(l.lane).replace(/^lane/i, ""))}</span>
+              <span class="ln">${esc(t.lane)} ${esc(String(l.lane).replace(/^lane/i, ""))}${l.site ? ` <small>· ${esc(l.site)}</small>` : ""}</span>
               <div class="track"><div class="fill" style="width:${Math.min(100, ((l.speed || 0) / MAX_BAR_SPEED) * 100)}%;background:${speedColor(l.speed)}"></div></div>
               <span class="lv">${fmt(l.speed, 0, loc)} km/h</span>
               <span class="lf">${fmt(l.flow, 0, loc)}</span>
@@ -250,7 +265,7 @@
           <div class="head" id="head">
             <div class="gauge"><b>${fmt(speed, 0, loc)}</b><small>km/h</small></div>
             <div>
-              <div class="hn">${esc(t.site)} ${esc(a.site_id)}${c.site_id ? "" : ` <small>(${esc(t.nearest)})</small>`}</div>
+              <div class="hn">${esc(t.site)} ${esc(siteLabel(a))}${c.site_id ? "" : ` <small>(${esc(t.nearest)})</small>`}</div>
               <div class="hs">${fmt(num(a.flow), 0, loc)} ${esc(t.vehicles_h)} · ${esc(t.lowest)} ${fmt(num(a.min_speed), 0, loc)} km/h · ${fmt(num(site.state), 1, loc)} ${esc(t.km_away)}</div>
               ${queue ? `<span class="q">${esc(t.queue_text(fmt(speed, 0, loc)))}</span>` : ""}
             </div>

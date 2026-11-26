@@ -142,7 +142,7 @@ title: My commute
 # queue_speed: 30
 ```
 
-The site id is shown in the map popup (*Site 1234*).
+The site id is shown in the map popup (*Site 1234*). Trafikverket often has one site id per direction or lane at the same place; sites within 100 m of each other are shown as one point (e.g. *Site 1234 +3*) with all their lanes, and `site_id` can be any of them.
 
 Both cards are also in the **Traffic now** section of the automatic dashboard (second in the default order). If you have saved your own order, add it under *Position 1–8*.
 
@@ -283,7 +283,7 @@ Sensors and the weather entity get fixed ids regardless of language. Further loc
 | `sensor.tv_flow_flow_sites` | Number of sites within the radius (also has home position and radius as attributes) |
 | `sensor.tv_flow_total_flow` | Total vehicles/h |
 | `sensor.tv_flow_average_speed` | Flow-weighted average speed |
-| `sensor.tv_flow_lowest_speed` | Lowest average speed of the sites (queue indicator). The attribute `slowest_sites` lists the six slowest sites (site id, speed, flow, distance). |
+| `sensor.tv_flow_lowest_speed` | Lowest average speed of the sites (queue indicator). The attribute `slowest_sites` lists the six slowest locations (site id, label, speed, flow, distance). |
 | `sensor.tv_flow_road_condition` | Worst road condition within the radius. Enum sensor: the state is `normal`, `difficult`, `very_difficult`, `ice_snow` or `no_data` and is shown translated. The attribute `state_text` holds the ready-made text in Home Assistant's language. |
 | `sensor.tv_flow_road_condition_count` | Number of sections with difficult road conditions. The attribute `difficult_roads` lists up to six, worst first (road, condition, warning, measure, place, distance). |
 | `weather.tv_flow` | Local weather from the nearest road weather station. Trafikverket measures the type of precipitation but not cloud cover, so the condition without precipitation is an estimate (fog when visibility < 1 km, otherwise partly cloudy/cloudy). |

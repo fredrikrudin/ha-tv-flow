@@ -88,6 +88,12 @@
     }
   }
 
+  /** "1001", or "1001 +3" for a location merged from four sites. */
+  const siteLabel = (a) => {
+    const n = (a.site_ids || []).length - 1;
+    return n > 0 ? `${a.site_id} +${n}` : String(a.site_id);
+  };
+
   const esc = (v) =>
     String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   const num = (v) => (v === null || v === undefined || v === "" || isNaN(Number(v)) ? null : Number(v));
@@ -312,7 +318,7 @@
         const side = mainSide(a.lanes);
         return `<div class="row" data-entity="${esc(s.entity_id)}">
           <i style="background:${classOf(num(a.average_speed)).color}"></i>
-          <span class="rn">${esc(t.site)} ${esc(a.site_id)}${side ? ` <small>${esc(t.side[side] || side)}</small>` : ""}</span>
+          <span class="rn">${esc(t.site)} ${esc(siteLabel(a))}${side ? ` <small>${esc(t.side[side] || side)}</small>` : ""}</span>
           <span class="rv">${fmt(num(a.average_speed), 0, loc)} km/h</span>
           <span class="rf">${fmt(num(a.flow), 0, loc)} ${esc(t.vehicles_h)}</span>
           <span class="rd">${fmt(num(s.state), 1, loc)} km</span></div>`;

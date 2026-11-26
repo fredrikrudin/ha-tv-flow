@@ -145,6 +145,8 @@ class FlowSite:
     data_quality: str | None
     period_s: int | None
     lanes: list[dict[str, Any]] = field(default_factory=list)
+    # Set when several nearby sites are merged into one map point (see mapdata.merge_flow_sites).
+    site_ids: list[int] = field(default_factory=list)
 
 
 @dataclass

@@ -534,12 +534,13 @@ class TrafikverketMapCard extends HTMLElement {
     const out = [];
     if (a.tv_type === "flow") {
       const r = Math.min(18, 5 + Math.sqrt(a.flow || 0) / 3);
+      const ids = a.site_ids || [a.site_id];
       const lanes = (a.lanes || []).map((l) =>
-        `<tr><td>${esc(t.side[l.side] || l.side || "")}</td><td>${t.lane} ${esc(l.lane ?? "–")}</td><td>${esc(l.vehicle_type)}</td>` +
+        `<tr>${ids.length > 1 ? `<td>${esc(l.site_id ?? "")}</td>` : ""}<td>${esc(t.side[l.side] || l.side || "")}</td><td>${t.lane} ${esc(l.lane ?? "–")}</td><td>${esc(l.vehicle_type)}</td>` +
         `<td>${esc(l.flow)} ${t.vehicles_h}</td><td>${l.speed != null ? esc(l.speed) + " km/h" : "–"}</td></tr>`).join("");
       out.push(L.circleMarker(ll, { radius: r, color: "#fff", weight: 1.5, fillColor: speedColor(a.average_speed), fillOpacity: 0.85 })
         .bindTooltip(`${a.average_speed ?? "–"} km/h · ${a.flow} ${t.vehicles_h}`)
-        .bindPopup(`<b>${t.site} ${esc(a.site_id)}</b><br>${t.flow}: <b>${esc(a.flow)}</b> ${t.vehicles_h}<br>` +
+        .bindPopup(`<b>${t.site} ${esc(ids.join(", "))}</b><br>${t.flow}: <b>${esc(a.flow)}</b> ${t.vehicles_h}<br>` +
           `${t.avg_speed}: <b>${esc(a.average_speed ?? "–")}</b> km/h (${t.lowest} ${esc(a.min_speed ?? "–")})<br>` +
           `${t.quality}: ${esc(a.data_quality ?? "–")} · ${t.measured} ${fmtTime(a.measurement_time, loc)} · ${away}` +
           (lanes ? `<table>${lanes}</table>` : ""), { maxWidth: 360 }));
@@ -937,7 +938,7 @@ const TV_SECTIONS = {
             "|:-:|:--|--:|--:|--:|\n" +
             "{% for s in sites[:6] -%}\n" +
             "{%- set v = s.average_speed -%}\n" +
-            "| {{ '🔴' if v < 30 else '🟠' if v < 50 else '🟡' if v < 70 else '🟢' }} | {{ s.site_id }} | " +
+            "| {{ '🔴' if v < 30 else '🟠' if v < 50 else '🟡' if v < 70 else '🟢' }} | {{ s.label or s.site_id }} | " +
             "{{ v | round(0) | int }} | {{ s.flow }} | {{ s.distance_km }} km |\n" +
             "{% endfor %}\n" +
             "{%- else %}\n" +

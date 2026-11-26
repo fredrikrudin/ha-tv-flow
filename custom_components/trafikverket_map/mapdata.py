@@ -13,11 +13,11 @@ No Home Assistant imports: this module is unit tested on its own.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 import hashlib
 from typing import Any
 
-from .parser import FlowSite, RoadConditionItem, SituationItem, TrafikverketData, WeatherStation
+from .parser import FlowSite, RoadConditionItem, SituationItem, TrafikverketData, WeatherStation, haversine_km
 from .texts import ROAD_CONDITION_KEYS, event_type_text, precipitation_text, text
 
 # Values of the "Map points in Home Assistant" setting
@@ -86,16 +86,70 @@ class MapPoint:
         return hashlib.blake2s(raw.encode(), digest_size=8).hexdigest()
 
 
+# Sites closer than this are one measurement location (one SiteId per direction/lane
+# at the same gantry) and are shown as one map point.
+MERGE_DISTANCE_KM = 0.1
+
+
+def merge_flow_sites(sites: list[FlowSite], max_km: float = MERGE_DISTANCE_KM) -> list[FlowSite]:
+    """Merge sites at (almost) the same position into one site per location.
+
+    The merged site keeps the lowest SiteId (stable map point key), sums the flow,
+    weights the average speed by flow and keeps every lane (tagged with its SiteId).
+    """
+    groups: list[list[FlowSite]] = []
+    for site in sorted(sites, key=lambda s: s.site_id):
+        for group in groups:
+            if haversine_km(group[0].latitude, group[0].longitude, site.latitude, site.longitude) <= max_km:
+                group.append(site)
+                break
+        else:
+            groups.append([site])
+
+    merged: list[FlowSite] = []
+    for group in groups:
+        first = group[0]
+        if len(group) == 1:
+            merged.append(replace(first, site_ids=[first.site_id]))
+            continue
+        w_speed = w_sum = 0.0
+        for s in group:
+            if s.average_speed is not None:
+                weight = max(s.total_flow, 1)
+                w_speed += s.average_speed * weight
+                w_sum += weight
+        mins = [s.min_speed for s in group if s.min_speed is not None]
+        times = [s.measurement_time for s in group if s.measurement_time]
+        quality = next((q for q in ("bad", "degraded", "good") if any(s.data_quality == q for s in group)), None)
+        merged.append(FlowSite(
+            site_id=first.site_id,
+            latitude=round(sum(s.latitude for s in group) / len(group), 6),
+            longitude=round(sum(s.longitude for s in group) / len(group), 6),
+            distance_km=min(s.distance_km for s in group),
+            measurement_time=max(times) if times else None,
+            total_flow=sum(s.total_flow for s in group),
+            average_speed=round(w_speed / w_sum, 1) if w_sum else None,
+            min_speed=min(mins) if mins else None,
+            data_quality=quality,
+            period_s=first.period_s,
+            lanes=[{**lane, "site_id": s.site_id} for s in group for lane in s.lanes],
+            site_ids=[s.site_id for s in group],
+        ))
+    merged.sort(key=lambda s: s.distance_km)
+    return merged
+
+
 def flow_point(item: FlowSite, lang: str) -> MapPoint:
     speed = item.average_speed
     icon = "mdi:car-off" if speed is None else "mdi:car-multiple" if speed < 30 else "mdi:car-speed-limiter"
     return MapPoint(
         key=f"flow_{item.site_id}", kind="flow",
-        name=text(lang, "flow_site", id=item.site_id), icon=icon, picture=f"flow-{speed_class(speed)}",
+        name=text(lang, "flow_site", id=_site_label(item)), icon=icon, picture=f"flow-{speed_class(speed)}",
         latitude=item.latitude, longitude=item.longitude, distance_km=item.distance_km,
         attributes={
             "tv_type": "flow",
             "site_id": item.site_id,
+            "site_ids": item.site_ids or [item.site_id],
             "flow": item.total_flow,
             "flow_unit": "fordon/h",
             "average_speed": item.average_speed,
@@ -107,6 +161,12 @@ def flow_point(item: FlowSite, lang: str) -> MapPoint:
             "lanes": item.lanes,
         },
     )
+
+
+def _site_label(item: FlowSite) -> str:
+    """'1001', or '1001 +3' for a location merged from four sites."""
+    extra = len(item.site_ids) - 1
+    return f"{item.site_id} +{extra}" if extra > 0 else str(item.site_id)
 
 
 def road_point(item: RoadConditionItem, lang: str) -> MapPoint:
@@ -203,7 +263,7 @@ def map_points(data: TrafikverketData | None, lang: str) -> list[MapPoint]:
     if data is None:
         return []
     points: list[MapPoint] = []
-    points += [flow_point(s, lang) for s in data.flow_sites]
+    points += [flow_point(s, lang) for s in merge_flow_sites(data.flow_sites)]
     points += [road_point(r, lang) for r in data.road_conditions]
     points += [situation_point(e, lang) for e in data.situations]
     points += [weather_point(w, lang) for w in data.weather_stations]
@@ -231,8 +291,10 @@ def slowest_sites(data: TrafikverketData | None, limit: int = 6) -> list[dict[st
     """Slowest flow sites, for dashboard lists (no geo_location entities needed)."""
     if data is None:
         return []
-    sites = sorted((s for s in data.flow_sites if s.average_speed is not None), key=lambda s: s.average_speed)
-    return [{"site_id": s.site_id, "average_speed": s.average_speed, "flow": s.total_flow,
+    sites = sorted((s for s in merge_flow_sites(data.flow_sites) if s.average_speed is not None),
+                   key=lambda s: s.average_speed)
+    return [{"site_id": s.site_id, "site_ids": s.site_ids, "label": _site_label(s),
+             "average_speed": s.average_speed, "flow": s.total_flow,
              "distance_km": s.distance_km} for s in sites[:limit]]
 
 

@@ -9,6 +9,14 @@ The newest version is at the top. Every release on GitHub is tagged `vX.Y.Z`.
 
 ## [Unreleased]
 
+## [1.8.2] – 2026-11-26
+
+### Changed
+- **Sites at the same place are merged into one map point.** Trafikverket often has one site id per direction or lane at the same gantry, which showed up as several stacked symbols. Sites within 100 m of each other now form one point – on Home Assistant's map and in all cards – named after the lowest id with the number of merged sites (e.g. *Traffic flow 1234 +3*). Flow is summed, speed is weighted by flow, and the popup and the *Measurement site* card list every lane with its site id.
+- The *Measurement site* card finds a merged location by any of its site ids (`site_id`).
+- `slowest_sites` lists locations instead of single sites (new keys `site_ids` and `label`).
+- Old `geo_location` entities of merged sites are removed automatically.
+
 ## [1.8.1] – 2026-11-26
 
 ### Fixed

@@ -9,6 +9,14 @@ Nyaste versionen står överst. Varje release på GitHub har taggen `vX.Y.Z`.
 
 ## [Ej släppt]
 
+## [1.8.2] – 2026-11-26
+
+### Ändrat
+- **Mätpunkter på samma plats slås ihop till en kartpunkt.** Trafikverket har ofta ett id per riktning eller körfält vid samma mätplats, vilket gav flera symboler ovanpå varandra. Mätpunkter inom 100 m från varandra blir nu en punkt – både på Home Assistants karta och i alla kort – med lägsta id:t och antalet sammanslagna (t.ex. *Trafikflöde 1234 +3*). Flödet summeras, hastigheten viktas efter flöde, och popup-rutan och kortet *Mätpunkt* visar alla körfält med sitt id.
+- Kortet *Mätpunkt* hittar en sammanslagen plats via vilket av dess id som helst (`site_id`).
+- `slowest_sites` listar mätplatser i stället för enskilda mätpunkter (nya nycklar `site_ids` och `label`).
+- Gamla `geo_location`-entiteter för sammanslagna mätpunkter tas bort automatiskt.
+
 ## [1.8.1] – 2026-11-26
 
 ### Rättat

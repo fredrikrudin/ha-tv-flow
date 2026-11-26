@@ -144,7 +144,7 @@ title: Min pendling
 # queue_speed: 30
 ```
 
-Mätpunktens id syns i kartans popup-ruta (*Mätpunkt 1234*).
+Mätpunktens id syns i kartans popup-ruta (*Mätpunkt 1234*). Trafikverket har ofta ett id per riktning eller körfält på samma plats; mätpunkter inom 100 m från varandra visas som en punkt (t.ex. *Mätpunkt 1234 +3*) med alla körfält, och `site_id` kan vara vilket av dem som helst.
 
 Båda korten finns också i sektionen **Trafikläge** i den automatiska dashboarden (andra plats som standard). Har du sparat en egen ordning lägger du till den under *Plats 1–8*.
 
@@ -285,7 +285,7 @@ Sensorerna och väderentiteten får fasta id:n oavsett språk. Lägger du till f
 | `sensor.tv_flow_flow_sites` | Antal mätpunkter i radien (har även hemposition och radie som attribut) |
 | `sensor.tv_flow_total_flow` | Summa fordon/h |
 | `sensor.tv_flow_average_speed` | Flödesviktad medelhastighet |
-| `sensor.tv_flow_lowest_speed` | Lägsta medelhastighet bland mätpunkterna (köindikator). Attributet `slowest_sites` listar de sex långsammaste mätpunkterna (mätpunkts-id, hastighet, flöde, avstånd). |
+| `sensor.tv_flow_lowest_speed` | Lägsta medelhastighet bland mätpunkterna (köindikator). Attributet `slowest_sites` listar de sex långsammaste mätplatserna (mätpunkts-id, etikett, hastighet, flöde, avstånd). |
 | `sensor.tv_flow_road_condition` | Sämsta väglaget i radien. Enum-sensor: tillståndet är `normal`, `difficult`, `very_difficult`, `ice_snow` eller `no_data` och visas översatt. Attributet `state_text` innehåller den färdiga texten på Home Assistants språk. |
 | `sensor.tv_flow_road_condition_count` | Antal sträckor med besvärligt väglag. Attributet `difficult_roads` listar upp till sex, värst först (väg, väglag, varning, åtgärd, plats, avstånd). |
 | `weather.tv_flow` | Lokalt väder från närmaste vägväderstation. Trafikverket mäter nederbördstyp men inte molnighet, så väderläget utan nederbörd är en uppskattning (dimma vid sikt < 1 km, annars växlande/mulet). |

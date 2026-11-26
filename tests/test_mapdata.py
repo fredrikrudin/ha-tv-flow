@@ -60,4 +60,26 @@ slow = md.slowest_sites(data)
 assert [s["site_id"] for s in slow] == [2, 1] and slow[0]["average_speed"] == 22.0
 roads = md.difficult_roads(data)
 assert len(roads) == 1 and roads[0]["road_number"] == "Väg 83" and roads[0]["warning"] == "Halka"
+
+# nearby sites (one SiteId per direction/lane at the same gantry) become one map point
+rec = lambda sid, lon, lat, speed, flow, side: {"SiteId": sid, "MeasurementTime": "2026-11-26T20:55:00+01:00",
+    "VehicleType": "anyVehicle", "VehicleFlowRate": flow, "AverageVehicleSpeed": speed, "MeasurementSide": side,
+    "SpecificLane": "lane1", "Geometry": {"WGS84": f"POINT ({lon} {lat})"}}
+gantry = {"RESPONSE": {"RESULT": [{"TrafficFlow": [
+    rec(11, 16.1800, 61.7200, 80.0, 300, "northBound"), rec(12, 16.1801, 61.7201, 70.0, 100, "northBound"),
+    rec(13, 16.1803, 61.7199, 90.0, 300, "southBound"), rec(14, 16.1802, 61.7202, 60.0, 300, "southBound"),
+    rec(20, 16.2500, 61.7000, 50.0, 200, "eastBound")]}]}}
+gd = p.parse_response(gantry, ["TrafficFlow"], (61.71, 16.17), 10, 30, timedelta(minutes=60), now)
+assert len(gd.flow_sites) == 5
+merged = md.merge_flow_sites(gd.flow_sites)
+assert len(merged) == 2, merged
+g = next(s for s in merged if s.site_id == 11)
+assert g.site_ids == [11, 12, 13, 14] and g.total_flow == 1000 and g.min_speed == 60.0
+assert g.average_speed == round((80*300 + 70*100 + 90*300 + 60*300) / 1000, 1)
+assert len(g.lanes) == 4 and {l["site_id"] for l in g.lanes} == {11, 12, 13, 14}
+gp = {pt.key: pt for pt in md.map_points(gd, "en")}
+assert set(gp) == {"flow_11", "flow_20"}, set(gp)
+assert gp["flow_11"].name.endswith("11 +3") and gp["flow_11"].attributes["site_ids"] == [11, 12, 13, 14]
+assert gp["flow_20"].attributes["site_ids"] == [20] and gp["flow_20"].name.endswith("20")
+assert [s["label"] for s in md.slowest_sites(gd)] == ["20", "11 +3"]
 print("MAPDATA OK")
