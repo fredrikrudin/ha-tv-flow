@@ -150,6 +150,7 @@
           "position_5": "Plats 5",
           "position_6": "Plats 6",
           "position_7": "Plats 7",
+          "position_8": "Plats 8",
           "map_height": "Kartans höjd"
         },
         "data_description": {
@@ -275,6 +276,7 @@
     "dashboard_section": {
       "options": {
         "summary": "Vägöversikt",
+        "traffic": "Trafikläge (aktuell trafik och närmaste mätpunkt)",
         "weather": "Väder vid vägen",
         "road": "Väglag",
         "map": "Trafikkarta",

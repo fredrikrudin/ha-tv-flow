@@ -221,7 +221,7 @@ class TrafikverketMapCard extends HTMLElement {
     this._hass = hass;
     this._t = TV_I18N[tvLang(hass)];
     if (!this._built) this._build();
-    else this._scheduleUpdate();
+    else if (this._dataChanged()) this._scheduleUpdate();
   }
 
   _build() {
@@ -317,7 +317,8 @@ class TrafikverketMapCard extends HTMLElement {
     }).observe(el);
     this._area = null;
     this._areaKey = "";
-    this._lastSig = "";
+    this._homeSig = null;
+    this._markers = new Map();
     this._update();
   }
 
@@ -373,8 +374,7 @@ class TrafikverketMapCard extends HTMLElement {
       this._hidden.has(k) ? this._hidden.delete(k) : this._hidden.add(k);
     }
     this._saveLegendState();
-    this._lastSig = ""; // force redraw
-    this._update();
+    this._update(); // hidden categories are removed/added marker by marker
   }
 
   _renderLegend(counts) {
@@ -454,13 +454,125 @@ class TrafikverketMapCard extends HTMLElement {
     this._pending = setTimeout(() => { this._pending = null; this._update(); }, 500);
   }
 
+  /**
+   * Cheap check run on every hass update (Home Assistant sends one for any state
+   * change anywhere). Trafikverket data only changes when the integration fetches,
+   * so we watch the home sensor and the data usage sensor (its `requests`
+   * attribute grows with every fetch) instead of scanning all entities.
+   */
+  _dataChanged() {
+    const states = this._hass.states;
+    const entry = this._config.entry;
+    let home = this._homeId && states[this._homeId];
+    if (!home || !home.attributes.trafikverket_home || (entry && home.attributes.config_entry_id !== entry)) {
+      home = Object.values(states).find(
+        (s) => s.attributes.trafikverket_home && (!entry || s.attributes.config_entry_id === entry));
+      this._homeId = home ? home.entity_id : null;
+    }
+    const usageId = home && home.attributes.entity_ids && home.attributes.entity_ids.data_usage;
+    const usage = usageId ? states[usageId] : null;
+    const now = Date.now();
+    const sig = [home && home.last_updated, usage && usage.last_updated, this._t && this._t.locale,
+      this._hass.themes && this._hass.themes.darkMode].join("|");
+    // Fallback: a full refresh at least once a minute (e.g. without the usage sensor).
+    if (sig === this._triggerSig && now - (this._lastFull || 0) < 60000) return false;
+    this._triggerSig = sig;
+    this._lastFull = now;
+    return true;
+  }
+
   _collect() {
     const entry = this._config.entry;
-    const states = Object.values(this._hass.states);
+    const states = this._hass.states;
+    const home = this._homeId ? states[this._homeId] : null;
     const mine = (s) => !entry || s.attributes.config_entry_id === entry;
-    const home = states.find((s) => s.attributes.trafikverket_home && mine(s));
-    const geo = states.filter((s) => s.entity_id.startsWith("geo_location.") && s.attributes.tv_type && mine(s));
+    const geo = [];
+    for (const id in states) {
+      if (id.startsWith("geo_location.")) {
+        const s = states[id];
+        if (s.attributes.tv_type && mine(s)) geo.push(s);
+      }
+    }
     return { home, geo };
+  }
+
+  _removeMarker(id) {
+    const m = this._markers.get(id);
+    if (!m) return;
+    m.layers.forEach((l) => this._layers[m.group].removeLayer(l));
+    this._markers.delete(id);
+  }
+
+  /** Build the Leaflet layers for one entity (not yet added to the map). */
+  _buildLayers(s, ctx) {
+    const L = this._L;
+    const { t, loc, markerStyle } = ctx;
+    const a = s.attributes;
+    const ll = [a.latitude, a.longitude];
+    const away = `${esc(s.state)} ${t.km_away}`;
+    const out = [];
+    if (a.tv_type === "flow") {
+      const r = Math.min(18, 5 + Math.sqrt(a.flow || 0) / 3);
+      const lanes = (a.lanes || []).map((l) =>
+        `<tr><td>${esc(t.side[l.side] || l.side || "")}</td><td>${t.lane} ${esc(l.lane ?? "–")}</td><td>${esc(l.vehicle_type)}</td>` +
+        `<td>${esc(l.flow)} ${t.vehicles_h}</td><td>${l.speed != null ? esc(l.speed) + " km/h" : "–"}</td></tr>`).join("");
+      out.push(L.circleMarker(ll, { radius: r, color: "#fff", weight: 1.5, fillColor: speedColor(a.average_speed), fillOpacity: 0.85 })
+        .bindTooltip(`${a.average_speed ?? "–"} km/h · ${a.flow} ${t.vehicles_h}`)
+        .bindPopup(`<b>${t.site} ${esc(a.site_id)}</b><br>${t.flow}: <b>${esc(a.flow)}</b> ${t.vehicles_h}<br>` +
+          `${t.avg_speed}: <b>${esc(a.average_speed ?? "–")}</b> km/h (${t.lowest} ${esc(a.min_speed ?? "–")})<br>` +
+          `${t.quality}: ${esc(a.data_quality ?? "–")} · ${t.measured} ${fmtTime(a.measurement_time, loc)} · ${away}` +
+          (lanes ? `<table>${lanes}</table>` : ""), { maxWidth: 360 }));
+    } else if (a.tv_type === "road") {
+      const color = ROAD_COLORS[a.condition_code] || "#757575";
+      // condition_text etc. come from Trafikverket (Swedish); the class name is localized.
+      const cls = t.road_text[a.condition_code] || a.condition_text || "";
+      const popup = `<b>${esc(a.road_number || t.road)}: ${esc(cls)}</b><br>` +
+        (a.condition_text && a.condition_text !== cls ? `${esc(a.condition_text)}<br>` : "") +
+        (a.condition_info ? esc(a.condition_info) + "<br>" : "") +
+        (a.warning ? `${t.warning}: ${esc(a.warning)}<br>` : "") +
+        (a.cause ? `${t.cause}: ${esc(a.cause)}<br>` : "") +
+        (a.measure ? `${t.measure}: ${esc(a.measure)}<br>` : "") +
+        (a.location_text ? `<i>${esc(a.location_text)}</i>` : "");
+      const lines = a.lines && a.lines.length ? a.lines : [[ll]];
+      for (const line of lines) {
+        out.push(line.length > 1
+          ? L.polyline(line, { color, weight: a.condition_code > 1 ? 6 : 4, opacity: a.condition_code > 1 ? 0.9 : 0.5 }).bindPopup(popup)
+          : L.circleMarker(line[0], { radius: 5, color, fillOpacity: 0.8 }).bindPopup(popup));
+      }
+    } else if (a.tv_type === "situation") {
+      const st = SIT_STYLE[a.message_type];
+      const typeText = t.event_text[a.message_type] || a.message_type;
+      const popup =
+        `<b>${esc(typeText)}${a.road_number ? " – " + esc(a.road_number) : ""}</b><br>` +
+        (a.header ? `${esc(a.header)}<br>` : "") +
+        (a.message && a.message !== a.header ? `<small>${esc(a.message)}</small><br>` : "") +
+        (a.location_text ? `<i>${esc(a.location_text)}</i><br>` : "") +
+        (a.temporary_limit ? `${t.temporary_limit}: ${esc(a.temporary_limit)}<br>` : "") +
+        (a.severity_text ? `${t.impact}: ${esc(a.severity_text)}<br>` : "") +
+        `${t.from} ${fmtTime(a.start_time, loc)}${a.end_time ? ` ${t.to} ` + fmtTime(a.end_time, loc) : ""} · ${away}`;
+      for (const line of a.lines || []) {
+        if (line.length > 1) out.push(L.polyline(line, { color: st.color, weight: 5, opacity: 0.8, dashArray: "6 6" }).bindPopup(popup));
+      }
+      // Zero-size icon; the inner element centres itself on the position (works for any label width).
+      const html = markerStyle === "text"
+        ? `<div class="sit-text" style="background:${st.color}">${esc(typeText)}</div>`
+        : `<div class="sit" style="background:${st.color}"><ha-icon icon="${st.icon}"></ha-icon></div>`;
+      const icon = L.divIcon({ className: "", html, iconSize: [0, 0], iconAnchor: [0, 0] });
+      out.push(L.marker(ll, { icon, zIndexOffset: a.is_warning ? 1000 : 300, title: typeText }).bindPopup(popup, { maxWidth: 320 }));
+    } else if (a.tv_type === "weather") {
+      const temp = a.air_temperature != null ? `${Math.round(a.air_temperature * 10) / 10}°` : "–";
+      const icon = L.divIcon({ className: "", html: `<div class="temp">${esc(temp)}</div>`, iconSize: null, iconAnchor: [18, 10] });
+      out.push(L.marker(ll, { icon, zIndexOffset: 500 })
+        .bindPopup(`<b>${esc(a.station)}</b><br>` +
+          `${t.air}: ${esc(a.air_temperature ?? "–")} °C · ${t.surface}: ${esc(a.surface_temperature ?? "–")} °C<br>` +
+          `${t.humidity}: ${esc(a.humidity ?? "–")} % · ${t.wind}: ${esc(a.wind_speed ?? "–")} m/s (${t.gusts} ${esc(a.wind_gust ?? "–")}) ` +
+          `${a.wind_direction != null ? esc(a.wind_direction) + "°" : ""}<br>` +
+          `${t.precipitation}: ${esc(a.precipitation_text ?? "–")}` +
+          (a.precipitation_30min != null ? ` (${esc(a.precipitation_30min)} mm/30 min)` : "") + "<br>" +
+          (a.grip != null ? `${t.grip}: ${esc(a.grip)}<br>` : "") +
+          `${t.measured} ${fmtTime(a.sample, loc)} · ${away}`));
+    }
+    return out;
   }
 
   _update() {
@@ -468,31 +580,34 @@ class TrafikverketMapCard extends HTMLElement {
     const L = this._L;
     const t = this._t;
     const loc = t.locale;
+    if (!this._homeId) this._dataChanged();
     const { home, geo } = this._collect();
     const dark = this._isDark(home);
-    const sig = (home ? home.last_updated : "") + geo.map((s) => s.entity_id + s.last_updated).join("|") + dark + loc;
-    if (sig === this._lastSig) return;
-    this._lastSig = sig;
-
     this.shadowRoot.getElementById("map").classList.toggle("dark", dark);
-    Object.values(this._layers).forEach((l) => l.clearLayers());
+    this._markers = this._markers || new Map();
 
-    if (home) {
-      const a = home.attributes;
-      const center = [a.home_latitude, a.home_longitude];
-      L.circle(center, { radius: a.radius_km * 1000, color: "#1976d2", weight: 1, fill: true, fillOpacity: 0.04, interactive: false })
-        .addTo(this._layers.home);
-      L.circleMarker(center, { radius: 6, color: "#fff", weight: 2, fillColor: "#1976d2", fillOpacity: 1 })
-        .bindTooltip(t.home_tooltip)
-        .on("click", () => this._fitArea(true, true))
-        .addTo(this._layers.home);
-      this._area = { center, radiusKm: a.radius_km, marginKm: Number(a.map_zoom_margin_km) || 0 };
-      // Zoom to the area the first time and whenever position, radius or margin changes.
-      const key = `${a.home_latitude},${a.home_longitude},${a.radius_km},${a.map_zoom_margin_km}`;
-      if (key !== this._areaKey) {
-        this._areaKey = key;
-        this._userMoved = false;
-        this._fitArea(false);
+    // Home marker and radius: only redrawn when the home sensor or language changes.
+    const homeSig = home ? `${home.last_updated}|${loc}` : "";
+    if (homeSig !== this._homeSig) {
+      this._homeSig = homeSig;
+      this._layers.home.clearLayers();
+      if (home) {
+        const a = home.attributes;
+        const center = [a.home_latitude, a.home_longitude];
+        L.circle(center, { radius: a.radius_km * 1000, color: "#1976d2", weight: 1, fill: true, fillOpacity: 0.04, interactive: false })
+          .addTo(this._layers.home);
+        L.circleMarker(center, { radius: 6, color: "#fff", weight: 2, fillColor: "#1976d2", fillOpacity: 1 })
+          .bindTooltip(t.home_tooltip)
+          .on("click", () => this._fitArea(true, true))
+          .addTo(this._layers.home);
+        this._area = { center, radiusKm: a.radius_km, marginKm: Number(a.map_zoom_margin_km) || 0 };
+        // Zoom to the area the first time and whenever position, radius or margin changes.
+        const key = `${a.home_latitude},${a.home_longitude},${a.radius_km},${a.map_zoom_margin_km}`;
+        if (key !== this._areaKey) {
+          this._areaKey = key;
+          this._userMoved = false;
+          this._fitArea(false);
+        }
       }
     }
 
@@ -502,104 +617,55 @@ class TrafikverketMapCard extends HTMLElement {
     this._showRoadWorks = cfgRW !== undefined && cfgRW !== null ? cfgRW !== false && cfgRW !== "false"
       : ha.show_road_works !== false;
     const markerStyle = this._config.event_markers || ha.event_marker_style || "symbols";
+    const ctx = { t, loc, markerStyle };
+    // Anything that changes how a marker looks, apart from its own data.
+    const optSig = `${loc}|${markerStyle}`;
 
-    let nFlow = 0, nRoad = 0, nWeather = 0, nSit = 0, newest = null;
+    const n = { flow: 0, road: 0, situation: 0, weather: 0 };
+    let newest = null;
     const counts = {};
     const hidden = this._hidden || new Set();
-    const visible = (key) => {
-      counts[key] = (counts[key] || 0) + 1;
-      return !hidden.has(key);
-    };
+    const seen = new Set();
+    let redrawn = 0;
     for (const s of geo) {
       const a = s.attributes;
-      const ll = [a.latitude, a.longitude];
-      const away = `${esc(s.state)} ${t.km_away}`;
+      let cat = null;
+      let group = null;
       if (a.tv_type === "flow" && this._config.show_flow) {
-        if (!visible(speedKey(a.average_speed))) continue;
-        nFlow++;
-        const r = Math.min(18, 5 + Math.sqrt(a.flow || 0) / 3);
-        const lanes = (a.lanes || []).map((l) =>
-          `<tr><td>${esc(t.side[l.side] || l.side || "")}</td><td>${t.lane} ${esc(l.lane ?? "–")}</td><td>${esc(l.vehicle_type)}</td>` +
-          `<td>${esc(l.flow)} ${t.vehicles_h}</td><td>${l.speed != null ? esc(l.speed) + " km/h" : "–"}</td></tr>`).join("");
-        L.circleMarker(ll, { radius: r, color: "#fff", weight: 1.5, fillColor: speedColor(a.average_speed), fillOpacity: 0.85 })
-          .bindTooltip(`${a.average_speed ?? "–"} km/h · ${a.flow} ${t.vehicles_h}`)
-          .bindPopup(`<b>${t.site} ${esc(a.site_id)}</b><br>${t.flow}: <b>${esc(a.flow)}</b> ${t.vehicles_h}<br>` +
-            `${t.avg_speed}: <b>${esc(a.average_speed ?? "–")}</b> km/h (${t.lowest} ${esc(a.min_speed ?? "–")})<br>` +
-            `${t.quality}: ${esc(a.data_quality ?? "–")} · ${t.measured} ${fmtTime(a.measurement_time, loc)} · ${away}` +
-            (lanes ? `<table>${lanes}</table>` : ""), { maxWidth: 360 })
-          .addTo(this._layers.flow);
-        if (a.measurement_time && (!newest || a.measurement_time > newest)) newest = a.measurement_time;
+        cat = speedKey(a.average_speed); group = "flow";
       } else if (a.tv_type === "road" && this._config.show_road) {
-        if (!visible(`road:${ROAD_COLORS[a.condition_code] ? a.condition_code : 1}`)) continue;
-        nRoad++;
-        const color = ROAD_COLORS[a.condition_code] || "#757575";
-        // condition_text etc. come from Trafikverket (Swedish); the class name is localized.
-        const cls = t.road_text[a.condition_code] || a.condition_text || "";
-        const popup = `<b>${esc(a.road_number || t.road)}: ${esc(cls)}</b><br>` +
-          (a.condition_text && a.condition_text !== cls ? `${esc(a.condition_text)}<br>` : "") +
-          (a.condition_info ? esc(a.condition_info) + "<br>" : "") +
-          (a.warning ? `${t.warning}: ${esc(a.warning)}<br>` : "") +
-          (a.cause ? `${t.cause}: ${esc(a.cause)}<br>` : "") +
-          (a.measure ? `${t.measure}: ${esc(a.measure)}<br>` : "") +
-          (a.location_text ? `<i>${esc(a.location_text)}</i>` : "");
-        const lines = a.lines && a.lines.length ? a.lines : [[ll]];
-        for (const line of lines) {
-          if (line.length > 1) {
-            L.polyline(line, { color, weight: a.condition_code > 1 ? 6 : 4, opacity: a.condition_code > 1 ? 0.9 : 0.5 })
-              .bindPopup(popup).addTo(this._layers.road);
-          } else {
-            L.circleMarker(line[0], { radius: 5, color, fillOpacity: 0.8 }).bindPopup(popup).addTo(this._layers.road);
-          }
-        }
+        cat = `road:${ROAD_COLORS[a.condition_code] ? a.condition_code : 1}`; group = "road";
       } else if (a.tv_type === "situation" && this._config.show_situations && SIT_STYLE[a.message_type]) {
         if (a.message_type === "Vägarbete" && !this._showRoadWorks) continue;
-        if (!visible(`event:${a.message_type}`)) continue;
-        nSit++;
-        const st = SIT_STYLE[a.message_type];
-        const typeText = t.event_text[a.message_type] || a.message_type;
-        const popup =
-          `<b>${esc(typeText)}${a.road_number ? " – " + esc(a.road_number) : ""}</b><br>` +
-          (a.header ? `${esc(a.header)}<br>` : "") +
-          (a.message && a.message !== a.header ? `<small>${esc(a.message)}</small><br>` : "") +
-          (a.location_text ? `<i>${esc(a.location_text)}</i><br>` : "") +
-          (a.temporary_limit ? `${t.temporary_limit}: ${esc(a.temporary_limit)}<br>` : "") +
-          (a.severity_text ? `${t.impact}: ${esc(a.severity_text)}<br>` : "") +
-          `${t.from} ${fmtTime(a.start_time, loc)}${a.end_time ? ` ${t.to} ` + fmtTime(a.end_time, loc) : ""} · ${away}`;
-        for (const line of a.lines || []) {
-          if (line.length > 1) {
-            L.polyline(line, { color: st.color, weight: 5, opacity: 0.8, dashArray: "6 6" }).bindPopup(popup).addTo(this._layers.situation);
-          }
-        }
-        // Zero-size icon; the inner element centres itself on the position (works for any label width).
-        const html = markerStyle === "text"
-          ? `<div class="sit-text" style="background:${st.color}">${esc(typeText)}</div>`
-          : `<div class="sit" style="background:${st.color}"><ha-icon icon="${st.icon}"></ha-icon></div>`;
-        const icon = L.divIcon({ className: "", html, iconSize: [0, 0], iconAnchor: [0, 0] });
-        L.marker(ll, { icon, zIndexOffset: a.is_warning ? 1000 : 300, title: typeText })
-          .bindPopup(popup, { maxWidth: 320 }).addTo(this._layers.situation);
+        cat = `event:${a.message_type}`; group = "situation";
       } else if (a.tv_type === "weather" && this._config.show_weather) {
-        if (!visible("weather")) continue;
-        nWeather++;
-        const temp = a.air_temperature != null ? `${Math.round(a.air_temperature * 10) / 10}°` : "–";
-        const icon = L.divIcon({ className: "", html: `<div class="temp">${esc(temp)}</div>`, iconSize: null, iconAnchor: [18, 10] });
-        L.marker(ll, { icon, zIndexOffset: 500 })
-          .bindPopup(`<b>${esc(a.station)}</b><br>` +
-            `${t.air}: ${esc(a.air_temperature ?? "–")} °C · ${t.surface}: ${esc(a.surface_temperature ?? "–")} °C<br>` +
-            `${t.humidity}: ${esc(a.humidity ?? "–")} % · ${t.wind}: ${esc(a.wind_speed ?? "–")} m/s (${t.gusts} ${esc(a.wind_gust ?? "–")}) ` +
-            `${a.wind_direction != null ? esc(a.wind_direction) + "°" : ""}<br>` +
-            `${t.precipitation}: ${esc(a.precipitation_text ?? "–")}` +
-            (a.precipitation_30min != null ? ` (${esc(a.precipitation_30min)} mm/30 min)` : "") + "<br>" +
-            (a.grip != null ? `${t.grip}: ${esc(a.grip)}<br>` : "") +
-            `${t.measured} ${fmtTime(a.sample, loc)} · ${away}`)
-          .addTo(this._layers.weather);
+        cat = "weather"; group = "weather";
+      } else {
+        continue;
       }
+      counts[cat] = (counts[cat] || 0) + 1;
+      if (hidden.has(cat)) continue;
+      n[group]++;
+      if (group === "flow" && a.measurement_time && (!newest || a.measurement_time > newest)) newest = a.measurement_time;
+      seen.add(s.entity_id);
+
+      const sig = `${s.last_updated}|${optSig}`;
+      const cached = this._markers.get(s.entity_id);
+      if (cached && cached.sig === sig && cached.group === group) continue;
+      this._removeMarker(s.entity_id);
+      const layers = this._buildLayers(s, ctx);
+      layers.forEach((l) => l.addTo(this._layers[group]));
+      this._markers.set(s.entity_id, { sig, group, layers });
+      redrawn++;
     }
+    for (const id of [...this._markers.keys()]) if (!seen.has(id)) this._removeMarker(id);
+    this._redrawn = redrawn; // for diagnostics/tests
 
     this._renderLegend(counts);
 
     const footer = this.shadowRoot.getElementById("footer");
     footer.textContent = home
-      ? t.footer({ flow: nFlow, road: nRoad, sit: nSit, weather: nWeather, hidden: hidden.size,
+      ? t.footer({ flow: n.flow, road: n.road, sit: n.situation, weather: n.weather, hidden: hidden.size,
                    newest: fmtTime(newest, loc), interval: home.attributes.scan_interval_min })
       : t.not_found;
   }
@@ -626,11 +692,11 @@ window.customCards.push({
  * Texts follow Home Assistant's language (Swedish or English).
  * ========================================================================== */
 
-const TV_SECTION_ORDER = ["summary", "weather", "road", "map", "now", "history", "data"];
+const TV_SECTION_ORDER = ["summary", "traffic", "weather", "road", "map", "now", "history", "data"];
 
 const TV_DASH_I18N = {
   sv: {
-    title: "Trafik", summary: "Vägöversikt", weather: "Väder vid vägen", local_weather: "Lokalt väder",
+    title: "Trafik", summary: "Vägöversikt", traffic: "Trafikläge", nearest_site: "Närmaste mätpunkt", weather: "Väder vid vägen", local_weather: "Lokalt väder",
     air: "Luft", surface: "Vägbana", wind: "Vind", humidity: "Luftfuktighet", precipitation: "Nederbörd",
     last_30: "Senaste 30 min", visibility: "Sikt", grip: "Friktion",
     station_line: (w) =>
@@ -662,7 +728,7 @@ const TV_DASH_I18N = {
       "**Inställningar → Enheter och tjänster**, och ladda sedan om sidan.",
   },
   en: {
-    title: "Traffic", summary: "Road status", weather: "Roadside weather", local_weather: "Local weather",
+    title: "Traffic", summary: "Road status", traffic: "Traffic now", nearest_site: "Nearest site", weather: "Roadside weather", local_weather: "Local weather",
     air: "Air", surface: "Road surface", wind: "Wind", humidity: "Humidity", precipitation: "Precipitation",
     last_30: "Last 30 min", visibility: "Visibility", grip: "Grip",
     station_line: (w) =>
@@ -732,6 +798,18 @@ const TV_SECTIONS = {
       cards: [
         { type: "heading", heading: d.summary, icon: "mdi:road-variant" },
         { type: "custom:trafikverket-road-card", entry, max_roads: 3, grid_options: { columns: "full" } },
+      ],
+    };
+  },
+
+  traffic(ids, entry, home, d) {
+    if (!ids.average_speed && !ids.flow_sites) return null;
+    return {
+      type: "grid",
+      cards: [
+        { type: "heading", heading: d.traffic, icon: "mdi:car-multiple" },
+        { type: "custom:trafikverket-traffic-card", entry, max_sites: 5, hours: 3, grid_options: { columns: "full" } },
+        { type: "custom:trafikverket-site-card", entry, title: d.nearest_site, grid_options: { columns: "full" } },
       ],
     };
   },

@@ -15,6 +15,7 @@ Custom integration för Home Assistant som hämtar **trafikflöden**, **väglag*
 - 📍 **Valfri radie** runt hemmet eller en sökt ort.
 - 📉 **Begränsad datamängd** – du väljer uppdateringsintervall, max antal objekt, vilka datatyper som hämtas och att bara nödvändiga fält skickas. Allt hämtas i **ett** anrop per intervall.
 - 🛒 **Installeras via Marketplace** (Home Assistant 2026.11+) eller HACS.
+- 📊 **Trafikwidgets** – trafikstatus med trend och graf, och valfri mätpunkt per riktning och körfält.
 - 🗂️ **Automatisk dashboard** – välj ordning och innehåll i inställningarna.
 - 🧭 **Installationsguide** i flera steg: API-nyckel → sök ort eller välj på karta → radie → datamängd.
 - 🌍 **Svenska och engelska** – gränssnittet följer Home Assistants språk.
@@ -110,6 +111,43 @@ Kartan startar inzoomad på **vald radie**. Vill du se lite mer av omgivningen a
 
 Kortet laddar kartbiblioteket Leaflet från `unpkg.com` och kartbilder från OpenStreetMap, så webbläsaren behöver internetåtkomst.
 
+### Trafikläge nu – aktuell trafik i en blick
+
+`custom:trafikverket-traffic-card` sammanfattar trafiken inom radien just nu:
+
+- **Status** i färg: *Fritt flöde*, *Tät trafik* eller *Köbildning*, med hur många mätpunkter det gäller.
+- **Medelhastighet, lägsta hastighet och totalt flöde**, med trendpil jämfört med för 30 minuter sedan (från historiken).
+- En **stapel** som visar hur mätpunkterna fördelar sig på hastighetsklasserna (samma färger som kartan).
+- En **hastighetsgraf** för de senaste timmarna.
+- De **långsammaste mätpunkterna** med riktning, hastighet, flöde och avstånd. Klicka på en rad för detaljer.
+
+```yaml
+type: custom:trafikverket-traffic-card
+title: Trafikläge nu
+max_sites: 5        # antal långsammaste mätpunkter (0 = ingen lista)
+hours: 3            # grafens längd i timmar (0 = ingen graf)
+queue_speed: 30     # km/h – under detta räknas en mätpunkt som kö
+slow_speed: 50      # km/h – under detta räknas en mätpunkt som tät trafik
+# entry: <config_entry_id>
+```
+
+Statusen är en uppskattning: Trafikverket anger inte hastighetsgränser, så en mätpunkt på en 50-gata kan se ut som tät trafik i normal fart. Justera `queue_speed` och `slow_speed` efter dina vägar. Graf och trend kräver historiken (recorder, på som standard).
+
+### Mätpunkt – en mätpunkt i detalj
+
+`custom:trafikverket-site-card` visar en mätpunkt, till exempel på din pendlingsväg: hastighet och flöde totalt, och hastighet och flöde **per riktning och körfält**, med kövarning under `queue_speed`.
+
+```yaml
+type: custom:trafikverket-site-card
+site_id: 1234       # utelämna för närmaste mätpunkt
+title: Min pendling
+# queue_speed: 30
+```
+
+Mätpunktens id syns i kartans popup-ruta (*Mätpunkt 1234*) och i attributet `site_id` på mätpunktens `geo_location`-entitet.
+
+Båda korten finns också i sektionen **Trafikläge** i den automatiska dashboarden (andra plats som standard). Har du sparat en egen ordning lägger du till den under *Plats 1–8*.
+
 ### Vägöversikt – kort sammanfattning
 
 `custom:trafikverket-road-card` visar det viktigaste om väglaget på ett ställe:
@@ -200,7 +238,7 @@ Integrationen kan bygga hela dashboarden åt dig. Du väljer ordning och innehå
 
 4. Klicka **Spara**.
 
-**Ändra ordning och innehåll:** **Inställningar → Enheter och tjänster → Trafikverket Trafikkarta → Konfigurera → Dashboard och karta**. Välj vad som ska visas på *Plats 1–7*, eller *Visa inte* för att dölja en sektion. Där ställer du också in **kartstil** (standard OpenStreetMap, mörk eller följ temat), **marginal runt området vid start** och kartans höjd.
+**Ändra ordning och innehåll:** **Inställningar → Enheter och tjänster → Trafikverket Trafikkarta → Konfigurera → Dashboard och karta**. Välj vad som ska visas på *Plats 1–8*, eller *Visa inte* för att dölja en sektion. Där ställer du också in **kartstil** (standard OpenStreetMap, mörk eller följ temat), **marginal runt området vid start** och kartans höjd.
 
 När du har sparat visar en öppen dashboard **"Instrumentpanelen har uppdaterats – Uppdatera"** efter några sekunder; klicka *Uppdatera* (eller ladda om sidan) för att bygga om den. Kartstil och marginal gäller direkt; ordning, sektioner och kartans höjd kräver uppdateringen. Sektionerna visas i exakt den valda ordningen, även om det ger en lucka bredvid den tvåspaltiga kartan eller historiken på breda skärmar.
 
@@ -209,6 +247,7 @@ Tillgängliga sektioner:
 | Sektion | Innehåll |
 |---|---|
 | Vägöversikt | Kort sammanfattning: status, varför, vägbana, friktion, nederbörd, vind, varningar |
+| Trafikläge | Trafikstatus, hastighet och flöde med trend, hastighetsklasser, hastighetsgraf, långsammaste mätpunkter och närmaste mätpunkt |
 | Väder vid vägen | Väderkort och rutor för luft, vägbana, vind, fukt, nederbörd, sikt och friktion |
 | Väglag | Sämsta väglag, antal besvärliga sträckor och en lista med varningar och åtgärder |
 | Trafikkarta | Kartan med mätpunkter, väglag och väderstationer (två kolumner bred) |
@@ -216,7 +255,7 @@ Tillgängliga sektioner:
 | Historik | Hastighet och temperaturer senaste dygnet, trafikflöde senaste veckan |
 | Datamängd | Hämtad datamängd och aktuella inställningar |
 
-Standardordningen är Vägöversikt → Väder vid vägen → Väglag → Trafikkarta → Läget nu → Historik → Datamängd. Sektioner vars data är avstängd, till exempel väder, hoppas över automatiskt.
+Standardordningen är Vägöversikt → Trafikläge → Väder vid vägen → Väglag → Trafikkarta → Läget nu → Historik → Datamängd. Sektioner vars data är avstängd, till exempel väder, hoppas över automatiskt.
 
 Har du flera platser lägger du till `entry: <config_entry_id>` under `strategy:`. Värdet finns som attributet `config_entry_id` på `sensor.tv_flow_flow_sites` (eller `_2` osv.).
 

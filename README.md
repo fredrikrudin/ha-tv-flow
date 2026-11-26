@@ -13,6 +13,7 @@ Custom integration for Home Assistant that fetches **traffic flow**, **road cond
 - 📍 **Any radius** around your home or a searched place.
 - 📉 **Limited data usage** – you choose the update interval, max number of objects, which data sets are fetched and that only the needed fields are requested. Everything is fetched in **one** request per interval.
 - 🛒 **Install via Marketplace** (Home Assistant 2026.11+) or HACS.
+- 📊 **Traffic widgets** – traffic status with trend and graph, and any measurement site per direction and lane.
 - 🗂️ **Automatic dashboard** – choose order and content in the settings.
 - 🧭 **Setup guide** in several steps: API key → search for a place or pick on a map → radius → data usage.
 - 🌍 **English and Swedish** – the UI follows Home Assistant's language.
@@ -108,6 +109,43 @@ The map opens on the **chosen radius**. To see more of the surroundings, set a m
 
 The card loads the map library Leaflet from `unpkg.com` and map tiles from OpenStreetMap, so the browser needs internet access.
 
+### Traffic now – current traffic at a glance
+
+`custom:trafikverket-traffic-card` summarises the current traffic within the radius:
+
+- **Status** in colour: *Free flow*, *Dense traffic* or *Queues*, with how many sites are affected.
+- **Average speed, lowest speed and total flow**, with a trend arrow compared with 30 minutes ago (from the recorder history).
+- A **bar** showing how the sites are spread over the speed classes (same colours as the map).
+- A **speed graph** for the last hours.
+- The **slowest sites** with direction, speed, flow and distance. Click a row for details.
+
+```yaml
+type: custom:trafikverket-traffic-card
+title: Traffic now
+max_sites: 5        # slowest sites listed (0 = no list)
+hours: 3            # length of the speed graph (0 = no graph)
+queue_speed: 30     # km/h – a site below this counts as a queue
+slow_speed: 50      # km/h – a site below this counts as dense traffic
+# entry: <config_entry_id>
+```
+
+The status is a rough estimate: Trafikverket does not provide speed limits, so a site on a 50 km/h street can look like dense traffic at normal speed. Adjust `queue_speed` and `slow_speed` to your roads. The graph and trend need the recorder (on by default).
+
+### Measurement site – one site in detail
+
+`custom:trafikverket-site-card` shows one traffic flow site, for example on your commute: overall speed and flow, and speed and flow **per direction and lane**, with a queue warning below `queue_speed`.
+
+```yaml
+type: custom:trafikverket-site-card
+site_id: 1234       # leave out for the nearest site
+title: My commute
+# queue_speed: 30
+```
+
+The site id is shown in the map popup (*Site 1234*) and in the `site_id` attribute of the site's `geo_location` entity.
+
+Both cards are also in the **Traffic now** section of the automatic dashboard (second in the default order). If you have saved your own order, add it under *Position 1–8*.
+
 ### Road status – short summary
 
 `custom:trafikverket-road-card` shows the most important facts about the road conditions in one place:
@@ -198,7 +236,7 @@ The integration can build the whole dashboard for you. You choose order and cont
 
 4. Click **Save**.
 
-**Change order and content:** **Settings → Devices & services → Trafikverket Trafikkarta → Configure → Dashboard and map**. Choose what to show in *Position 1–7*, or *Hidden* to hide a section. There you also set the **map style** (standard OpenStreetMap, dark or follow the theme), the **margin around the area at start** and the map height.
+**Change order and content:** **Settings → Devices & services → Trafikverket Trafikkarta → Configure → Dashboard and map**. Choose what to show in *Position 1–8*, or *Hidden* to hide a section. There you also set the **map style** (standard OpenStreetMap, dark or follow the theme), the **margin around the area at start** and the map height.
 
 After saving, an open dashboard shows **"Dashboard updated – Refresh"** after a few seconds; click *Refresh* (or reload the page) to rebuild it. Map style and margin are applied right away; order, sections and map height need the refresh. The sections are shown in exactly the chosen order, even if that leaves a gap next to the two-column map or history on wide screens.
 
@@ -207,6 +245,7 @@ Available sections:
 | Section | Content |
 |---|---|
 | Road status | Short summary: status, why, road surface, grip, precipitation, wind, warnings |
+| Traffic now | Traffic status, speed and flow with trend, speed classes, speed graph, slowest sites and the nearest site |
 | Roadside weather | Weather card and tiles for air, road surface, wind, humidity, precipitation, visibility and grip |
 | Road conditions | Worst road condition, number of difficult sections and a list with warnings and actions |
 | Traffic map | The map with sites, road conditions and weather stations (two columns wide) |
@@ -214,7 +253,7 @@ Available sections:
 | History | Speed and temperatures over the last 24 hours, traffic flow over the last week |
 | Data usage | Downloaded data and current settings |
 
-The default order is Road status → Roadside weather → Road conditions → Traffic map → Current situation → History → Data usage. Sections whose data is turned off, e.g. weather, are skipped automatically.
+The default order is Road status → Traffic now → Roadside weather → Road conditions → Traffic map → Current situation → History → Data usage. Sections whose data is turned off, e.g. weather, are skipped automatically.
 
 With several locations, add `entry: <config_entry_id>` under `strategy:`. The value is the `config_entry_id` attribute of `sensor.tv_flow_flow_sites` (or `_2` etc.).
 

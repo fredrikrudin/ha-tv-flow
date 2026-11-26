@@ -38,7 +38,7 @@ DEFAULT_MAP_STYLE = "light"
 MAP_STYLES = ["light", "dark", "auto"]
 
 # Sections of the generated dashboard (custom:tv-flow strategy), in default order
-DASHBOARD_SECTIONS = ["summary", "weather", "road", "map", "now", "history", "data"]
+DASHBOARD_SECTIONS = ["summary", "traffic", "weather", "road", "map", "now", "history", "data"]
 DASHBOARD_NONE = "none"
 DEFAULT_MAP_HEIGHT = 560
 DEFAULT_MAP_ZOOM_MARGIN = 0.0
@@ -56,6 +56,11 @@ SOURCE_SITUATION = "trafikverket_situation"
 
 SIGNAL_UPDATE = f"{DOMAIN}_update_{{}}"
 
-CARD_URL = f"/{DOMAIN}/trafikverket-map-card.js"
-ROAD_CARD_URL = f"/{DOMAIN}/trafikverket-road-card.js"
-CARD_VERSION = "1.6.2"
+# All Lovelace cards shipped with the integration (served from www/ and loaded automatically)
+CARD_FILES = [
+    "trafikverket-map-card.js",
+    "trafikverket-road-card.js",
+    "trafikverket-traffic-card.js",
+    "trafikverket-site-card.js",
+]
+CARD_VERSION = "1.7.0"

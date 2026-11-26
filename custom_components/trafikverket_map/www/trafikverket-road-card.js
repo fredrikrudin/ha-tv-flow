@@ -150,11 +150,33 @@
     set hass(hass) {
       this._hass = hass;
       const lang = langOf(hass);
+      // Cheap check first: the data only changes when the integration fetches.
+      if (!this._dataChanged(lang)) return;
       const d = this._collect();
       const sig = lang + [d.home, d.station, d.road, ...d.roads].map((s) => (s ? s.entity_id + s.last_updated : "-")).join("|");
       if (sig === this._sig && this.shadowRoot) return;
       this._sig = sig;
       this._render(d, I18N[lang]);
+    }
+
+    /** True when the home, road condition or data usage sensor changed (or once a minute). */
+    _dataChanged(lang) {
+      const states = this._hass.states;
+      const entry = this._config.entry;
+      let home = this._homeId && states[this._homeId];
+      if (!home || !home.attributes.trafikverket_home || (entry && home.attributes.config_entry_id !== entry)) {
+        home = Object.values(states).find(
+          (s) => s.attributes.trafikverket_home && (!entry || s.attributes.config_entry_id === entry));
+        this._homeId = home ? home.entity_id : null;
+      }
+      const ids = (home && home.attributes.entity_ids) || {};
+      const pick = (id) => (id && states[id] ? states[id].last_updated : "");
+      const sig = [lang, home && home.last_updated, pick(ids.road_condition), pick(ids.data_usage)].join("|");
+      const now = Date.now();
+      if (sig === this._triggerSig && this.shadowRoot && now - (this._lastFull || 0) < 60000) return false;
+      this._triggerSig = sig;
+      this._lastFull = now;
+      return true;
     }
 
     _collect() {

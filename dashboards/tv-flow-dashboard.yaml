@@ -61,6 +61,20 @@ views:
   - type: grid
     cards:
     - type: heading
+      heading: Traffic now
+      icon: mdi:car-multiple
+    - type: custom:trafikverket-traffic-card
+      max_sites: 5
+      hours: 3
+      grid_options:
+        columns: full
+    - type: custom:trafikverket-site-card
+      title: Nearest site
+      grid_options:
+        columns: full
+  - type: grid
+    cards:
+    - type: heading
       heading: Roadside weather
       icon: mdi:weather-partly-snowy-rainy
     - type: weather-forecast

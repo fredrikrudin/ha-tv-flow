@@ -9,6 +9,19 @@ The newest version is at the top. Every release on GitHub is tagged `vX.Y.Z`.
 
 ## [Unreleased]
 
+## [1.7.0] – 2026-11-26
+
+### Added
+- **Traffic now** card `custom:trafikverket-traffic-card`: traffic status (free flow / dense traffic / queues), average speed, lowest speed and total flow with a trend compared with 30 minutes ago, distribution over the speed classes, a speed graph from the recorder history and the slowest sites.
+- **Measurement site** card `custom:trafikverket-site-card`: one site (chosen with `site_id` or the nearest) with speed and flow per direction and lane, and a queue warning.
+- New section **Traffic now** in the automatic dashboard (second in the default order) with both cards; the static dashboards are updated. The dashboard step now has *Position 1–8*.
+
+### Changed – performance
+- The map card and the road status card no longer recalculate on every state change in Home Assistant. They only update when the integration has fetched new data (or at the latest once a minute), instead of scanning all entities each time.
+- The map card updates markers incrementally: only markers whose data changed are redrawn, removed ones are deleted and the rest are left alone. Hiding a legend category no longer redraws the map.
+- The integration only writes a `geo_location` entity's state when its data actually changed, which reduces state writes and work in Home Assistant on every fetch.
+- The cards are registered from one list (`CARD_FILES`) instead of one entry per file.
+
 ## [1.6.2] – 2026-11-19
 
 ### Fixed
@@ -195,7 +208,8 @@ First public version.
 - README with installation via Marketplace (Home Assistant 2026.11+), HACS and manually.
 - License CC BY-NC 4.0.
 
-[Unreleased]: https://github.com/fredrikrudin/ha-tv-flow/compare/v1.6.2...HEAD
+[Unreleased]: https://github.com/fredrikrudin/ha-tv-flow/compare/v1.7.0...HEAD
+[1.7.0]: https://github.com/fredrikrudin/ha-tv-flow/releases/tag/v1.7.0
 [1.6.2]: https://github.com/fredrikrudin/ha-tv-flow/releases/tag/v1.6.2
 [1.6.1]: https://github.com/fredrikrudin/ha-tv-flow/releases/tag/v1.6.1
 [1.6.0]: https://github.com/fredrikrudin/ha-tv-flow/releases/tag/v1.6.0

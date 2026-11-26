@@ -61,6 +61,20 @@ views:
   - type: grid
     cards:
     - type: heading
+      heading: Trafikläge
+      icon: mdi:car-multiple
+    - type: custom:trafikverket-traffic-card
+      max_sites: 5
+      hours: 3
+      grid_options:
+        columns: full
+    - type: custom:trafikverket-site-card
+      title: Närmaste mätpunkt
+      grid_options:
+        columns: full
+  - type: grid
+    cards:
+    - type: heading
       heading: Väder vid vägen
       icon: mdi:weather-partly-snowy-rainy
     - type: weather-forecast

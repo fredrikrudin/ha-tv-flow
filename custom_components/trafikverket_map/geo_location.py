@@ -41,6 +41,7 @@ class TrafikverketGeoEntity(GeolocationEvent):
         self._entry_id = entry_id
         self._key = key
         self._lang = lang  # "sv" or "en", from Home Assistant's language
+        self._item = item  # last data written; used to skip unchanged updates
         self._attrs: dict[str, Any] = {}
         self.update_item(item, write=False)
 
@@ -243,7 +244,9 @@ class GeoManager:
                 ent = cls(self.entry_id, key, item, self.lang)
                 self.entities[key] = ent
                 new.append(ent)
-            else:
+            elif ent._item != item:
+                # Dataclass equality: only write state when something actually changed.
+                ent._item = item
                 ent.update_item(item)
         if new:
             self.add_entities(new)
