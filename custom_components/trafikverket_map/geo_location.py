@@ -1,12 +1,18 @@
-"""Geo location entities – one per flow site, road condition segment and weather station.
+"""Optional geo_location entities – one per flow site, road section, weather station and event.
 
-These show up on Home Assistant's built-in map card (geo_location_sources) and
-are what the bundled ``trafikverket-map-card`` draws.
+Home Assistant's own map shows every geo_location entity. The setting
+"Map points in Home Assistant" decides how they appear there:
+
+* icons  – coloured symbols (entity_picture), no name labels   (default)
+* names  – Home Assistant's default name labels
+* hidden – no geo_location entities at all
+
+The bundled cards do not depend on these entities: they read the same map
+points through the websocket API (see websocket.py).
 """
 
 from __future__ import annotations
 
-from collections.abc import Callable
 import logging
 from typing import Any
 
@@ -16,193 +22,52 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from . import TrafikverketConfigEntry
-from .const import ATTRIBUTION, SOURCE_FLOW, SOURCE_ROAD, SOURCE_SITUATION, SOURCE_WEATHER
+from .const import ATTRIBUTION, DOMAIN, ICON_URL
 from .coordinator import TrafikverketCoordinator
-from .parser import FlowSite, RoadConditionItem, SituationItem, WeatherStation
-from .texts import ROAD_CONDITION_KEYS, event_type_text, language, precipitation_text, text
+from .mapdata import MAP_ENTITIES_HIDDEN, MAP_ENTITIES_ICONS, MapPoint, map_points
+from .texts import language
 
 _LOGGER = logging.getLogger(__name__)
 
 
-def _iso(dt) -> str | None:
-    return dt.isoformat() if dt else None
-
-
 class TrafikverketGeoEntity(GeolocationEvent):
-    """Base geo location entity fed by the coordinator."""
+    """One map point as a geo_location entity."""
 
     _attr_should_poll = False
     _attr_attribution = ATTRIBUTION
     _attr_unit_of_measurement = UnitOfLength.KILOMETERS
     # Big/fast-changing attributes are not written to the recorder database.
-    _unrecorded_attributes = frozenset({"lanes", "lines", "measurement_time", "sample"})
+    _unrecorded_attributes = frozenset({
+        "lanes", "lines", "measurement_time", "sample", "message", "start_time", "end_time", "web_link",
+    })
 
-    def __init__(self, entry_id: str, key: str, item: Any, lang: str = "en") -> None:
+    def __init__(self, entry_id: str, point: MapPoint, use_picture: bool) -> None:
         self._entry_id = entry_id
-        self._key = key
-        self._lang = lang  # "sv" or "en", from Home Assistant's language
-        self._item = item  # last data written; used to skip unchanged updates
+        self._use_picture = use_picture
+        self._sig = ""
         self._attrs: dict[str, Any] = {}
-        self.update_item(item, write=False)
+        self._attr_source = point.source
+        self.update_point(point, write=False)
 
-    def update_item(self, item: Any, write: bool = True) -> None:
-        raise NotImplementedError
+    def update_point(self, point: MapPoint, write: bool = True) -> None:
+        sig = point.signature()
+        if sig == self._sig:
+            return  # nothing changed – skip the state write
+        self._sig = sig
+        self._attr_name = point.name
+        self._attr_icon = point.icon
+        # An entity picture replaces the name label on Home Assistant's map.
+        self._attr_entity_picture = f"{ICON_URL}/{point.picture}.svg" if self._use_picture else None
+        self._attr_latitude = point.latitude
+        self._attr_longitude = point.longitude
+        self._attr_distance = point.distance_km
+        self._attrs = point.attributes
+        if write and self.hass is not None:
+            self.async_write_ha_state()
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         return {"config_entry_id": self._entry_id, **self._attrs}
-
-    def _set_pos(self, lat: float, lon: float, dist: float) -> None:
-        self._attr_latitude = lat
-        self._attr_longitude = lon
-        self._attr_distance = dist
-
-    def _write(self, write: bool) -> None:
-        if write and self.hass is not None:
-            self.async_write_ha_state()
-
-
-class FlowEntity(TrafikverketGeoEntity):
-    """Traffic flow measurement site."""
-
-    _attr_source = SOURCE_FLOW
-
-    def update_item(self, item: FlowSite, write: bool = True) -> None:
-        self._attr_name = text(self._lang, "flow_site", id=item.site_id)
-        speed = item.average_speed
-        if speed is None:
-            self._attr_icon = "mdi:car-off"
-        elif speed < 30:
-            self._attr_icon = "mdi:car-multiple"
-        else:
-            self._attr_icon = "mdi:car-speed-limiter"
-        self._set_pos(item.latitude, item.longitude, item.distance_km)
-        self._attrs = {
-            "tv_type": "flow",
-            "site_id": item.site_id,
-            "flow": item.total_flow,
-            "flow_unit": "fordon/h",
-            "average_speed": item.average_speed,
-            "min_speed": item.min_speed,
-            "speed_unit": "km/h",
-            "data_quality": item.data_quality,
-            "period_s": item.period_s,
-            "measurement_time": _iso(item.measurement_time),
-            "lanes": item.lanes,
-        }
-        self._write(write)
-
-
-class RoadEntity(TrafikverketGeoEntity):
-    """Road condition segment."""
-
-    _attr_source = SOURCE_ROAD
-
-    def update_item(self, item: RoadConditionItem, write: bool = True) -> None:
-        road = item.road_number or text(self._lang, "road_default")
-        self._attr_name = text(self._lang, "road", road=road, id=item.id[-6:])
-        self._attr_icon = {
-            1: "mdi:road-variant",
-            2: "mdi:alert-outline",
-            3: "mdi:alert",
-            4: "mdi:snowflake-alert",
-        }.get(item.code or 0, "mdi:road")
-        self._set_pos(item.latitude, item.longitude, item.distance_km)
-        self._attrs = {
-            "tv_type": "road",
-            "condition_code": item.code,
-            "condition_key": ROAD_CONDITION_KEYS.get(item.code or 0),
-            "condition_text": item.text,
-            "condition_info": item.info,
-            "cause": item.cause,
-            "warning": item.warning,
-            "measure": item.measure,
-            "location_text": item.location_text,
-            "road_number": item.road_number,
-            "start_time": _iso(item.start_time),
-            "end_time": _iso(item.end_time),
-            "lines": item.lines,
-        }
-        self._write(write)
-
-
-class WeatherStationEntity(TrafikverketGeoEntity):
-    """Road weather station."""
-
-    _attr_source = SOURCE_WEATHER
-    _attr_icon = "mdi:weather-partly-cloudy"
-
-    def update_item(self, item: WeatherStation, write: bool = True) -> None:
-        self._attr_name = text(self._lang, "weather_station", name=item.name)
-        self._set_pos(item.latitude, item.longitude, item.distance_km)
-        self._attrs = {
-            "tv_type": "weather",
-            "station": item.name,
-            "air_temperature": item.air_temperature,
-            "surface_temperature": item.surface_temperature,
-            "humidity": item.humidity,
-            "dewpoint": item.dewpoint,
-            "wind_speed": item.wind_speed,
-            "wind_gust": item.wind_gust,
-            "wind_direction": item.wind_direction,
-            "precipitation": item.precipitation,
-            "precipitation_text": precipitation_text(self._lang, item.precipitation),
-            "precipitation_30min": item.precipitation_30min,
-            "visibility": item.visibility,
-            "grip": item.grip,
-            "ice": item.ice,
-            "snow": item.snow,
-            "water": item.water,
-            "sample": _iso(item.sample),
-        }
-        self._write(write)
-
-
-SITUATION_ICONS = {
-    "Olycka": "mdi:car-emergency",
-    "Hinder": "mdi:alert-octagon",
-    "Viktig trafikinformation": "mdi:alert-circle",
-    "Restriktion": "mdi:sign-caution",
-    "Vägarbete": "mdi:account-hard-hat",
-    "Färjor": "mdi:ferry",
-}
-
-
-class SituationEntity(TrafikverketGeoEntity):
-    """Traffic event (accident, obstacle, road works …)."""
-
-    _attr_source = SOURCE_SITUATION
-    _unrecorded_attributes = frozenset({"lines", "message", "start_time", "end_time", "web_link"})
-
-    def update_item(self, item: SituationItem, write: bool = True) -> None:
-        self._attr_name = text(self._lang, "event", type=event_type_text(self._lang, item.message_type),
-                               road=item.road_number or "", id=item.id[-6:])
-        self._attr_icon = SITUATION_ICONS.get(item.message_type or "", "mdi:information")
-        self._set_pos(item.latitude, item.longitude, item.distance_km)
-        self._attrs = {
-            "tv_type": "situation",
-            "message_type": item.message_type,
-            "message_type_text": event_type_text(self._lang, item.message_type),
-            "message_type_value": item.message_type_value,
-            "message_code": item.message_code,
-            "is_warning": item.is_warning,
-            "header": item.header,
-            "message": item.message,
-            "severity_code": item.severity_code,
-            "severity_text": item.severity_text,
-            "road_number": item.road_number,
-            "road_name": item.road_name,
-            "location_text": item.location,
-            "direction": item.direction,
-            "temporary_limit": item.temporary_limit,
-            "restriction": item.restriction,
-            "start_time": _iso(item.start_time),
-            "end_time": _iso(item.end_time),
-            "until_further_notice": item.until_further_notice,
-            "web_link": item.web_link,
-            "lines": item.lines,
-        }
-        self._write(write)
 
 
 class GeoManager:
@@ -221,46 +86,40 @@ class GeoManager:
         self.add_entities = add_entities
         self.entities: dict[str, TrafikverketGeoEntity] = {}
         self.lang = language(hass)
+        self.mode = coordinator.settings.map_entities
+        # Lets the websocket API hand out real entity ids (for more-info dialogs).
+        coordinator.geo_entity_ids = self.entity_ids
+
+    def entity_ids(self) -> dict[str, str]:
+        return {k: e.entity_id for k, e in self.entities.items() if e.entity_id}
 
     @callback
     def update(self) -> None:
         data = self.coordinator.data
         if data is None:
             return
-        wanted: dict[str, tuple[type[TrafikverketGeoEntity], Any]] = {}
-        for site in data.flow_sites:
-            wanted[f"flow_{site.site_id}"] = (FlowEntity, site)
-        for rc in data.road_conditions:
-            wanted[f"road_{rc.id}"] = (RoadEntity, rc)
-        for sit in data.situations:
-            wanted[f"situation_{sit.id}"] = (SituationEntity, sit)
-        for ws in data.weather_stations:
-            wanted[f"weather_{ws.id}"] = (WeatherStationEntity, ws)
-
+        if self.mode == MAP_ENTITIES_HIDDEN:
+            self._remove([*self.entities])
+            return
+        wanted = {p.key: p for p in map_points(data, self.lang)}
         new: list[TrafikverketGeoEntity] = []
-        for key, (cls, item) in wanted.items():
+        for key, point in wanted.items():
             ent = self.entities.get(key)
             if ent is None:
-                ent = cls(self.entry_id, key, item, self.lang)
+                ent = TrafikverketGeoEntity(self.entry_id, point, self.mode == MAP_ENTITIES_ICONS)
                 self.entities[key] = ent
                 new.append(ent)
-            elif ent._item != item:
-                # Dataclass equality: only write state when something actually changed.
-                ent._item = item
-                ent.update_item(item)
+            else:
+                ent.update_point(point)
         if new:
             self.add_entities(new)
+        self._remove([k for k in self.entities if k not in wanted])
 
-        for key in [k for k in self.entities if k not in wanted]:
+    def _remove(self, keys: list[str]) -> None:
+        for key in keys:
             ent = self.entities.pop(key)
             if ent.hass is not None:
                 self.hass.async_create_task(ent.async_remove(force_remove=True))
-
-    async def async_remove_all(self) -> None:
-        for ent in list(self.entities.values()):
-            if ent.hass is not None:
-                await ent.async_remove(force_remove=True)
-        self.entities.clear()
 
 
 async def async_setup_entry(
@@ -268,8 +127,10 @@ async def async_setup_entry(
     entry: TrafikverketConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    """Set up geo location entities."""
+    """Set up geo location entities (unless turned off in the settings)."""
     coordinator = entry.runtime_data
     manager = GeoManager(hass, entry.entry_id, coordinator, async_add_entities)
+    if manager.mode == MAP_ENTITIES_HIDDEN:
+        _LOGGER.debug("%s: geo_location entities are turned off", DOMAIN)
     entry.async_on_unload(coordinator.async_add_listener(manager.update))
     manager.update()

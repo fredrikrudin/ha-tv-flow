@@ -9,6 +9,22 @@ Nyaste versionen står överst. Varje release på GitHub har taggen `vX.Y.Z`.
 
 ## [Ej släppt]
 
+## [1.8.0] – 2026-11-26
+
+### Tillagt
+- **Kartpunkter i Home Assistant** (*Konfigurera → Dashboard och karta*): välj hur integrationens `geo_location`-entiteter (mätpunkter, väglagssträckor, väderstationer och händelser som `geo_location.road_works_…`) visas på Home Assistants egen karta:
+  - **Ikoner** (ny standard) – små färgade symboler utan namnetiketter: hastighetsklass för mätpunkter, väglag för sträckor, vädersymbol för stationer och typ för händelser.
+  - **Namn** – Home Assistants standardutseende med början av namnet.
+  - **Dolda** – inga `geo_location`-entiteter skapas, och befintliga tas bort.
+- Websocket-kommandot `trafikverket_map/map_data`, som korten använder för att hämta kartpunkterna direkt från integrationen.
+- Attributet `slowest_sites` på `sensor.tv_flow_lowest_speed` och `difficult_roads` på `sensor.tv_flow_road_condition_count` (sparas inte i historiken).
+
+### Ändrat
+- Alla kort (karta, vägöversikt, trafikläge och mätpunkt) hämtar punkterna via websocket i stället för att läsa `geo_location`-entiteter, så de fungerar i alla tre lägena. Med äldre versioner av integrationen används entiteterna som reserv.
+- Listorna i *Läget nu* i dashboarden (långsammaste mätpunkter, besvärliga sträckor) läser de nya sensorattributen i stället för `geo_location`-entiteter; de statiska dashboards är uppdaterade.
+- Ett klick på en punkt i korten öppnar bara en entitetsdialog när entiteten finns.
+- Kartpunkternas data byggs en gång per hämtning i en gemensam modul (`mapdata.py`) för både entiteterna och websocket.
+
 ## [1.7.0] – 2026-11-26
 
 ### Tillagt

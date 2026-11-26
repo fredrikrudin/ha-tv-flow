@@ -13,9 +13,10 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.typing import ConfigType
 
-from .const import CARD_FILES, CARD_VERSION, DOMAIN
+from .const import CARD_FILES, CARD_VERSION, DOMAIN, ICON_URL
 from .coordinator import TrafikverketCoordinator
 from .dashboard_notify import async_notify_dashboards_later
+from .websocket import async_register as async_register_websocket
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -30,10 +31,12 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     """Register the bundled Lovelace map card."""
     www = Path(__file__).parent / "www"
     await hass.http.async_register_static_paths([
-        StaticPathConfig(f"/{DOMAIN}/{name}", str(www / name), False) for name in CARD_FILES
+        *(StaticPathConfig(f"/{DOMAIN}/{name}", str(www / name), False) for name in CARD_FILES),
+        StaticPathConfig(ICON_URL, str(www / "icons"), True),
     ])
     for name in CARD_FILES:
         add_extra_js_url(hass, f"/{DOMAIN}/{name}?v={CARD_VERSION}")
+    async_register_websocket(hass)
     return True
 
 

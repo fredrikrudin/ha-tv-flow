@@ -144,7 +144,7 @@ title: Min pendling
 # queue_speed: 30
 ```
 
-Mätpunktens id syns i kartans popup-ruta (*Mätpunkt 1234*) och i attributet `site_id` på mätpunktens `geo_location`-entitet.
+Mätpunktens id syns i kartans popup-ruta (*Mätpunkt 1234*).
 
 Båda korten finns också i sektionen **Trafikläge** i den automatiska dashboarden (andra plats som standard). Har du sparat en egen ordning lägger du till den under *Plats 1–8*.
 
@@ -206,9 +206,19 @@ hidden: [speed:fast, speed:medium, road:1]
 - **Väglag:** grön normalt, gul besvärligt (risk för), röd mycket besvärligt, blå is- och snövägbana.
 - **Händelser** (experimentellt): röd olycka, orange hinder, brun vägarbete.
 
-### Inbyggda kartkortet
+### Kartpunkter på Home Assistants egen karta
 
-Alla punkter är även `geo_location`-entiteter och kan visas på Home Assistants vanliga kartkort:
+Integrationen kan även skapa `geo_location`-entiteter för sina punkter, som Home Assistant visar på sin egen karta (panelen *Karta* och det inbyggda kartkortet). Välj hur under **Konfigurera → Dashboard och karta → Kartpunkter i Home Assistant**:
+
+| Läge | Resultat |
+|---|---|
+| **Ikoner** (standard) | Varje punkt visas som en liten färgad symbol utan namn: hastighetsklass för mätpunkter, väglag för sträckor, vädersymbol för stationer och typ för händelser. |
+| **Namn** | Home Assistants standardutseende – en cirkel med början av namnet (t.ex. *Väg 893 Bete*). |
+| **Dolda** | Inga `geo_location`-entiteter skapas och befintliga tas bort. Ingenting syns på Home Assistants karta. |
+
+Integrationens egna kort fungerar i alla tre lägena – de hämtar punkterna direkt från integrationen och är inte beroende av entiteterna. I läget *Dolda* visar ett klick på en punkt i korten popup-rutan men öppnar ingen entitetsdialog.
+
+Med *Ikoner* eller *Namn* kan punkterna visas på Home Assistants vanliga kartkort:
 
 ```yaml
 type: map
@@ -216,6 +226,7 @@ geo_location_sources:
   - trafikverket_flow
   - trafikverket_road
   - trafikverket_weather
+  - trafikverket_situation   # experimentella händelser
 entities:
   - zone.home
 ```
@@ -267,22 +278,23 @@ Vill du ändra enskilda kort kan du välja **⋮ → Ta kontroll** i redigerings
 
 ## 6. Entiteter
 
-Sensorerna och väderentiteten får fasta id:n oavsett språk. Lägger du till fler platser får de `_2`, `_3` osv. Namnen på `geo_location`-entiteterna följer Home Assistants språk.
+Sensorerna och väderentiteten får fasta id:n oavsett språk. Lägger du till fler platser får de `_2`, `_3` osv. Namnen på `geo_location`-entiteterna följer Home Assistants språk. `geo_location`-entiteterna finns bara när *Kartpunkter i Home Assistant* är *Ikoner* eller *Namn* (se ovan).
 
 | Entitet | Beskrivning |
 |---|---|
 | `sensor.tv_flow_flow_sites` | Antal mätpunkter i radien (har även hemposition och radie som attribut) |
 | `sensor.tv_flow_total_flow` | Summa fordon/h |
 | `sensor.tv_flow_average_speed` | Flödesviktad medelhastighet |
-| `sensor.tv_flow_lowest_speed` | Lägsta medelhastighet bland mätpunkterna (köindikator) |
+| `sensor.tv_flow_lowest_speed` | Lägsta medelhastighet bland mätpunkterna (köindikator). Attributet `slowest_sites` listar de sex långsammaste mätpunkterna (mätpunkts-id, hastighet, flöde, avstånd). |
 | `sensor.tv_flow_road_condition` | Sämsta väglaget i radien. Enum-sensor: tillståndet är `normal`, `difficult`, `very_difficult`, `ice_snow` eller `no_data` och visas översatt. Attributet `state_text` innehåller den färdiga texten på Home Assistants språk. |
-| `sensor.tv_flow_road_condition_count` | Antal sträckor med besvärligt väglag |
+| `sensor.tv_flow_road_condition_count` | Antal sträckor med besvärligt väglag. Attributet `difficult_roads` listar upp till sex, värst först (väg, väglag, varning, åtgärd, plats, avstånd). |
 | `weather.tv_flow` | Lokalt väder från närmaste vägväderstation. Trafikverket mäter nederbördstyp men inte molnighet, så väderläget utan nederbörd är en uppskattning (dimma vid sikt < 1 km, annars växlande/mulet). |
 | `sensor.tv_flow_air_temperature`, `_surface_temperature`, `_humidity`, `_wind_speed`, `_wind_direction`, `_precipitation`, `_precipitation_30min`, `_visibility`, `_grip` | Väder från närmaste station. `_precipitation` är en enum-sensor: `no`, `rain`, `freezing_rain`, `snow`, `sleet` eller `yes`. |
 | `sensor.tv_flow_data_usage`, `sensor.tv_flow_response_size` | Diagnostik: hämtad datamängd |
 | `geo_location.trafikflode_<id>` | En per mätpunkt (tillstånd = avstånd i km). På engelska: `geo_location.traffic_flow_<id>`. |
 | `geo_location.vaglag_*` | En per väglagssträcka (engelska: `road_condition_*`) |
 | `geo_location.vaderstation_*` | En per väderstation (engelska: `weather_station_*`) |
+| `geo_location.*` (händelser) | En per händelse när *Händelser på kartan* är påslaget, t.ex. `geo_location.road_works_vag_893_bete_0` |
 
 Exempel på automation – varna för halka:
 
@@ -326,7 +338,12 @@ Text som kommer direkt från Trafikverket, till exempel vägnamn, varningar, ors
 
 ```bash
 python3 tests/test_parser.py
+python3 tests/test_api_retry.py
+python3 tests/test_dashboard_notify.py
+python3 tests/test_mapdata.py
 ```
+
+Korten hämtar kartpunkterna via websocket-kommandot `trafikverket_map/map_data` (valfritt `entry_id`). Det returnerar `{entry_id, fetched_at, items}`, där varje punkt ser ut som ett tillstånd i Home Assistant (`entity_id`, `state` = avstånd i km, `attributes` med `latitude`, `longitude`, `tv_type` och punktens data). `entity_id` är det riktiga `geo_location`-id:t när entiteten finns, annars `trafikverket_map.<nyckel>`.
 
 API-schemana (XSD) som integrationen bygger på finns i `docs/schemas/`.
 

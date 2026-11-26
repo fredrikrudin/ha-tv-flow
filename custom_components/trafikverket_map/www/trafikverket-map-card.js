@@ -142,6 +142,25 @@ const TV_I18N = {
   },
 };
 
+/**
+ * Map points of one location from the integration's websocket API. Falls back to
+ * the geo_location entities (older integration versions).
+ */
+async function tvFetchPoints(hass, entryId) {
+  try {
+    const res = await hass.callWS({ type: "trafikverket_map/map_data", ...(entryId ? { entry_id: entryId } : {}) });
+    return (res && res.items) || [];
+  } catch (e) {
+    const out = [];
+    for (const id in hass.states) {
+      if (!id.startsWith("geo_location.")) continue;
+      const s = hass.states[id];
+      if (s.attributes.tv_type && (!entryId || s.attributes.config_entry_id === entryId)) out.push(s);
+    }
+    return out;
+  }
+}
+
 /** "sv" for a Swedish Home Assistant, otherwise "en". */
 function tvLang(hass) {
   const l = String((hass && ((hass.locale && hass.locale.language) || hass.language)) || "en").toLowerCase();
@@ -319,7 +338,7 @@ class TrafikverketMapCard extends HTMLElement {
     this._areaKey = "";
     this._homeSig = null;
     this._markers = new Map();
-    this._update();
+    this._refresh();
   }
 
   /* --- legend: rows can be clicked to hide/show a category -------------- */
@@ -451,7 +470,19 @@ class TrafikverketMapCard extends HTMLElement {
 
   _scheduleUpdate() {
     if (this._pending) return;
-    this._pending = setTimeout(() => { this._pending = null; this._update(); }, 500);
+    this._pending = setTimeout(() => { this._pending = null; this._refresh(); }, 500);
+  }
+
+  /** Fetch the map points (only after new data), then draw. */
+  async _refresh() {
+    if (!this._hass) return;
+    if (!this._homeId) this._dataChanged();
+    const home = this._homeId ? this._hass.states[this._homeId] : null;
+    const token = (this._fetchToken = (this._fetchToken || 0) + 1);
+    const points = await tvFetchPoints(this._hass, home ? home.attributes.config_entry_id : this._config.entry);
+    if (token !== this._fetchToken) return; // a newer fetch is on its way
+    this._points = points;
+    this._update();
   }
 
   /**
@@ -482,18 +513,8 @@ class TrafikverketMapCard extends HTMLElement {
   }
 
   _collect() {
-    const entry = this._config.entry;
-    const states = this._hass.states;
-    const home = this._homeId ? states[this._homeId] : null;
-    const mine = (s) => !entry || s.attributes.config_entry_id === entry;
-    const geo = [];
-    for (const id in states) {
-      if (id.startsWith("geo_location.")) {
-        const s = states[id];
-        if (s.attributes.tv_type && mine(s)) geo.push(s);
-      }
-    }
-    return { home, geo };
+    const home = this._homeId ? this._hass.states[this._homeId] : null;
+    return { home, geo: this._points || [] };
   }
 
   _removeMarker(id) {
@@ -781,16 +802,6 @@ function tvBadge(id, name, color, extra = {}) {
   return { type: "entity", entity: id, name, show_name: !!name, ...(color ? { color } : {}), ...extra };
 }
 
-/** Jinja filter selecting this location's geo_location entities of one type. */
-function tvGeoFilter(entry, type) {
-  return (
-    "states.geo_location\n" +
-    "    | selectattr('attributes.tv_type', 'defined')\n" +
-    `    | selectattr('attributes.tv_type', 'eq', '${type}')\n` +
-    `    | selectattr('attributes.config_entry_id', 'eq', '${entry}')`
-  );
-}
-
 const TV_SECTIONS = {
   summary(ids, entry, home, d) {
     return {
@@ -847,20 +858,18 @@ const TV_SECTIONS = {
         tvTile(ids.road_condition, d.worst_road, "amber", null, { grid_options: { columns: "full" } }),
         tvTile(ids.road_condition_count, d.difficult_sections, "deep-orange", "mdi:alert-outline"),
         tvTile(ids.surface_temperature, d.surface, "blue-grey"),
-        {
+        ids.road_condition_count && {
           type: "markdown", grid_options: { columns: "full" },
+          // From a sensor attribute, so it also works without geo_location entities.
           content:
-            `{%- set roads = ${tvGeoFilter(entry, "road")}\n` +
-            "    | selectattr('attributes.condition_code', 'number')\n" +
-            "    | selectattr('attributes.condition_code', 'gt', 1)\n" +
-            "    | sort(attribute='attributes.condition_code', reverse=true) | list %}\n" +
+            `{%- set roads = state_attr('${ids.road_condition_count}', 'difficult_roads') or [] %}\n` +
             "{%- if roads %}\n" +
             "{% for r in roads[:6] -%}\n" +
-            "{%- set icon = {2: '🟡', 3: '🔴', 4: '🔵'}[r.attributes.condition_code] | default('⚪') -%}\n" +
-            `{{ icon }} **{{ r.attributes.road_number or '${d.road_default}' }}** – {{ r.attributes.condition_text }}\n` +
-            "{%- if r.attributes.warning %} · {{ r.attributes.warning }}{% endif %}\n" +
-            "{%- if r.attributes.measure %} · {{ r.attributes.measure | lower }}{% endif %}\n" +
-            "<br><small>{{ r.attributes.location_text or '' }} ({{ r.state }} km)</small>\n\n" +
+            "{%- set icon = {2: '🟡', 3: '🔴', 4: '🔵'}[r.condition_code] | default('⚪') -%}\n" +
+            `{{ icon }} **{{ r.road_number or '${d.road_default}' }}** – {{ r.condition_text }}\n` +
+            "{%- if r.warning %} · {{ r.warning }}{% endif %}\n" +
+            "{%- if r.measure %} · {{ r.measure | lower }}{% endif %}\n" +
+            "<br><small>{{ r.location_text or '' }} ({{ r.distance_km }} km)</small>\n\n" +
             "{% endfor %}\n" +
             "{%- else %}\n" +
             `${d.road_normal}\n` +
@@ -918,19 +927,18 @@ const TV_SECTIONS = {
         tvTile(ids.lowest_speed, d.lowest_speed, "red", "mdi:speedometer-slow"),
         tvTile(ids.total_flow, d.traffic_flow, "indigo", "mdi:car-multiple"),
         tvTile(ids.flow_sites, d.sites, "blue", "mdi:map-marker-multiple"),
-        {
+        ids.lowest_speed && {
           type: "markdown", title: d.slowest, grid_options: { columns: "full" },
+          // From a sensor attribute, so it also works without geo_location entities.
           content:
-            `{%- set sites = ${tvGeoFilter(entry, "flow")}\n` +
-            "    | selectattr('attributes.average_speed', 'number')\n" +
-            "    | sort(attribute='attributes.average_speed') | list %}\n" +
+            `{%- set sites = state_attr('${ids.lowest_speed}', 'slowest_sites') or [] %}\n` +
             "{%- if sites %}\n" +
             `| | ${d.site} | km/h | ${d.vehicles_h} | ${d.distance} |\n` +
             "|:-:|:--|--:|--:|--:|\n" +
             "{% for s in sites[:6] -%}\n" +
-            "{%- set v = s.attributes.average_speed -%}\n" +
-            "| {{ '🔴' if v < 30 else '🟠' if v < 50 else '🟡' if v < 70 else '🟢' }} | {{ s.attributes.site_id }} | " +
-            "{{ v | round(0) | int }} | {{ s.attributes.flow }} | {{ s.state }} km |\n" +
+            "{%- set v = s.average_speed -%}\n" +
+            "| {{ '🔴' if v < 30 else '🟠' if v < 50 else '🟡' if v < 70 else '🟢' }} | {{ s.site_id }} | " +
+            "{{ v | round(0) | int }} | {{ s.flow }} | {{ s.distance_km }} km |\n" +
             "{% endfor %}\n" +
             "{%- else %}\n" +
             `${d.no_sites}\n` +

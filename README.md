@@ -142,7 +142,7 @@ title: My commute
 # queue_speed: 30
 ```
 
-The site id is shown in the map popup (*Site 1234*) and in the `site_id` attribute of the site's `geo_location` entity.
+The site id is shown in the map popup (*Site 1234*).
 
 Both cards are also in the **Traffic now** section of the automatic dashboard (second in the default order). If you have saved your own order, add it under *Position 1–8*.
 
@@ -204,9 +204,19 @@ hidden: [speed:fast, speed:medium, road:1]
 - **Road conditions:** green normal, yellow difficult (risk of), red very difficult, blue ice and snow.
 - **Events** (experimental): red accident, orange obstacle, brown road works.
 
-### Built-in map card
+### Map points in Home Assistant's own map
 
-All points are also `geo_location` entities and can be shown on Home Assistant's built-in map card:
+The integration can also create `geo_location` entities for its points, which Home Assistant shows on its own map (the *Map* panel and the built-in map card). Choose how under **Configure → Dashboard and map → Map points in Home Assistant**:
+
+| Mode | Result |
+|---|---|
+| **Icons** (default) | Each point is shown as a small coloured symbol without a name: speed class for sites, road condition for sections, a weather symbol for stations and the event type for events. |
+| **Names** | Home Assistant's default look – a circle with the start of the name (e.g. *Väg 893 Bete*). |
+| **Hidden** | No `geo_location` entities are created and existing ones are removed. Nothing shows up on Home Assistant's map. |
+
+The integration's own cards work in all three modes – they get the points directly from the integration and do not depend on the entities. In *Hidden* mode, clicking a point in the cards shows the popup but opens no entity dialog.
+
+With *Icons* or *Names*, the points can be shown on Home Assistant's built-in map card:
 
 ```yaml
 type: map
@@ -214,6 +224,7 @@ geo_location_sources:
   - trafikverket_flow
   - trafikverket_road
   - trafikverket_weather
+  - trafikverket_situation   # experimental events
 entities:
   - zone.home
 ```
@@ -265,22 +276,23 @@ To change individual cards, choose **⋮ → Take control** in edit mode. The da
 
 ## 6. Entities
 
-Sensors and the weather entity get fixed ids regardless of language. Further locations get `_2`, `_3` etc. The names of the `geo_location` entities follow Home Assistant's language.
+Sensors and the weather entity get fixed ids regardless of language. Further locations get `_2`, `_3` etc. The names of the `geo_location` entities follow Home Assistant's language. The `geo_location` entities only exist when *Map points in Home Assistant* is *Icons* or *Names* (see above).
 
 | Entity | Description |
 |---|---|
 | `sensor.tv_flow_flow_sites` | Number of sites within the radius (also has home position and radius as attributes) |
 | `sensor.tv_flow_total_flow` | Total vehicles/h |
 | `sensor.tv_flow_average_speed` | Flow-weighted average speed |
-| `sensor.tv_flow_lowest_speed` | Lowest average speed of the sites (queue indicator) |
+| `sensor.tv_flow_lowest_speed` | Lowest average speed of the sites (queue indicator). The attribute `slowest_sites` lists the six slowest sites (site id, speed, flow, distance). |
 | `sensor.tv_flow_road_condition` | Worst road condition within the radius. Enum sensor: the state is `normal`, `difficult`, `very_difficult`, `ice_snow` or `no_data` and is shown translated. The attribute `state_text` holds the ready-made text in Home Assistant's language. |
-| `sensor.tv_flow_road_condition_count` | Number of sections with difficult road conditions |
+| `sensor.tv_flow_road_condition_count` | Number of sections with difficult road conditions. The attribute `difficult_roads` lists up to six, worst first (road, condition, warning, measure, place, distance). |
 | `weather.tv_flow` | Local weather from the nearest road weather station. Trafikverket measures the type of precipitation but not cloud cover, so the condition without precipitation is an estimate (fog when visibility < 1 km, otherwise partly cloudy/cloudy). |
 | `sensor.tv_flow_air_temperature`, `_surface_temperature`, `_humidity`, `_wind_speed`, `_wind_direction`, `_precipitation`, `_precipitation_30min`, `_visibility`, `_grip` | Weather from the nearest station. `_precipitation` is an enum sensor: `no`, `rain`, `freezing_rain`, `snow`, `sleet` or `yes`. |
 | `sensor.tv_flow_data_usage`, `sensor.tv_flow_response_size` | Diagnostics: downloaded data |
 | `geo_location.traffic_flow_<id>` | One per site (state = distance in km). In Swedish: `geo_location.trafikflode_<id>`. |
 | `geo_location.road_condition_*` | One per road condition section (Swedish: `vaglag_*`) |
 | `geo_location.weather_station_*` | One per weather station (Swedish: `vaderstation_*`) |
+| `geo_location.*` (events) | One per event when *Events on the map* is switched on, e.g. `geo_location.road_works_vag_893_bete_0` |
 
 Example automation – warn for ice:
 
@@ -325,7 +337,11 @@ Text that comes straight from Trafikverket – road names, warnings, causes and 
 ```bash
 python3 tests/test_parser.py
 python3 tests/test_api_retry.py
+python3 tests/test_dashboard_notify.py
+python3 tests/test_mapdata.py
 ```
+
+The cards get the map points over the websocket command `trafikverket_map/map_data` (optional `entry_id`). It returns `{entry_id, fetched_at, items}`, where each item looks like a Home Assistant state (`entity_id`, `state` = distance in km, `attributes` with `latitude`, `longitude`, `tv_type` and the point's data). `entity_id` is the real `geo_location` id when the entity exists, otherwise `trafikverket_map.<key>`.
 
 The API schemas (XSD) the integration is built on are in `docs/schemas/`.
 

@@ -82,6 +82,25 @@
     return l.startsWith("sv") ? "sv" : "en";
   };
 
+  /**
+   * Map points of one location from the integration's websocket API. Falls back to
+   * the geo_location entities (older integration versions).
+   */
+  async function fetchPoints(hass, entryId) {
+    try {
+      const res = await hass.callWS({ type: "trafikverket_map/map_data", ...(entryId ? { entry_id: entryId } : {}) });
+      return (res && res.items) || [];
+    } catch (e) {
+      const out = [];
+      for (const id in hass.states) {
+        if (!id.startsWith("geo_location.")) continue;
+        const s = hass.states[id];
+        if (s.attributes.tv_type && (!entryId || s.attributes.config_entry_id === entryId)) out.push(s);
+      }
+      return out;
+    }
+  }
+
   const esc = (v) =>
     String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   const num = (v) => (v === null || v === undefined || v === "" || isNaN(Number(v)) ? null : Number(v));
@@ -152,9 +171,18 @@
       const lang = langOf(hass);
       // Cheap check first: the data only changes when the integration fetches.
       if (!this._dataChanged(lang)) return;
+      this._refresh(lang);
+    }
+
+    async _refresh(lang) {
+      const home = this._homeId ? this._hass.states[this._homeId] : null;
+      const token = (this._token = (this._token || 0) + 1);
+      const points = await fetchPoints(this._hass, home ? home.attributes.config_entry_id : this._config.entry);
+      if (token !== this._token) return;
+      this._points = points;
       const d = this._collect();
       const sig = lang + [d.home, d.station, d.road, ...d.roads].map((s) => (s ? s.entity_id + s.last_updated : "-")).join("|");
-      if (sig === this._sig && this.shadowRoot) return;
+      if (sig === this._sig && this.shadowRoot && this.shadowRoot.innerHTML) return;
       this._sig = sig;
       this._render(d, I18N[lang]);
     }
@@ -185,8 +213,7 @@
       const home = states.find((s) => s.attributes.trafikverket_home && (!entry || s.attributes.config_entry_id === entry));
       const eid = home ? home.attributes.config_entry_id : entry;
       const ids = home ? home.attributes.entity_ids || {} : {};
-      const mine = (s) => !eid || s.attributes.config_entry_id === eid;
-      const geo = states.filter((s) => s.entity_id.startsWith("geo_location.") && mine(s));
+      const geo = (this._points || []).filter((s) => !eid || s.attributes.config_entry_id === eid);
       const stations = geo.filter((s) => s.attributes.tv_type === "weather" && num(s.attributes.surface_temperature ?? s.attributes.air_temperature) !== null);
       const station = stations.sort((a, b) => Number(a.state) - Number(b.state))[0] || null;
       const roads = geo
@@ -213,7 +240,8 @@
     }
 
     _moreInfo(entityId) {
-      if (!entityId) return;
+      // Map points without a geo_location entity (setting "Hidden") have no dialog.
+      if (!entityId || !this._hass.states[entityId]) return;
       this.dispatchEvent(new CustomEvent("hass-more-info", { bubbles: true, composed: true, detail: { entityId } }));
     }
 

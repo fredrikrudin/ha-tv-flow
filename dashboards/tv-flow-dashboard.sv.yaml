@@ -55,6 +55,7 @@ views:
       heading: Vägöversikt
       icon: mdi:road-variant
     - type: custom:trafikverket-road-card
+      entry: __ENTRY__
       max_roads: 3
       grid_options:
         columns: full
@@ -64,11 +65,13 @@ views:
       heading: Trafikläge
       icon: mdi:car-multiple
     - type: custom:trafikverket-traffic-card
+      entry: __ENTRY__
       max_sites: 5
       hours: 3
       grid_options:
         columns: full
     - type: custom:trafikverket-site-card
+      entry: __ENTRY__
       title: Närmaste mätpunkt
       grid_options:
         columns: full
@@ -148,19 +151,14 @@ views:
       grid_options:
         columns: full
       content: |-
-        {%- set roads = states.geo_location
-            | selectattr('attributes.tv_type', 'defined')
-            | selectattr('attributes.tv_type', 'eq', 'road')
-            | selectattr('attributes.condition_code', 'number')
-            | selectattr('attributes.condition_code', 'gt', 1)
-            | sort(attribute='attributes.condition_code', reverse=true) | list %}
+        {%- set roads = state_attr('sensor.tv_flow_road_condition_count', 'difficult_roads') or [] %}
         {%- if roads %}
         {% for r in roads[:6] -%}
-        {%- set icon = {2: '🟡', 3: '🔴', 4: '🔵'}[r.attributes.condition_code] | default('⚪') -%}
-        {{ icon }} **{{ r.attributes.road_number or 'Väg' }}** – {{ r.attributes.condition_text }}
-        {%- if r.attributes.warning %} · {{ r.attributes.warning }}{% endif %}
-        {%- if r.attributes.measure %} · {{ r.attributes.measure | lower }}{% endif %}
-        <br><small>{{ r.attributes.location_text or '' }} ({{ r.state }} km)</small>
+        {%- set icon = {2: '🟡', 3: '🔴', 4: '🔵'}[r.condition_code] | default('⚪') -%}
+        {{ icon }} **{{ r.road_number or 'Väg' }}** – {{ r.condition_text }}
+        {%- if r.warning %} · {{ r.warning }}{% endif %}
+        {%- if r.measure %} · {{ r.measure | lower }}{% endif %}
+        <br><small>{{ r.location_text or '' }} ({{ r.distance_km }} km)</small>
 
         {% endfor %}
         {%- else %}
@@ -182,6 +180,7 @@ views:
         show_state: true
         show_icon: true
     - type: custom:trafikverket-map-card
+      entry: __ENTRY__
       height: 560
       grid_options:
         columns: full
@@ -229,17 +228,13 @@ views:
       grid_options:
         columns: full
       content: |-
-        {%- set sites = states.geo_location
-            | selectattr('attributes.tv_type', 'defined')
-            | selectattr('attributes.tv_type', 'eq', 'flow')
-            | selectattr('attributes.average_speed', 'number')
-            | sort(attribute='attributes.average_speed') | list %}
+        {%- set sites = state_attr('sensor.tv_flow_lowest_speed', 'slowest_sites') or [] %}
         {%- if sites %}
         | | Mätpunkt | km/h | fordon/h | Avstånd |
         |:-:|:--|--:|--:|--:|
         {% for s in sites[:6] -%}
-        {%- set v = s.attributes.average_speed -%}
-        | {{ '🔴' if v < 30 else '🟠' if v < 50 else '🟡' if v < 70 else '🟢' }} | {{ s.attributes.site_id }} | {{ v | round(0) | int }} | {{ s.attributes.flow }} | {{ s.state }} km |
+        {%- set v = s.average_speed -%}
+        | {{ '🔴' if v < 30 else '🟠' if v < 50 else '🟡' if v < 70 else '🟢' }} | {{ s.site_id }} | {{ v | round(0) | int }} | {{ s.flow }} | {{ s.distance_km }} km |
         {% endfor %}
         {%- else %}
         Inga mätpunkter med hastighet inom radien just nu.

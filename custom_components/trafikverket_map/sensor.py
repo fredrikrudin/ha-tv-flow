@@ -32,6 +32,7 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from . import TrafikverketConfigEntry
 from .const import ATTRIBUTION, DOMAIN, NAME
 from .coordinator import TrafikverketCoordinator
+from .mapdata import difficult_roads, slowest_sites
 from .parser import TrafikverketData
 from .texts import (
     PRECIPITATION_KEYS,
@@ -237,7 +238,7 @@ class TrafikverketSensor(_Base):
         "trafikverket_home", "config_entry_id", "home_latitude", "home_longitude",
         "radius_km", "weather_radius_km", "scan_interval_min", "map_style",
         "dashboard_sections", "map_height", "map_zoom_margin_km", "entity_ids",
-        "show_road_works", "event_marker_style",
+        "show_road_works", "event_marker_style", "map_entities", "slowest_sites", "difficult_roads",
     })
 
     def __init__(self, coordinator, entry, description: TvSensorDescription) -> None:
@@ -288,6 +289,7 @@ class TrafikverketSensor(_Base):
                 "map_zoom_margin_km": s.map_zoom_margin_km,
                 "show_road_works": s.show_road_works,
                 "event_marker_style": s.event_marker_style,
+                "map_entities": s.map_entities,
                 "entity_ids": self._sibling_entity_ids(),
             }
         if self.entity_description.group == "weather" and d and d.nearest_weather:
@@ -300,6 +302,11 @@ class TrafikverketSensor(_Base):
             if key == "precipitation":
                 attrs["state_text"] = precipitation_text(language(self.hass), self.native_value)
             return attrs
+        # Lists for dashboards – so they work without geo_location entities.
+        if key == "lowest_speed" and d:
+            return {"slowest_sites": slowest_sites(d)}
+        if key == "road_condition_count" and d:
+            return {"difficult_roads": difficult_roads(d)}
         if key == "road_condition" and d:
             lang = language(self.hass)
             state = self.native_value or ROAD_CONDITION_NO_DATA

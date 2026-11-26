@@ -51,6 +51,25 @@
     const l = String((hass && ((hass.locale && hass.locale.language) || hass.language)) || "en").toLowerCase();
     return l.startsWith("sv") ? "sv" : "en";
   };
+  /**
+   * Map points of one location from the integration's websocket API. Falls back to
+   * the geo_location entities (older integration versions).
+   */
+  async function fetchPoints(hass, entryId) {
+    try {
+      const res = await hass.callWS({ type: "trafikverket_map/map_data", ...(entryId ? { entry_id: entryId } : {}) });
+      return (res && res.items) || [];
+    } catch (e) {
+      const out = [];
+      for (const id in hass.states) {
+        if (!id.startsWith("geo_location.")) continue;
+        const st = hass.states[id];
+        if (st.attributes.tv_type && (!entryId || st.attributes.config_entry_id === entryId)) out.push(st);
+      }
+      return out;
+    }
+  }
+
   const esc = (v) =>
     String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   const num = (v) => (v === null || v === undefined || v === "" || isNaN(Number(v)) ? null : Number(v));
@@ -112,46 +131,59 @@
     set hass(hass) {
       this._hass = hass;
       const lang = langOf(hass);
-      const site = this._findSite();
-      const sig = [lang, site && site.entity_id, site && site.last_updated, this._homeId].join("|");
-      if (sig === this._sig && this.shadowRoot) return;
-      this._sig = sig;
-      this._render(site, I18N[lang]);
+      if (!this._dataChanged(lang)) return;
+      this._refresh(lang);
     }
 
-    /** The configured site, or the nearest one. Cached between hass updates. */
-    _findSite() {
+    /** True when the integration fetched new data (home / data usage sensor changed) or once a minute. */
+    _dataChanged(lang) {
       const states = this._hass.states;
       const c = this._config;
-      // Fast path: the entity found last time is still there and still matches.
-      const cached = this._siteId && states[this._siteId];
-      if (cached && cached.attributes.tv_type === "flow" && (!c.site_id || String(cached.attributes.site_id) === String(c.site_id))) {
-        // For "nearest", re-check now and then (sites can appear/disappear).
-        if (c.site_id || Date.now() - (this._foundAt || 0) < 60000) return cached;
-      }
       let home = this._homeId && states[this._homeId];
-      if (!home || !home.attributes.trafikverket_home) {
+      if (!home || !home.attributes.trafikverket_home || (c.entry && home.attributes.config_entry_id !== c.entry)) {
         home = Object.values(states).find(
           (s) => s.attributes.trafikverket_home && (!c.entry || s.attributes.config_entry_id === c.entry));
         this._homeId = home ? home.entity_id : null;
       }
+      const ids = (home && home.attributes.entity_ids) || {};
+      const usage = ids.data_usage && states[ids.data_usage];
+      const sig = [lang, home && home.last_updated, usage && usage.last_updated].join("|");
+      const now = Date.now();
+      if (sig === this._trigger && this.shadowRoot && now - (this._lastFull || 0) < 60000) return false;
+      this._trigger = sig;
+      this._lastFull = now;
+      return true;
+    }
+
+    async _refresh(lang) {
+      const home = this._homeId ? this._hass.states[this._homeId] : null;
+      const token = (this._token = (this._token || 0) + 1);
+      const points = await fetchPoints(this._hass, home ? home.attributes.config_entry_id : this._config.entry);
+      if (token !== this._token) return;
+      const site = this._findSite(points, home);
+      const sig = [lang, site && site.entity_id, site && site.last_updated].join("|");
+      if (sig === this._sig && this.shadowRoot && this.shadowRoot.innerHTML) return;
+      this._sig = sig;
+      this._render(site, I18N[lang]);
+    }
+
+    /** The configured site, or the nearest one. */
+    _findSite(points, home) {
+      const c = this._config;
       const eid = home ? home.attributes.config_entry_id : c.entry;
       let best = null;
-      for (const id in states) {
-        if (!id.startsWith("geo_location.")) continue;
-        const s = states[id];
+      for (const s of points) {
         const a = s.attributes;
         if (a.tv_type !== "flow" || (eid && a.config_entry_id !== eid)) continue;
-        if (c.site_id) { if (String(a.site_id) === String(c.site_id)) { best = s; break; } }
+        if (c.site_id) { if (String(a.site_id) === String(c.site_id)) return s; }
         else if (!best || Number(s.state) < Number(best.state)) best = s;
       }
-      this._siteId = best ? best.entity_id : null;
-      this._foundAt = Date.now();
       return best;
     }
 
     _moreInfo(entityId) {
-      if (!entityId) return;
+      // Map points without a geo_location entity (setting "Hidden") have no dialog.
+      if (!entityId || !this._hass.states[entityId]) return;
       this.dispatchEvent(new CustomEvent("hass-more-info", { bubbles: true, composed: true, detail: { entityId } }));
     }
 

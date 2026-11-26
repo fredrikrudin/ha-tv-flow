@@ -143,6 +143,7 @@
         "data": {
           "map_style": "Kartstil",
           "map_zoom_margin_km": "Marginal runt området vid start",
+          "map_entities": "Kartpunkter i Home Assistant",
           "position_1": "Plats 1",
           "position_2": "Plats 2",
           "position_3": "Plats 3",
@@ -156,7 +157,8 @@
         "data_description": {
           "map_style": "Utseende på kartan i kartkortet. Ett eget dark_mode i kortet går före.",
           "map_height": "Höjd på kartan i pixlar.",
-          "map_zoom_margin_km": "Kartan startar inzoomad på vald radie plus den här marginalen. 0 = exakt vald radie."
+          "map_zoom_margin_km": "Kartan startar inzoomad på vald radie plus den här marginalen. 0 = exakt vald radie.",
+          "map_entities": "Hur integrationens punkter visas på Home Assistants egen karta. Integrationens kort fungerar i alla tre lägena."
         }
       },
       "experimental": {
@@ -290,6 +292,13 @@
       "options": {
         "symbols": "Symboler",
         "text": "Text"
+      }
+    },
+    "map_entities": {
+      "options": {
+        "icons": "Ikoner (färgade symboler, inga namn)",
+        "names": "Namn (Home Assistants standard)",
+        "hidden": "Dolda (skapa inga geo_location-entiteter)"
       }
     }
   }

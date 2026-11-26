@@ -11,7 +11,10 @@ are Swedish in the source data and are passed through unchanged.
 
 from __future__ import annotations
 
-from homeassistant.core import HomeAssistant
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:  # keeps this module importable without Home Assistant (tests)
+    from homeassistant.core import HomeAssistant
 
 # Language independent keys
 ROAD_CONDITION_KEYS = {1: "normal", 2: "difficult", 3: "very_difficult", 4: "ice_snow"}
@@ -78,7 +81,7 @@ TEXTS: dict[str, dict] = {
 }
 
 
-def language(hass: HomeAssistant | None) -> str:
+def language(hass: "HomeAssistant | None") -> str:
     """Return "sv" for a Swedish Home Assistant, otherwise "en"."""
     lang = (getattr(getattr(hass, "config", None), "language", None) or "en").lower()
     return "sv" if lang.startswith("sv") else "en"

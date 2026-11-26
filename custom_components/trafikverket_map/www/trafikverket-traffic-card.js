@@ -69,6 +69,25 @@
     const l = String((hass && ((hass.locale && hass.locale.language) || hass.language)) || "en").toLowerCase();
     return l.startsWith("sv") ? "sv" : "en";
   };
+  /**
+   * Map points of one location from the integration's websocket API. Falls back to
+   * the geo_location entities (older integration versions).
+   */
+  async function fetchPoints(hass, entryId) {
+    try {
+      const res = await hass.callWS({ type: "trafikverket_map/map_data", ...(entryId ? { entry_id: entryId } : {}) });
+      return (res && res.items) || [];
+    } catch (e) {
+      const out = [];
+      for (const id in hass.states) {
+        if (!id.startsWith("geo_location.")) continue;
+        const s = hass.states[id];
+        if (s.attributes.tv_type && (!entryId || s.attributes.config_entry_id === entryId)) out.push(s);
+      }
+      return out;
+    }
+  }
+
   const esc = (v) =>
     String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   const num = (v) => (v === null || v === undefined || v === "" || isNaN(Number(v)) ? null : Number(v));
@@ -163,8 +182,17 @@
       this._hass = hass;
       const lang = langOf(hass);
       if (!this._dataChanged(lang)) return;
-      this._render(I18N[lang]);
+      this._refresh(lang);
       this._maybeFetchHistory(lang);
+    }
+
+    async _refresh(lang) {
+      const home = this._homeId ? this._hass.states[this._homeId] : null;
+      const token = (this._token = (this._token || 0) + 1);
+      const points = await fetchPoints(this._hass, home ? home.attributes.config_entry_id : this._config.entry);
+      if (token !== this._token) return;
+      this._points = points;
+      this._render(I18N[lang]);
     }
 
     /** Only re-render when the integration has fetched new data (or once a minute). */
@@ -224,7 +252,8 @@
     }
 
     _moreInfo(entityId) {
-      if (!entityId) return;
+      // Map points without a geo_location entity (setting "Hidden") have no dialog.
+      if (!entityId || !this._hass.states[entityId]) return;
       this.dispatchEvent(new CustomEvent("hass-more-info", { bubbles: true, composed: true, detail: { entityId } }));
     }
 
@@ -239,12 +268,7 @@
       const loc = t.locale;
       const states = this._hass.states;
       const eid = home.attributes.config_entry_id;
-      const sites = [];
-      for (const id in states) {
-        if (!id.startsWith("geo_location.")) continue;
-        const s = states[id];
-        if (s.attributes.tv_type === "flow" && s.attributes.config_entry_id === eid) sites.push(s);
-      }
+      const sites = (this._points || []).filter((s) => s.attributes.tv_type === "flow" && s.attributes.config_entry_id === eid);
       const st = status(sites, Number(c.queue_speed) || 30, Number(c.slow_speed) || 50);
       const S = STATUS_STYLE[st.key];
       const sub = st.key === "none" ? t.status_sub.none()

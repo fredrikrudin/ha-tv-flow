@@ -24,6 +24,7 @@ from .const import (
     DEFAULT_EVENT_MARKER_STYLE,
     CONF_ENABLE_WEATHER,
     CONF_DASHBOARD_SECTIONS,
+    CONF_MAP_ENTITIES,
     CONF_MAP_HEIGHT,
     CONF_MAP_ZOOM_MARGIN,
     CONF_MAP_STYLE,
@@ -44,6 +45,7 @@ from .const import (
     DEFAULT_WEATHER_RADIUS_KM,
     DOMAIN,
 )
+from .mapdata import MAP_ENTITIES_ICONS, MAP_ENTITIES_MODES
 from .parser import TrafikverketData
 
 _LOGGER = logging.getLogger(__name__)
@@ -71,6 +73,7 @@ class Settings:
     map_zoom_margin_km: float
     show_road_works: bool
     event_marker_style: str
+    map_entities: str
 
     @classmethod
     def from_entry(cls, hass: HomeAssistant, entry: ConfigEntry) -> Settings:
@@ -98,6 +101,10 @@ class Settings:
             map_zoom_margin_km=float(get(CONF_MAP_ZOOM_MARGIN, DEFAULT_MAP_ZOOM_MARGIN)),
             show_road_works=bool(get(CONF_SHOW_ROAD_WORKS, True)),
             event_marker_style=str(get(CONF_EVENT_MARKER_STYLE, DEFAULT_EVENT_MARKER_STYLE)),
+            map_entities=(
+                str(get(CONF_MAP_ENTITIES, MAP_ENTITIES_ICONS))
+                if get(CONF_MAP_ENTITIES, MAP_ENTITIES_ICONS) in MAP_ENTITIES_MODES else MAP_ENTITIES_ICONS
+            ),
         )
 
 
@@ -120,6 +127,8 @@ class TrafikverketCoordinator(DataUpdateCoordinator[TrafikverketData]):
         )
         self.total_bytes = 0
         self.request_count = 0
+        # Set by the geo_location platform: () -> {map point key: entity_id}
+        self.geo_entity_ids = lambda: {}
 
     async def _async_update_data(self) -> TrafikverketData:
         s = self.settings

@@ -3,11 +3,11 @@
   "name": "Trafikverket Trafikkarta",
   "codeowners": ["@fredrikrudin"],
   "config_flow": true,
-  "dependencies": ["frontend", "http"],
+  "dependencies": ["frontend", "http", "websocket_api"],
   "documentation": "https://github.com/fredrikrudin/ha-tv-flow",
   "integration_type": "service",
   "iot_class": "cloud_polling",
   "issue_tracker": "https://github.com/fredrikrudin/ha-tv-flow/issues",
   "requirements": [],
-  "version": "1.7.0"
+  "version": "1.8.0"
 }

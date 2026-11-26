@@ -46,6 +46,7 @@ from .const import (
     EVENT_MARKER_STYLES,
     CONF_ENABLE_WEATHER,
     CONF_DASHBOARD_SECTIONS,
+    CONF_MAP_ENTITIES,
     CONF_MAP_HEIGHT,
     CONF_MAP_ZOOM_MARGIN,
     CONF_MAP_STYLE,
@@ -74,6 +75,7 @@ from .const import (
     NAME,
 )
 from .geocode import async_search_place
+from .mapdata import MAP_ENTITIES_ICONS, MAP_ENTITIES_MODES
 
 CONF_PLACE = "place"
 CONF_CHOICE = "choice"
@@ -373,6 +375,7 @@ class TrafikverketMapOptionsFlow(_LocationSteps, OptionsFlow):
                 data[CONF_MAP_HEIGHT] = int(user_input[CONF_MAP_HEIGHT])
                 data[CONF_MAP_STYLE] = user_input[CONF_MAP_STYLE]
                 data[CONF_MAP_ZOOM_MARGIN] = float(user_input[CONF_MAP_ZOOM_MARGIN])
+                data[CONF_MAP_ENTITIES] = user_input[CONF_MAP_ENTITIES]
                 return self.async_create_entry(data=data)
 
         # Drop values from older versions (e.g. "warnings" from 1.2.5) and duplicates.
@@ -392,6 +395,11 @@ class TrafikverketMapOptionsFlow(_LocationSteps, OptionsFlow):
         schema[vol.Required(
             CONF_MAP_ZOOM_MARGIN, default=float(cur.get(CONF_MAP_ZOOM_MARGIN, DEFAULT_MAP_ZOOM_MARGIN))
         )] = _km(0, 50, 1)
+        saved_mode = cur.get(CONF_MAP_ENTITIES, MAP_ENTITIES_ICONS)
+        schema[vol.Required(
+            CONF_MAP_ENTITIES, default=saved_mode if saved_mode in MAP_ENTITIES_MODES else MAP_ENTITIES_ICONS
+        )] = SelectSelector(SelectSelectorConfig(
+            options=MAP_ENTITIES_MODES, translation_key=CONF_MAP_ENTITIES, mode=SelectSelectorMode.LIST))
         for i in range(len(DASHBOARD_SECTIONS)):
             schema[vol.Required(f"position_{i + 1}", default=current[i])] = choices
         schema[vol.Required(CONF_MAP_HEIGHT, default=int(cur.get(CONF_MAP_HEIGHT, DEFAULT_MAP_HEIGHT)))] = (

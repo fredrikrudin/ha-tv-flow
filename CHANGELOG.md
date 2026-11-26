@@ -9,6 +9,22 @@ The newest version is at the top. Every release on GitHub is tagged `vX.Y.Z`.
 
 ## [Unreleased]
 
+## [1.8.0] – 2026-11-26
+
+### Added
+- **Map points in Home Assistant** (*Configure → Dashboard and map*): choose how the integration's `geo_location` entities (sites, road condition sections, weather stations and events such as `geo_location.road_works_…`) appear on Home Assistant's own map:
+  - **Icons** (new default) – small coloured symbols without name labels: speed class for sites, road condition for sections, a weather symbol for stations and the event type for events.
+  - **Names** – Home Assistant's default look with the start of the name.
+  - **Hidden** – no `geo_location` entities are created, and existing ones are removed.
+- Websocket command `trafikverket_map/map_data`, which the cards use to get the map points directly from the integration.
+- Attribute `slowest_sites` on `sensor.tv_flow_lowest_speed` and `difficult_roads` on `sensor.tv_flow_road_condition_count` (not stored in the recorder).
+
+### Changed
+- All cards (map, road status, traffic now and measurement site) get their points over the websocket instead of reading `geo_location` entities, so they work in all three modes. With older integration versions they fall back to the entities.
+- The *Current situation* lists in the dashboard (slowest sites, difficult sections) read the new sensor attributes instead of `geo_location` entities; the static dashboards are updated.
+- In the cards, clicking a point only opens an entity dialog when the entity exists.
+- Map point data is built once per fetch in a shared module (`mapdata.py`) for both the entities and the websocket.
+
 ## [1.7.0] – 2026-11-26
 
 ### Added

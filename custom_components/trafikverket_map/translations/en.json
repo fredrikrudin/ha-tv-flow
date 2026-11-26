@@ -143,6 +143,7 @@
         "data": {
           "map_style": "Map style",
           "map_zoom_margin_km": "Margin around the area at start",
+          "map_entities": "Map points in Home Assistant",
           "position_1": "Position 1",
           "position_2": "Position 2",
           "position_3": "Position 3",
@@ -156,7 +157,8 @@
         "data_description": {
           "map_style": "Look of the map in the map card. A dark_mode set on the card takes precedence.",
           "map_height": "Height of the map in pixels.",
-          "map_zoom_margin_km": "The map opens on the chosen radius plus this margin. 0 = exactly the chosen radius."
+          "map_zoom_margin_km": "The map opens on the chosen radius plus this margin. 0 = exactly the chosen radius.",
+          "map_entities": "How the integration's points appear on Home Assistant's own map. The integration's cards work in all three modes."
         }
       },
       "experimental": {
@@ -290,6 +292,13 @@
       "options": {
         "symbols": "Symbols",
         "text": "Text"
+      }
+    },
+    "map_entities": {
+      "options": {
+        "icons": "Icons (coloured symbols, no names)",
+        "names": "Names (Home Assistant default)",
+        "hidden": "Hidden (no geo_location entities)"
       }
     }
   }

@@ -28,6 +28,7 @@ CONF_MAP_STYLE = "map_style"
 CONF_DASHBOARD_SECTIONS = "dashboard_sections"
 CONF_MAP_HEIGHT = "map_height"
 CONF_MAP_ZOOM_MARGIN = "map_zoom_margin_km"
+CONF_MAP_ENTITIES = "map_entities"
 
 DEFAULT_RADIUS_KM = 10.0
 DEFAULT_WEATHER_RADIUS_KM = 30.0
@@ -48,14 +49,11 @@ MAX_SCAN_INTERVAL_MIN = 1440
 MIN_RADIUS_KM = 0.5
 MAX_RADIUS_KM = 100.0
 
-# geo_location sources (used by the map card and by the built-in map card)
-SOURCE_FLOW = "trafikverket_flow"
-SOURCE_ROAD = "trafikverket_road"
-SOURCE_WEATHER = "trafikverket_weather"
-SOURCE_SITUATION = "trafikverket_situation"
 
 SIGNAL_UPDATE = f"{DOMAIN}_update_{{}}"
 
+# Icons used as entity pictures for the geo_location entities ("icons" mode)
+ICON_URL = f"/{DOMAIN}/icons"
 # All Lovelace cards shipped with the integration (served from www/ and loaded automatically)
 CARD_FILES = [
     "trafikverket-map-card.js",
@@ -63,4 +61,4 @@ CARD_FILES = [
     "trafikverket-traffic-card.js",
     "trafikverket-site-card.js",
 ]
-CARD_VERSION = "1.7.0"
+CARD_VERSION = "1.8.0"
