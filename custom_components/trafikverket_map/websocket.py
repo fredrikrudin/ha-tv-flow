@@ -22,6 +22,7 @@ from .texts import language
 _LOGGER = logging.getLogger(__name__)
 
 WS_MAP_DATA = f"{DOMAIN}/map_data"
+WS_POINT_HISTORY = f"{DOMAIN}/point_history"
 
 
 @callback
@@ -29,6 +30,7 @@ def async_register(hass: HomeAssistant) -> None:
     """Register the command. A failure here must never stop the cards from loading."""
     try:
         websocket_api.async_register_command(hass, ws_map_data)
+        websocket_api.async_register_command(hass, ws_point_history)
     except Exception:  # noqa: BLE001
         _LOGGER.exception("Could not register the websocket command %s", WS_MAP_DATA)
 
@@ -59,3 +61,25 @@ def ws_map_data(hass: HomeAssistant, connection: websocket_api.ActiveConnection,
         "fetched_at": data.fetched_at.isoformat() if data and data.fetched_at else None,
         "items": [point_payload(p, entry.entry_id, entity_ids.get(p.key)) for p in map_points(data, lang)],
     })
+
+
+def _entry(hass: HomeAssistant, entry_id: str | None):
+    entries = [e for e in hass.config_entries.async_entries(DOMAIN) if getattr(e, "runtime_data", None) is not None]
+    if entry_id:
+        entries = [e for e in entries if e.entry_id == entry_id]
+    return entries[0] if entries else None
+
+
+@websocket_api.websocket_command({
+    schema_lib.Required("type"): WS_POINT_HISTORY,
+    schema_lib.Required("key"): str,
+    schema_lib.Optional("entry_id"): str,
+})
+@callback
+def ws_point_history(hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict[str, Any]) -> None:
+    """Speed history of one flow map point (in memory, the last 24 hours)."""
+    entry = _entry(hass, msg.get("entry_id"))
+    if entry is None:
+        connection.send_error(msg["id"], "not_found", "No Trafikverket Trafikkarta location found")
+        return
+    connection.send_result(msg["id"], {"key": msg["key"], "items": entry.runtime_data.speed_history.get(msg["key"])})

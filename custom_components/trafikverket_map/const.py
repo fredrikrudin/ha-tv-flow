@@ -56,9 +56,10 @@ SIGNAL_UPDATE = f"{DOMAIN}_update_{{}}"
 ICON_URL = f"/{DOMAIN}/icons"
 # All Lovelace cards shipped with the integration (served from www/ and loaded automatically)
 CARD_FILES = [
+    "trafikverket-point-dialog.js",
     "trafikverket-map-card.js",
     "trafikverket-road-card.js",
     "trafikverket-traffic-card.js",
     "trafikverket-site-card.js",
 ]
-CARD_VERSION = "1.8.3"
+CARD_VERSION = "1.9.0"

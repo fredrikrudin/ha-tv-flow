@@ -13,6 +13,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
+from homeassistant.util import dt as dt_util
 
 from .api import TrafikverketAuthError, TrafikverketClient, TrafikverketError
 from .const import (
@@ -45,7 +46,7 @@ from .const import (
     DEFAULT_WEATHER_RADIUS_KM,
     DOMAIN,
 )
-from .mapdata import MAP_ENTITIES_ICONS, MAP_ENTITIES_MODES
+from .mapdata import MAP_ENTITIES_ICONS, MAP_ENTITIES_MODES, SpeedHistory
 from .parser import TrafikverketData
 
 _LOGGER = logging.getLogger(__name__)
@@ -129,6 +130,8 @@ class TrafikverketCoordinator(DataUpdateCoordinator[TrafikverketData]):
         self.request_count = 0
         # Set by the geo_location platform: () -> {map point key: entity_id}
         self.geo_entity_ids = lambda: {}
+        # Speed per flow map point, for the cards' details window.
+        self.speed_history = SpeedHistory()
 
     async def _async_update_data(self) -> TrafikverketData:
         s = self.settings
@@ -152,4 +155,5 @@ class TrafikverketCoordinator(DataUpdateCoordinator[TrafikverketData]):
             raise UpdateFailed(str(err)) from err
         self.total_bytes += data.response_bytes
         self.request_count += 1
+        self.speed_history.add(data, dt_util.utcnow())
         return data

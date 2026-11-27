@@ -38,7 +38,7 @@ class TrafikverketGeoEntity(GeolocationEvent):
     _attr_unit_of_measurement = UnitOfLength.KILOMETERS
     # Big/fast-changing attributes are not written to the recorder database.
     _unrecorded_attributes = frozenset({
-        "lanes", "lines", "measurement_time", "sample", "message", "start_time", "end_time", "web_link",
+        "tv_key", "lanes", "lines", "measurement_time", "sample", "message", "start_time", "end_time", "web_link",
     })
 
     def __init__(self, entry_id: str, point: MapPoint, use_picture: bool) -> None:
@@ -54,6 +54,7 @@ class TrafikverketGeoEntity(GeolocationEvent):
         if sig == self._sig:
             return  # nothing changed – skip the state write
         self._sig = sig
+        self._key = point.key
         self._attr_name = point.name
         self._attr_icon = point.icon
         # An entity picture replaces the name label on Home Assistant's map.
@@ -67,7 +68,7 @@ class TrafikverketGeoEntity(GeolocationEvent):
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
-        return {"config_entry_id": self._entry_id, **self._attrs}
+        return {"config_entry_id": self._entry_id, "tv_key": self._key, **self._attrs}
 
 
 class GeoManager:

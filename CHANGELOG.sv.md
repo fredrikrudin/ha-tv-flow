@@ -9,6 +9,20 @@ Nyaste versionen står överst. Varje release på GitHub har taggen `vX.Y.Z`.
 
 ## [Ej släppt]
 
+## [1.9.0] – 2026-11-27
+
+### Tillagt
+- **Detaljfönster** för kartpunkter, som öppnas med ett klick på en punkt i korten eller via *Detaljer* i kartkortets popup-rutor (i stället för Home Assistants dialog, som för `geo_location`-entiteter alltid visar avståndet):
+  - **Mätpunkter:** hastighet, lägsta hastighet, flöde och avstånd, en **hastighetsgraf för de senaste 24 timmarna** (medel och lägst, över färgade hastighetsband) och alla körfält.
+  - **Vägarbeten och andra händelser:** status (*pågår – 14 dagar kvar*, *börjar om …*, *avslutad*), **start- och slutdatum med tid** (eller *tills vidare*), typ, väg, plats, tillfällig begränsning, påverkan och länk till Trafikverket.
+  - **Väglag och väderstationer:** deras detaljer.
+  - Knappen *Visa entitet* öppnar Home Assistants egen dialog när entiteten finns.
+- Integrationen sparar hastigheten för varje mätplats i minnet i 24 timmar (fungerar i alla lägen för *Kartpunkter*) och använder även `geo_location`-entitetens historik, så grafen är fylld efter en omstart.
+- Websocket-kommandot `trafikverket_map/point_history`.
+
+### Ändrat
+- Tider i kartkortets popup-rutor visar datum när det inte är i dag (t.ex. när ett vägarbete började).
+
 ## [1.8.3] – 2026-11-26
 
 ### Rättat

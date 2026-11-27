@@ -214,6 +214,8 @@ The integration can also create `geo_location` entities for its points, which Ho
 | **Names** | Home Assistant's default look – a circle with the start of the name (e.g. *Väg 893 Bete*). |
 | **Hidden** | No `geo_location` entities are created and existing ones are removed. Nothing shows up on Home Assistant's map. |
 
+Home Assistant's own dialog for a `geo_location` entity always shows the **distance** as its state and history – that is how Home Assistant defines these entities. Speed, flow and event dates are under *Attributes* there. In the integration's cards, clicking a point instead opens the integration's **details window**: a speed graph for the last 24 hours and lanes for measurement sites, and status, start and end (or *until further notice*) for road works and other events. The map card's popups have a *Details* link to it.
+
 The integration's own cards work in all three modes – they get the points directly from the integration and do not depend on the entities. In *Hidden* mode, clicking a point in the cards shows the popup but opens no entity dialog.
 
 With *Icons* or *Names*, the points can be shown on Home Assistant's built-in map card:
@@ -341,7 +343,7 @@ python3 tests/test_dashboard_notify.py
 python3 tests/test_mapdata.py
 ```
 
-The cards get the map points over the websocket command `trafikverket_map/map_data` (optional `entry_id`). It returns `{entry_id, fetched_at, items}`, where each item looks like a Home Assistant state (`entity_id`, `state` = distance in km, `attributes` with `latitude`, `longitude`, `tv_type` and the point's data). `entity_id` is the real `geo_location` id when the entity exists, otherwise `trafikverket_map.<key>`.
+The cards get the map points over the websocket command `trafikverket_map/map_data` (optional `entry_id`). It returns `{entry_id, fetched_at, items}`, where each item looks like a Home Assistant state (`entity_id`, `state` = distance in km, `attributes` with `latitude`, `longitude`, `tv_type` and the point's data). `entity_id` is the real `geo_location` id when the entity exists, otherwise `trafikverket_map.<key>`. `trafikverket_map/point_history` (`key`, optional `entry_id`) returns the speed history of a flow point that the integration keeps in memory for 24 hours.
 
 The API schemas (XSD) the integration is built on are in `docs/schemas/`.
 

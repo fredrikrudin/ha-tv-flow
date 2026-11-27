@@ -38,6 +38,7 @@ const TV_I18N = {
     locale: "sv-SE",
     leaflet_error: "Kunde inte ladda kartbiblioteket (Leaflet)",
     stub_title: "Trafik runt hemmet",
+    details: "Detaljer",
     card_name: "Trafikverket Trafikkarta",
     card_desc: "Trafikflöden, väglag och vägväder från Trafikverket på en karta.",
     legend: "Teckenförklaring",
@@ -91,6 +92,7 @@ const TV_I18N = {
     locale: "en-GB",
     leaflet_error: "Could not load the map library (Leaflet)",
     stub_title: "Traffic around home",
+    details: "Details",
     card_name: "Trafikverket Traffic Map",
     card_desc: "Traffic flow, road conditions and road weather from Trafikverket on a map.",
     legend: "Legend",
@@ -208,8 +210,23 @@ const ROAD_COLORS = { 1: "#43a047", 2: "#ffb300", 3: "#e53935", 4: "#1e88e5" };
 
 function fmtTime(iso, locale) {
   if (!iso) return "–";
-  try { return new Date(iso).toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" }); }
-  catch (e) { return iso; }
+  try {
+    const d = new Date(iso);
+    const time = d.toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" });
+    // Events often start or end on another day: show the date then.
+    return d.toDateString() === new Date().toDateString()
+      ? time : `${d.toLocaleDateString(locale, { day: "numeric", month: "short" })} ${time}`;
+  } catch (e) { return iso; }
+}
+
+/** Popup content with a "Details" link that opens the integration's details window. */
+function tvPopup(html, label, onDetails) {
+  if (!window.tvPointDialog || typeof document.createElement !== "function") return html;
+  const el = document.createElement("div");
+  if (!el || !("innerHTML" in el) || typeof el.querySelector !== "function") return html;
+  el.innerHTML = `${html}<div style="margin-top:6px"><a href="#" class="tv-details">${label} ›</a></div>`;
+  el.querySelector(".tv-details").addEventListener("click", (e) => { e.preventDefault(); onDetails(); });
+  return el;
 }
 
 /* ------------------------------------------------------------------- card */
@@ -531,6 +548,7 @@ class TrafikverketMapCard extends HTMLElement {
     const a = s.attributes;
     const ll = [a.latitude, a.longitude];
     const away = `${esc(s.state)} ${t.km_away}`;
+    const details = () => window.tvPointDialog && window.tvPointDialog.open(this._hass, s, this);
     const out = [];
     if (a.tv_type === "flow") {
       const r = Math.min(18, 5 + Math.sqrt(a.flow || 0) / 3);
@@ -540,10 +558,10 @@ class TrafikverketMapCard extends HTMLElement {
         `<td>${esc(l.flow)} ${t.vehicles_h}</td><td>${l.speed != null ? esc(l.speed) + " km/h" : "–"}</td></tr>`).join("");
       out.push(L.circleMarker(ll, { radius: r, color: "#fff", weight: 1.5, fillColor: speedColor(a.average_speed), fillOpacity: 0.85 })
         .bindTooltip(`${a.average_speed ?? "–"} km/h · ${a.flow} ${t.vehicles_h}`)
-        .bindPopup(`<b>${t.site} ${esc(ids.join(", "))}</b><br>${t.flow}: <b>${esc(a.flow)}</b> ${t.vehicles_h}<br>` +
+        .bindPopup(() => tvPopup(`<b>${t.site} ${esc(ids.join(", "))}</b><br>${t.flow}: <b>${esc(a.flow)}</b> ${t.vehicles_h}<br>` +
           `${t.avg_speed}: <b>${esc(a.average_speed ?? "–")}</b> km/h (${t.lowest} ${esc(a.min_speed ?? "–")})<br>` +
           `${t.quality}: ${esc(a.data_quality ?? "–")} · ${t.measured} ${fmtTime(a.measurement_time, loc)} · ${away}` +
-          (lanes ? `<table>${lanes}</table>` : ""), { maxWidth: 360 }));
+          (lanes ? `<table>${lanes}</table>` : ""), t.details, details), { maxWidth: 360 }));
     } else if (a.tv_type === "road") {
       const color = ROAD_COLORS[a.condition_code] || "#757575";
       // condition_text etc. come from Trafikverket (Swedish); the class name is localized.
@@ -556,10 +574,11 @@ class TrafikverketMapCard extends HTMLElement {
         (a.measure ? `${t.measure}: ${esc(a.measure)}<br>` : "") +
         (a.location_text ? `<i>${esc(a.location_text)}</i>` : "");
       const lines = a.lines && a.lines.length ? a.lines : [[ll]];
+      const content = () => tvPopup(popup, t.details, details);
       for (const line of lines) {
         out.push(line.length > 1
-          ? L.polyline(line, { color, weight: a.condition_code > 1 ? 6 : 4, opacity: a.condition_code > 1 ? 0.9 : 0.5 }).bindPopup(popup)
-          : L.circleMarker(line[0], { radius: 5, color, fillOpacity: 0.8 }).bindPopup(popup));
+          ? L.polyline(line, { color, weight: a.condition_code > 1 ? 6 : 4, opacity: a.condition_code > 1 ? 0.9 : 0.5 }).bindPopup(content)
+          : L.circleMarker(line[0], { radius: 5, color, fillOpacity: 0.8 }).bindPopup(content));
       }
     } else if (a.tv_type === "situation") {
       const st = SIT_STYLE[a.message_type];
@@ -573,26 +592,26 @@ class TrafikverketMapCard extends HTMLElement {
         (a.severity_text ? `${t.impact}: ${esc(a.severity_text)}<br>` : "") +
         `${t.from} ${fmtTime(a.start_time, loc)}${a.end_time ? ` ${t.to} ` + fmtTime(a.end_time, loc) : ""} · ${away}`;
       for (const line of a.lines || []) {
-        if (line.length > 1) out.push(L.polyline(line, { color: st.color, weight: 5, opacity: 0.8, dashArray: "6 6" }).bindPopup(popup));
+        if (line.length > 1) out.push(L.polyline(line, { color: st.color, weight: 5, opacity: 0.8, dashArray: "6 6" }).bindPopup(() => tvPopup(popup, t.details, details)));
       }
       // Zero-size icon; the inner element centres itself on the position (works for any label width).
       const html = markerStyle === "text"
         ? `<div class="sit-text" style="background:${st.color}">${esc(typeText)}</div>`
         : `<div class="sit" style="background:${st.color}"><ha-icon icon="${st.icon}"></ha-icon></div>`;
       const icon = L.divIcon({ className: "", html, iconSize: [0, 0], iconAnchor: [0, 0] });
-      out.push(L.marker(ll, { icon, zIndexOffset: a.is_warning ? 1000 : 300, title: typeText }).bindPopup(popup, { maxWidth: 320 }));
+      out.push(L.marker(ll, { icon, zIndexOffset: a.is_warning ? 1000 : 300, title: typeText }).bindPopup(() => tvPopup(popup, t.details, details), { maxWidth: 320 }));
     } else if (a.tv_type === "weather") {
       const temp = a.air_temperature != null ? `${Math.round(a.air_temperature * 10) / 10}°` : "–";
       const icon = L.divIcon({ className: "", html: `<div class="temp">${esc(temp)}</div>`, iconSize: null, iconAnchor: [18, 10] });
       out.push(L.marker(ll, { icon, zIndexOffset: 500 })
-        .bindPopup(`<b>${esc(a.station)}</b><br>` +
+        .bindPopup(() => tvPopup(`<b>${esc(a.station)}</b><br>` +
           `${t.air}: ${esc(a.air_temperature ?? "–")} °C · ${t.surface}: ${esc(a.surface_temperature ?? "–")} °C<br>` +
           `${t.humidity}: ${esc(a.humidity ?? "–")} % · ${t.wind}: ${esc(a.wind_speed ?? "–")} m/s (${t.gusts} ${esc(a.wind_gust ?? "–")}) ` +
           `${a.wind_direction != null ? esc(a.wind_direction) + "°" : ""}<br>` +
           `${t.precipitation}: ${esc(a.precipitation_text ?? "–")}` +
           (a.precipitation_30min != null ? ` (${esc(a.precipitation_30min)} mm/30 min)` : "") + "<br>" +
           (a.grip != null ? `${t.grip}: ${esc(a.grip)}<br>` : "") +
-          `${t.measured} ${fmtTime(a.sample, loc)} · ${away}`));
+          `${t.measured} ${fmtTime(a.sample, loc)} · ${away}`, t.details, details)));
     }
     return out;
   }

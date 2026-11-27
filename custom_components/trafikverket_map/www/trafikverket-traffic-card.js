@@ -258,8 +258,12 @@
     }
 
     _moreInfo(entityId) {
-      // Map points without a geo_location entity (setting "Hidden") have no dialog.
-      if (!entityId || !this._hass.states[entityId]) return;
+      if (!entityId) return;
+      // Map points: the integration's details window (speed history, event dates …).
+      const point = (this._points || []).find((p) => p.entity_id === entityId);
+      if (point && window.tvPointDialog) { window.tvPointDialog.open(this._hass, point, this); return; }
+      // Points without a geo_location entity (setting "Hidden") have no more-info dialog.
+      if (!this._hass.states[entityId]) return;
       this.dispatchEvent(new CustomEvent("hass-more-info", { bubbles: true, composed: true, detail: { entityId } }));
     }
 

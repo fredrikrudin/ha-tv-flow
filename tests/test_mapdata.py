@@ -82,4 +82,17 @@ assert set(gp) == {"flow_11", "flow_20"}, set(gp)
 assert gp["flow_11"].name.endswith("11 +3") and gp["flow_11"].attributes["site_ids"] == [11, 12, 13, 14]
 assert gp["flow_20"].attributes["site_ids"] == [20] and gp["flow_20"].name.endswith("20")
 assert [s["label"] for s in md.slowest_sites(gd)] == ["20", "11 +3"]
+
+# in-memory speed history (deduplicated per measurement, pruned after 24 h)
+h = md.SpeedHistory()
+h.add(gd, now); h.add(gd, now)
+assert len(h.get("flow_11")) == 1 and h.get("flow_11")[0]["flow"] == 1000
+later = p.parse_response({"RESPONSE": {"RESULT": [{"TrafficFlow": [
+    {**rec(11, 16.18, 61.72, 40.0, 500, "northBound"), "MeasurementTime": "2026-11-26T21:00:00+01:00"}]}]}},
+    ["TrafficFlow"], (61.71, 16.17), 10, 30, timedelta(minutes=60), now)
+h.add(later, now)
+assert [x["speed"] for x in h.get("flow_11")] == [g.average_speed, 40.0]
+h.add(None, now + timedelta(hours=25))
+assert h.get("flow_11") == [] and h.get("nope") == []
+assert md.point_payload(gp["flow_11"], "E1", None)["attributes"]["tv_key"] == "flow_11"
 print("MAPDATA OK")

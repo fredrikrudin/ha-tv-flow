@@ -9,6 +9,20 @@ The newest version is at the top. Every release on GitHub is tagged `vX.Y.Z`.
 
 ## [Unreleased]
 
+## [1.9.0] – 2026-11-27
+
+### Added
+- **Details window** for map points, opened by clicking a point in the cards or via *Details* in the map card's popups (instead of Home Assistant's more-info dialog, which for `geo_location` entities always shows the distance):
+  - **Measurement sites:** speed, lowest speed, flow and distance, a **speed graph for the last 24 hours** (average and lowest, on coloured speed bands) and every lane.
+  - **Road works and other events:** status (*ongoing – 14 days left*, *starts in …*, *ended*), **start and end date and time** (or *until further notice*), type, road, location, temporary limit, impact and a link to Trafikverket.
+  - **Road conditions and weather stations:** their details.
+  - A *Show entity* button opens Home Assistant's own dialog when the entity exists.
+- The integration keeps the speed of every measurement location in memory for 24 hours (works in all *Map points* modes) and also uses the recorder history of the `geo_location` entity, so the graph is filled after a restart.
+- Websocket command `trafikverket_map/point_history`.
+
+### Changed
+- Times in the map card's popups show the date when it is not today (e.g. when road works started).
+
 ## [1.8.3] – 2026-11-26
 
 ### Fixed

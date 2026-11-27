@@ -13,7 +13,9 @@ No Home Assistant imports: this module is unit tested on its own.
 
 from __future__ import annotations
 
+from collections import deque
 from dataclasses import dataclass, replace
+from datetime import datetime, timedelta
 import hashlib
 from typing import Any
 
@@ -21,6 +23,9 @@ from .parser import FlowSite, RoadConditionItem, SituationItem, TrafikverketData
 from .texts import ROAD_CONDITION_KEYS, event_type_text, precipitation_text, text
 
 # Values of the "Map points in Home Assistant" setting
+# Served by the integration (const.ICON_URL); kept here so this module stays pure.
+ICON_PATH = "/trafikverket_map/icons"
+
 MAP_ENTITIES_ICONS = "icons"
 MAP_ENTITIES_NAMES = "names"
 MAP_ENTITIES_HIDDEN = "hidden"
@@ -283,6 +288,8 @@ def point_payload(point: MapPoint, entry_id: str, entity_id: str | None) -> dict
             "longitude": point.longitude,
             "source": point.source,
             "friendly_name": point.name,
+            "tv_key": point.key,
+            "icon_picture": f"{ICON_PATH}/{point.picture}.svg",
         },
     }
 
@@ -307,3 +314,37 @@ def difficult_roads(data: TrafikverketData | None, limit: int = 6) -> list[dict[
     return [{"condition_code": r.code, "road_number": r.road_number, "condition_text": r.text,
              "warning": r.warning, "measure": r.measure, "location_text": r.location_text,
              "distance_km": r.distance_km} for r in roads[:limit]]
+
+
+class SpeedHistory:
+    """Speed and flow per flow map point over the last hours, kept in memory.
+
+    Works in every "Map points in Home Assistant" mode (also without entities).
+    It starts empty after a restart; the cards then also read the recorder
+    history of the geo_location entity when there is one.
+    """
+
+    def __init__(self, hours: float = 24, max_points: int = 400) -> None:
+        self.keep = timedelta(hours=hours)
+        self.max_points = max_points
+        self._series: dict[str, deque[tuple[datetime, float | None, float | None, int]]] = {}
+
+    def add(self, data: TrafikverketData | None, now: datetime) -> None:
+        for site in merge_flow_sites(data.flow_sites) if data is not None else ():
+            key = f"flow_{site.site_id}"
+            when = site.measurement_time or now
+            series = self._series.setdefault(key, deque(maxlen=self.max_points))
+            if series and series[-1][0] >= when:
+                continue  # same measurement as last fetch
+            series.append((when, site.average_speed, site.min_speed, site.total_flow))
+        limit = now - self.keep
+        for key in list(self._series):
+            series = self._series[key]
+            while series and series[0][0] < limit:
+                series.popleft()
+            if not series:
+                del self._series[key]
+
+    def get(self, key: str) -> list[dict[str, Any]]:
+        return [{"t": t.isoformat(), "speed": speed, "min_speed": low, "flow": flow}
+                for t, speed, low, flow in self._series.get(key, ())]

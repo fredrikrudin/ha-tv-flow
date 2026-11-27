@@ -216,6 +216,8 @@ Integrationen kan även skapa `geo_location`-entiteter för sina punkter, som Ho
 | **Namn** | Home Assistants standardutseende – en cirkel med början av namnet (t.ex. *Väg 893 Bete*). |
 | **Dolda** | Inga `geo_location`-entiteter skapas och befintliga tas bort. Ingenting syns på Home Assistants karta. |
 
+Home Assistants egen dialog för en `geo_location`-entitet visar alltid **avståndet** som tillstånd och historik – så definierar Home Assistant de entiteterna. Hastighet, flöde och datum för händelser finns där under *Attribut*. I integrationens kort öppnar ett klick på en punkt i stället integrationens **detaljfönster**: hastighetsgraf för de senaste 24 timmarna och körfält för mätpunkter, och status, start och slut (eller *tills vidare*) för vägarbeten och andra händelser. Kartkortets popup-rutor har länken *Detaljer* dit.
+
 Integrationens egna kort fungerar i alla tre lägena – de hämtar punkterna direkt från integrationen och är inte beroende av entiteterna. I läget *Dolda* visar ett klick på en punkt i korten popup-rutan men öppnar ingen entitetsdialog.
 
 Med *Ikoner* eller *Namn* kan punkterna visas på Home Assistants vanliga kartkort:
@@ -343,7 +345,7 @@ python3 tests/test_dashboard_notify.py
 python3 tests/test_mapdata.py
 ```
 
-Korten hämtar kartpunkterna via websocket-kommandot `trafikverket_map/map_data` (valfritt `entry_id`). Det returnerar `{entry_id, fetched_at, items}`, där varje punkt ser ut som ett tillstånd i Home Assistant (`entity_id`, `state` = avstånd i km, `attributes` med `latitude`, `longitude`, `tv_type` och punktens data). `entity_id` är det riktiga `geo_location`-id:t när entiteten finns, annars `trafikverket_map.<nyckel>`.
+Korten hämtar kartpunkterna via websocket-kommandot `trafikverket_map/map_data` (valfritt `entry_id`). Det returnerar `{entry_id, fetched_at, items}`, där varje punkt ser ut som ett tillstånd i Home Assistant (`entity_id`, `state` = avstånd i km, `attributes` med `latitude`, `longitude`, `tv_type` och punktens data). `entity_id` är det riktiga `geo_location`-id:t när entiteten finns, annars `trafikverket_map.<nyckel>`. `trafikverket_map/point_history` (`key`, valfritt `entry_id`) returnerar hastighetshistoriken för en mätpunkt, som integrationen håller i minnet i 24 timmar.
 
 API-schemana (XSD) som integrationen bygger på finns i `docs/schemas/`.
 
